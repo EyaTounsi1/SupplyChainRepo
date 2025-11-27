@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 300" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="tgrad" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#8FC9C5" />
+      <stop offset="100%" stop-color="#6FA9B0" />
+    </linearGradient>
+  </defs>
+  <g fill="none" fill-rule="evenodd">
+    <rect width="200" height="300" fill="transparent" />
+    <g transform="translate(50,20)">
+      <path d="M50 0 L0 80 L100 80 Z" fill="url(#tgrad)" opacity="0.95" />
+      <path d="M50 18 L12 98 L88 98 Z" fill="#79BAC0" opacity="0.9" />
+      <path d="M50 36 L24 116 L76 116 Z" fill="#68B3B7" opacity="0.85" />
+      <rect x="44" y="116" width="12" height="28" rx="2" fill="#4C6B74" opacity="0.9" />
+    </g>
+  </g>
+</svg>

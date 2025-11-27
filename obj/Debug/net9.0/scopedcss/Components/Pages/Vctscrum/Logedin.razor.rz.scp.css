@@ -1,0 +1,117 @@
+:root[b-iy0c1llm9y] {
+  --nord0: #2E3440;
+  --nord1: #3B4252;
+  --nord2: #434C5E;
+  --nord3: #4C566A;
+  --nord4: #D8DEE9;
+  --nord5: #E5E9F0;
+  --accent: #88C0D0;
+  --muted: #7C8794;
+}
+
+.scrum-hero[b-iy0c1llm9y] {
+  background: linear-gradient(180deg, rgba(136,192,208,0.06), rgba(68,76,94,0.02));
+  padding: 2.5rem 1rem;
+  border-radius: 6px;
+  margin: 0 -1rem 1.25rem -1rem;
+}
+
+.hero-content[b-iy0c1llm9y] {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem;
+}
+
+.hero-content h1[b-iy0c1llm9y] {
+  color: var(--nord0);
+  margin: 0 0 0.35rem 0;
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.hero-content .lead[b-iy0c1llm9y] {
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.quick-actions[b-iy0c1llm9y] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.5rem;
+}
+
+.action-card[b-iy0c1llm9y] {
+  background: var(--nord5);
+  border: 1px solid rgba(66,76,94,0.06);
+  color: var(--nord0);
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-weight: 600;
+}
+
+.action-card:focus[b-iy0c1llm9y],
+.action-card:hover[b-iy0c1llm9y] {
+  outline: none;
+  box-shadow: 0 4px 18px rgba(34,50,60,0.06);
+  transform: translateY(-2px);
+}
+
+.scrum-main[b-iy0c1llm9y] {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+.loading[b-iy0c1llm9y] {
+  color: var(--muted);
+  padding: 1rem 0;
+}
+
+.welcome h2[b-iy0c1llm9y] {
+  margin: 0 0 0.25rem 0;
+  color: var(--nord1);
+}
+
+.muted[b-iy0c1llm9y] {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.tiles[b-iy0c1llm9y] {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.tile[b-iy0c1llm9y] {
+  background: white;
+  border: 1px solid rgba(66,76,94,0.04);
+  padding: 0.85rem;
+  border-radius: 8px;
+  min-height: 90px;
+}
+
+.tile h3[b-iy0c1llm9y] {
+  margin: 0 0 0.5rem 0;
+  color: var(--nord2);
+  font-size: 0.95rem;
+}
+
+.tile .tile-value[b-iy0c1llm9y] {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0 0 0.35rem 0;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .action-card:focus[b-iy0c1llm9y],
+  .action-card:hover[b-iy0c1llm9y] {
+    transform: none;
+    box-shadow: none;
+  }
+}

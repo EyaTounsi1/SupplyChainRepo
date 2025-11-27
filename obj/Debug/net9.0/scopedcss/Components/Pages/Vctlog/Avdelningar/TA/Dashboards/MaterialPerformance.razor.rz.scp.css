@@ -1,0 +1,78 @@
+/* Material Performance Dashboard - Dark Mode */
+.material-performance-dashboard[b-sqzqn7024y] {
+    padding: 2rem;
+    min-height: 100vh;
+}
+
+.material-performance-dashboard h2[b-sqzqn7024y] {
+    color: var(--nord6); /* Light text for dark mode */
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    letter-spacing: 0.5px;
+}
+
+/* KPI Grid Layout */
+.kpi-grid[b-sqzqn7024y] {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+/* NordKpiList styling in dashboard */
+.material-performance-dashboard .nord-kpi-list[b-sqzqn7024y] {
+    margin-top: 2.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .material-performance-dashboard[b-sqzqn7024y] {
+        padding: 1rem;
+    }
+    
+    .material-performance-dashboard h2[b-sqzqn7024y] {
+        font-size: 1.5rem;
+    }
+}
+
+/* Nord Color Variants */
+.material-performance-dashboard .nord-kpi-card.nord8[b-sqzqn7024y] {
+    border-left-color: var(--nord8); /* Frost cyan */
+}
+
+.material-performance-dashboard .nord-kpi-card.nord8 .kpi-icon[b-sqzqn7024y] {
+    color: var(--nord8);
+}
+
+.material-performance-dashboard .nord-kpi-card.nord10[b-sqzqn7024y] {
+    border-left-color: var(--nord10); /* Frost blue */
+}
+
+.material-performance-dashboard .nord-kpi-card.nord10 .kpi-icon[b-sqzqn7024y] {
+    color: var(--nord10);
+}
+
+.material-performance-dashboard .nord-kpi-card.nord14[b-sqzqn7024y] {
+    border-left-color: var(--nord14); /* Aurora green */
+}
+
+.material-performance-dashboard .nord-kpi-card.nord14 .kpi-icon[b-sqzqn7024y] {
+    color: var(--nord14);
+}
+
+.material-performance-dashboard .nord-kpi-card.nord13[b-sqzqn7024y] {
+    border-left-color: var(--nord13); /* Aurora yellow */
+}
+
+.material-performance-dashboard .nord-kpi-card.nord13 .kpi-icon[b-sqzqn7024y] {
+    color: var(--nord13);
+}
+
+.material-performance-dashboard .nord-kpi-card.nord11[b-sqzqn7024y] {
+    border-left-color: var(--nord11); /* Aurora red */
+}
+
+.material-performance-dashboard .nord-kpi-card.nord11 .kpi-icon[b-sqzqn7024y] {
+    color: var(--nord11);
+}

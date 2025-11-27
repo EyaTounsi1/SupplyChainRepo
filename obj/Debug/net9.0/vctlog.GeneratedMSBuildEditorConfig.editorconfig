@@ -1,0 +1,260 @@
+is_global = true
+build_property.MudDebugAnalyzer = 
+build_property.MudAllowedAttributePattern = 
+build_property.MudAllowedAttributeList = 
+build_property.TargetFramework = net9.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = PartTracker
+build_property.RootNamespace = PartTracker
+build_property.ProjectDir = /Users/SPEHRSSO/projects/PartTracker/
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.RazorLangVersion = 9.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = /Users/SPEHRSSO/projects/PartTracker
+build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 9.0
+build_property.EnableCodeStyleSeverity = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/App.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9BcHAucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Errors.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9FcnJvcnMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/NavigationPage.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9OYXZpZ2F0aW9uUGFnZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Register.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9SZWdpc3Rlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/SystemPages/RTM/SystemHealth.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TeXN0ZW1QYWdlcy9SVE0vU3lzdGVtSGVhbHRoLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Team.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9UZWFtLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/UserSettings.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Vc2VyU2V0dGluZ3MucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctfleet/FleetAddVehicle.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RmbGVldC9GbGVldEFkZFZlaGljbGUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctfleet/FleetAdministration.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RmbGVldC9GbGVldEFkbWluaXN0cmF0aW9uLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctfleet/FleetHandleRequest.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RmbGVldC9GbGVldEhhbmRsZVJlcXVlc3QucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctfleet/FleetManagement.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RmbGVldC9GbGVldE1hbmFnZW1lbnQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctfleet/FleetRequest.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RmbGVldC9GbGVldFJlcXVlc3QucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctfleet/Linde.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RmbGVldC9MaW5kZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Administration/BalanceAdministration.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQWRtaW5pc3RyYXRpb24vQmFsYW5jZUFkbWluaXN0cmF0aW9uLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Administration/FlowManagement.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQWRtaW5pc3RyYXRpb24vRmxvd01hbmFnZW1lbnQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/Launch/LaunchAdmin.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvTGF1bmNoL0xhdW5jaEFkbWluLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/TA/Cyclic/Administration/CyclicRouteAdministration.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvVEEvQ3ljbGljL0FkbWluaXN0cmF0aW9uL0N5Y2xpY1JvdXRlQWRtaW5pc3RyYXRpb24ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/TA/Dashboards/PickingDeliveryTa.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvVEEvRGFzaGJvYXJkcy9QaWNraW5nRGVsaXZlcnlUYS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/DailyInspection.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvRGFpbHlJbnNwZWN0aW9uLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/GoodsReception/Administration/HighbayAdministration.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvR29vZHNSZWNlcHRpb24vQWRtaW5pc3RyYXRpb24vSGlnaGJheUFkbWluaXN0cmF0aW9uLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctscrum/ADMIN/BAMAccount.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RzY3J1bS9BRE1JTi9CQU1BY2NvdW50LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctscrum/ADMIN/BAMNavigation.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RzY3J1bS9BRE1JTi9CQU1OYXZpZ2F0aW9uLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctscrum/IT/Rti.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RzY3J1bS9JVC9SdGkucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctscrum/ProjectDetails.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RzY3J1bS9Qcm9qZWN0RGV0YWlscy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctscrum/TaskDetails.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RzY3J1bS9UYXNrRGV0YWlscy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctscrum/TeamLeaderTasks.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RzY3J1bS9UZWFtTGVhZGVyVGFza3MucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9fSW1wb3J0cy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Shared/Components/EmptyState.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL0NvbXBvbmVudHMvRW1wdHlTdGF0ZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Shared/Components/Error.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL0NvbXBvbmVudHMvRXJyb3IucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Shared/Components/Loading.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL0NvbXBvbmVudHMvTG9hZGluZy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Shared/Components/Permission.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL0NvbXBvbmVudHMvUGVybWlzc2lvbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Shared/Components/Spinner.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL0NvbXBvbmVudHMvU3Bpbm5lci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Layout/DashboardLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvRGFzaGJvYXJkTGF5b3V0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-4u38dverkr
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Layout/LoggedInLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvTG9nZ2VkSW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-7ucjkfuwon
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Layout/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvTWFpbkxheW91dC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-o0izt2hstm
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Layout/PartTrackerLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9MYXlvdXQvVmN0bG9nTGF5b3V0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-2i4n7m0cal
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9Ib21lLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-k8t4sri633
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/SystemPages/RTM/KronaDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9TeXN0ZW1QYWdlcy9SVE0vS3JvbmFEYXNoYm9hcmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-to7hgvb9su
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctfleet/FleetDashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RmbGVldC9GbGVldERhc2hib2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-dh9jqbe1a5
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctfleet/FleetTracking.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RmbGVldC9GbGVldFRyYWNraW5nLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-06u5yezwk3
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Administration/NavigationAdministration.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQWRtaW5pc3RyYXRpb24vTmF2aWdhdGlvbkFkbWluaXN0cmF0aW9uLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-cef0hdte89
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/Launch/LaunchPicking.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvTGF1bmNoL0xhdW5jaFBpY2tpbmcucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-nyim2r6vxi
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/TA/Cyclic/RTM/DeviationTracker.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvVEEvQ3ljbGljL1JUTS9EZXZpYXRpb25UcmFja2VyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-n9sbflhfq2
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/TA/Cyclic/TaDeliveryHourly.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvVEEvQ3ljbGljL1RhRGVsaXZlcnlIb3VybHkucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-p9843oejk1
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/TA/Cyclic/TaHandleDeviations.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvVEEvQ3ljbGljL1RhSGFuZGxlRGV2aWF0aW9ucy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-qqqhll5gzr
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/TA/Cyclic/TaHandleOverflow.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvVEEvQ3ljbGljL1RhSGFuZGxlT3ZlcmZsb3cucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-zo15tcf5m1
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/TA/Cyclic/TaPartSearch.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvVEEvQ3ljbGljL1RhUGFydFNlYXJjaC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-czauki81of
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/TA/Cyclic/TaPickingHourly.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvVEEvQ3ljbGljL1RhUGlja2luZ0hvdXJseS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-8agb3glluo
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/TA/Dashboards/LineStatuses.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvVEEvRGFzaGJvYXJkcy9MaW5lU3RhdHVzZXMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-bnic4b5lcb
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/TA/Dashboards/MasterDashboardTA.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvVEEvRGFzaGJvYXJkcy9NYXN0ZXJEYXNoYm9hcmRUQS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-uxvgnq307f
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/TA/Dashboards/MaterialPerformance.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvVEEvRGFzaGJvYXJkcy9NYXRlcmlhbFBlcmZvcm1hbmNlLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-sqzqn7024y
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Avdelningar/TA/Dashboards/WorkSchedule.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvQXZkZWxuaW5nYXIvVEEvRGFzaGJvYXJkcy9Xb3JrU2NoZWR1bGUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-wvcpl5bbb7
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/PartTracker/Home.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3Rsb2cvSG9tZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-r1lq1svap9
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctscrum/Logedin.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RzY3J1bS9Mb2dlZGluLnJhem9y
+build_metadata.AdditionalFiles.CssScope = b-iy0c1llm9y
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctscrum/MemberTasks.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RzY3J1bS9NZW1iZXJUYXNrcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-d84tq40tn0
+
+[/Users/SPEHRSSO/projects/PartTracker/Components/Pages/Vctscrum/Projects.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9QYWdlcy9WY3RzY3J1bS9Qcm9qZWN0cy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-zfqiwj4e78
+
+[/Users/SPEHRSSO/projects/PartTracker/Shared/Components/NordKpiCard.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL0NvbXBvbmVudHMvTm9yZEtwaUNhcmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-nqqmzhggof
+
+[/Users/SPEHRSSO/projects/PartTracker/Shared/Components/NordKpiList.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkL0NvbXBvbmVudHMvTm9yZEtwaUxpc3QucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-754ev5mfgm
+
+[/Users/SPEHRSSO/projects/PartTracker/Pages/_Host.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvX0hvc3QuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 

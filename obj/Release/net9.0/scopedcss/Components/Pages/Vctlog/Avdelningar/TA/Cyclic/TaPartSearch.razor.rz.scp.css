@@ -1,0 +1,44 @@
+.nord-stat-empty[b-czauki81of]{
+  background: linear-gradient(180deg, rgba(236,241,244,0.6), rgba(248,250,251,0.6));
+  border: 1px solid rgba(137,161,179,0.12);
+  border-radius: 10px;
+  padding: 2.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #2E3A45; /* subtle dark text */
+}
+
+.nord-stat-empty .bi[b-czauki81of]{
+  font-size: 2.75rem;
+  color: var(--nord-6, #5b8fb8);
+  opacity: 0.95;
+}
+
+.nord-stat-empty h4[b-czauki81of]{
+  margin: 0.5rem 0 0.25rem;
+  color: #24323a;
+  font-weight: 600;
+}
+
+.nord-stat-empty p[b-czauki81of]{
+  margin: 0;
+  color: rgba(36,50,58,0.7);
+}
+
+/* smaller card variant used inside lists */
+.nord-stat-empty.card[b-czauki81of]{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.nord-animated-icon[b-czauki81of]{
+  transform-origin: center;
+}
+
+/* subtle animation */
+.nord-animated-icon[b-czauki81of]{animation: nordPulse-b-czauki81of 2.6s ease-in-out infinite;}
+@keyframes nordPulse-b-czauki81of{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}

@@ -1,0 +1,31 @@
+/* Emphasized manual shortage styling using Nord aurora colors */
+.nord-dev-manual-important[b-qqqhll5gzr] {
+    background: linear-gradient(90deg, #BF616A 0%, #D08770 50%, #EBCB8B 100%);
+    color: #2E3440;
+    font-weight: 600;
+    position: relative;
+}
+.nord-dev-manual-important td[b-qqqhll5gzr] { border-top: 1px solid rgba(255,255,255,0.3); }
+.nord-dev-manual-important[b-qqqhll5gzr]::after {
+    content: "MANUAL";
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+    padding: 2px 5px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 3px;
+    color: #2E3440;
+}
+/* Auto deviation row fallback for consistency */
+.nord-dev-auto[b-qqqhll5gzr] { background: #81A1C1; color: #ECEFF4; }
+@media (prefers-reduced-motion: reduce){
+    .nord-dev-manual-important[b-qqqhll5gzr] { transition: none; }
+}/* Deviation handling page specific styles */
+.nord-dev-manual[b-qqqhll5gzr] { background: linear-gradient(90deg, rgba(191,97,106,0.25), rgba(208,135,112,0.25)); }
+.nord-dev-auto[b-qqqhll5gzr] { background: linear-gradient(90deg, rgba(143,188,187,0.25), rgba(163,190,140,0.25)); }
+.nord-dev-manual:hover[b-qqqhll5gzr], .nord-dev-auto:hover[b-qqqhll5gzr] { filter: brightness(1.03); }
+
+/* Keep handled subtle green */
+.nord-status-picked[b-qqqhll5gzr] { background: linear-gradient(90deg, rgba(163,190,140,0.45), rgba(143,188,187,0.35)); }

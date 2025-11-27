@@ -1,0 +1,341 @@
+{
+  "Files": [
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/obj/Debug/net9.0/scopedcss/projectbundle/PartTracker.bundle.scp.css",
+      "PackagePath": "staticwebassets/PartTracker.6nuaduly8a.bundle.scp.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/FleetInspections/BatteriHandske.jpg",
+      "PackagePath": "staticwebassets/Images/FleetInspections/BatteriHandske.jpg"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/FleetInspections/DragSystem.jpg",
+      "PackagePath": "staticwebassets/Images/FleetInspections/DragSystem.jpg"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/FleetInspections/Instrument.jpg",
+      "PackagePath": "staticwebassets/Images/FleetInspections/Instrument.jpg"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/FleetInspections/Kaross.jpg",
+      "PackagePath": "staticwebassets/Images/FleetInspections/Kaross.jpg"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/FleetInspections/PXL_20241127_203916211.jpg",
+      "PackagePath": "staticwebassets/Images/FleetInspections/PXL_20241127_203916211.jpg"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/FleetInspections/PXL_20241127_203927356.jpg",
+      "PackagePath": "staticwebassets/Images/FleetInspections/PXL_20241127_203927356.jpg"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/FleetInspections/PXL_20241127_203942487.jpg",
+      "PackagePath": "staticwebassets/Images/FleetInspections/PXL_20241127_203942487.jpg"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/FleetInspections/counter_balance_electric_external.png",
+      "PackagePath": "staticwebassets/Images/FleetInspections/counter_balance_electric_external.png"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/Volvo_New.png",
+      "PackagePath": "staticwebassets/Images/Volvo_New.png"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/car.png",
+      "PackagePath": "staticwebassets/Images/car.png"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/nord-aurora.svg",
+      "PackagePath": "staticwebassets/Images/nord-aurora.svg"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/nord-hills.svg",
+      "PackagePath": "staticwebassets/Images/nord-hills.svg"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/Images/nord-tree.svg",
+      "PackagePath": "staticwebassets/Images/nord-tree.svg"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/app.css",
+      "PackagePath": "staticwebassets/app.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/css/nord-theme.css",
+      "PackagePath": "staticwebassets/css/nord-theme.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/favicon.png",
+      "PackagePath": "staticwebassets/favicon.png"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/fonts/3270-font/3270NerdFont-Condensed.ttf",
+      "PackagePath": "staticwebassets/fonts/3270-font/3270NerdFont-Condensed.ttf"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/fonts/3270-font/3270NerdFont-Regular.ttf",
+      "PackagePath": "staticwebassets/fonts/3270-font/3270NerdFont-Regular.ttf"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/fonts/3270-font/3270NerdFont-SemiCondensed.ttf",
+      "PackagePath": "staticwebassets/fonts/3270-font/3270NerdFont-SemiCondensed.ttf"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/fonts/3270-font/3270NerdFontMono-Condensed.ttf",
+      "PackagePath": "staticwebassets/fonts/3270-font/3270NerdFontMono-Condensed.ttf"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/fonts/3270-font/3270NerdFontMono-SemiCondensed.ttf",
+      "PackagePath": "staticwebassets/fonts/3270-font/3270NerdFontMono-SemiCondensed.ttf"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/fonts/3270-font/3270NerdFontPropo-Condensed.ttf",
+      "PackagePath": "staticwebassets/fonts/3270-font/3270NerdFontPropo-Condensed.ttf"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/fonts/3270-font/3270NerdFontPropo-Regular.ttf",
+      "PackagePath": "staticwebassets/fonts/3270-font/3270NerdFontPropo-Regular.ttf"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/fonts/3270-font/3270NerdFontPropo-SemiCondensed.ttf",
+      "PackagePath": "staticwebassets/fonts/3270-font/3270NerdFontPropo-SemiCondensed.ttf"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/fonts/3270-font/LICENSE.txt",
+      "PackagePath": "staticwebassets/fonts/3270-font/LICENSE.txt"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/fonts/3270-font/README.md",
+      "PackagePath": "staticwebassets/fonts/3270-font/README.md"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/fonts/3270NerdFontMono-Regular.ttf",
+      "PackagePath": "staticwebassets/fonts/3270NerdFontMono-Regular.ttf"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/js/chart-helper.js",
+      "PackagePath": "staticwebassets/js/chart-helper.js"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/js/interaction-effects.js",
+      "PackagePath": "staticwebassets/js/interaction-effects.js"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/js/kiosk-timer.js",
+      "PackagePath": "staticwebassets/js/kiosk-timer.js"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap-icons/bootstrap-icons.min.css",
+      "PackagePath": "staticwebassets/lib/bootstrap-icons/bootstrap-icons.min.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap-icons/fonts/bootstrap-icons.woff",
+      "PackagePath": "staticwebassets/lib/bootstrap-icons/fonts/bootstrap-icons.woff"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap-icons/fonts/bootstrap-icons.woff2",
+      "PackagePath": "staticwebassets/lib/bootstrap-icons/fonts/bootstrap-icons.woff2"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-grid.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-grid.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-grid.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-grid.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-grid.min.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-grid.min.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-grid.min.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-grid.min.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-grid.rtl.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-grid.rtl.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-grid.rtl.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-grid.rtl.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-grid.rtl.min.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-grid.rtl.min.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-grid.rtl.min.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-grid.rtl.min.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-reboot.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-reboot.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.min.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-reboot.min.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.min.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-reboot.min.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.rtl.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-reboot.rtl.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.rtl.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-reboot.rtl.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.rtl.min.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-reboot.rtl.min.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-reboot.rtl.min.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-reboot.rtl.min.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-utilities.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-utilities.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.min.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-utilities.min.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.min.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-utilities.min.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.rtl.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-utilities.rtl.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.rtl.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-utilities.rtl.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.rtl.min.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-utilities.rtl.min.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap-utilities.rtl.min.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap-utilities.rtl.min.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap.min.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap.min.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap.min.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap.min.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap.rtl.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap.rtl.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap.rtl.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap.rtl.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap.rtl.min.css",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap.rtl.min.css"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/css/bootstrap.rtl.min.css.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/css/bootstrap.rtl.min.css.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.js",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/js/bootstrap.bundle.js"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.js.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/js/bootstrap.bundle.js.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.min.js",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/js/bootstrap.bundle.min.js"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/js/bootstrap.bundle.min.js.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/js/bootstrap.bundle.min.js.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/js/bootstrap.esm.js",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/js/bootstrap.esm.js"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/js/bootstrap.esm.js.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/js/bootstrap.esm.js.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/js/bootstrap.esm.min.js",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/js/bootstrap.esm.min.js"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/js/bootstrap.esm.min.js.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/js/bootstrap.esm.min.js.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/js/bootstrap.js",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/js/bootstrap.js"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/js/bootstrap.js.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/js/bootstrap.js.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/js/bootstrap.min.js",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/js/bootstrap.min.js"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/bootstrap/dist/js/bootstrap.min.js.map",
+      "PackagePath": "staticwebassets/lib/bootstrap/dist/js/bootstrap.min.js.map"
+    },
+    {
+      "Id": "/Users/SPEHRSSO/projects/PartTracker/wwwroot/lib/chart.js/chart.js",
+      "PackagePath": "staticwebassets/lib/chart.js/chart.js"
+    },
+    {
+      "Id": "obj/Debug/net9.0/staticwebassets/msbuild.PartTracker.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj/Debug/net9.0/staticwebassets/msbuild.PartTracker.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj/Debug/net9.0/staticwebassets/msbuild.build.PartTracker.props",
+      "PackagePath": "build\\PartTracker.props"
+    },
+    {
+      "Id": "obj/Debug/net9.0/staticwebassets/msbuild.buildMultiTargeting.PartTracker.props",
+      "PackagePath": "buildMultiTargeting\\PartTracker.props"
+    },
+    {
+      "Id": "obj/Debug/net9.0/staticwebassets/msbuild.buildTransitive.PartTracker.props",
+      "PackagePath": "buildTransitive\\PartTracker.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

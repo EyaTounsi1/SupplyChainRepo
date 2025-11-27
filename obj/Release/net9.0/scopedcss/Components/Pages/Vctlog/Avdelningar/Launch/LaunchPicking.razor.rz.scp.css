@@ -1,0 +1,13 @@
+.table-container[b-nyim2r6vxi] {
+  /* Adjust height dynamically based on viewport and other UI elements */
+  max-height: calc(
+    100vh - 60px - 220px
+  ); /* 60px navbar + ~200px header panel (adjust as needed) */
+  overflow-y: auto;
+}
+
+.table thead th[b-nyim2r6vxi] {
+  position: sticky;
+  top: 0;
+  z-index: 2; /* Keep above the body rows */
+}

@@ -1,0 +1,21 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+@* @using PartTracker.Components.Layout *@
+@* @inject UserSession UserSession *@
+@* @inject PartTracker.Shared.Variables.GlobalVariables Globals *@
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<Router AppAssembly="@typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <p>❌ Sidan kunde inte hittas.</p>
+    </NotFound>
+</Router>
+
+@code {
+    // Simplified version - remove complex session handling for now
+}

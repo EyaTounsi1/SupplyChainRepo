@@ -1,0 +1,56 @@
+/* Nord-themed login page additions */
+
+.nord-login[b-k8t4sri633]{ position: relative; min-height: 70vh; }
+.nord-card[b-k8t4sri633]{ background: rgba(247,250,252,0.96); border: 1px solid rgba(46,52,64,0.04); box-shadow: 0 12px 30px rgba(46,52,64,0.06); border-radius: 12px; }
+.nord-brand[b-k8t4sri633]{ font-family: '3270NerdFont', monospace; color: var(--nord10); letter-spacing: 1px; font-weight: 800; }
+.nord-sub[b-k8t4sri633]{ font-family: '3270NerdFont', monospace; color: rgba(46,52,64,0.6); }
+.nord-btn[b-k8t4sri633]{ background: var(--nord10); border-color: var(--nord10); color: #fff; }
+.nord-btn-outline[b-k8t4sri633]{ color: var(--nord0); border-color: rgba(46,52,64,0.08); background: transparent; }
+
+/* subtle moving car animation (keeps previous intent but ensures visibility) */
+.MovingCar[b-k8t4sri633]{ position: absolute; top: 8%; left: 6%; width: 48px; height: 24px; background: linear-gradient(90deg, var(--nord8), var(--nord10)); border-radius:6px; box-shadow: 0 6px 18px rgba(46,52,64,0.06); opacity:0.95; transform: translateX(-60%); animation: drive-b-k8t4sri633 6s linear infinite; }
+@keyframes drive-b-k8t4sri633{ 0%{ transform: translateX(-60%); } 100%{ transform: translateX(140%); } }
+
+/* background nods */
+.nord-login[b-k8t4sri633]::before{ content: ""; position:absolute; inset:0; background: radial-gradient(circle at 10% 10%, rgba(136,192,208,0.06), transparent 25%), radial-gradient(circle at 90% 80%, rgba(142,178,181,0.04), transparent 30%); z-index: 0; pointer-events:none; }
+.nord-login .card[b-k8t4sri633]{ position: relative; z-index: 2; }
+
+/* small non-animated decorative car */
+.nord-decor-car[b-k8t4sri633]{
+	position: absolute;
+	right: 18px;
+	bottom: 14px;
+	width: 84px;
+	height: auto;
+	opacity: 0.95;
+	filter: drop-shadow(0 6px 10px rgba(14,18,24,0.16));
+	pointer-events: none;
+}
+
+@media (max-width: 768px){ .nord-decor-car[b-k8t4sri633]{ display:none; } }
+
+/* Polar-night backdrop behind the card for stronger contrast */
+.nord-login[b-k8t4sri633]::before{
+	content: "";
+	position: absolute;
+	left: 50%;
+	top: 22%;
+	transform: translateX(-50%);
+	width: min(520px, 86%);
+	height: 300px;
+	background: linear-gradient(180deg, rgba(46,52,64,0.86), rgba(30,36,46,0.82));
+	border-radius: 14px;
+	box-shadow: 0 16px 32px rgba(14,18,24,0.42), inset 0 1px 0 rgba(255,255,255,0.015);
+	z-index: 1;
+	pointer-events: none;
+}
+
+/* Ensure card sits above the dark backdrop */
+.nord-login .card[b-k8t4sri633]{ position: relative; z-index: 2; }
+
+@media (max-width: 768px){
+	.nord-login[b-k8t4sri633]::before{ display:none; }
+}
+
+/* image-based login decor - polished layout */
+.nord-card[b-k8t4sri633]{ background: rgba(247,250,252,0.96); border: 1px solid rgba(46,52,64,0.14); box-shadow: 0 12px 30px rgba(46,52,64,0.06); border-radius: 12px; }

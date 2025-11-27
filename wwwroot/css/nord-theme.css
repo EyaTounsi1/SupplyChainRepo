@@ -1,0 +1,1180 @@
+/* Nord-inspired theme variables and small tweaks for PartTracker */
+:root {
+    /* Polar Night */
+    /* Polar Night (Dark Shades) */
+    --nord0: #2E3440; /* Very dark grayish blue (almost black with a cool tone) */
+    --nord1: #3B4252; /* Dark slate gray */
+    --nord2: #434C5E; /* Charcoal gray with a bluish tint */
+    --nord3: #4C566A; /* Medium-dark grayish blue */
+    /* Snow Storm (Light Shades) */
+    --nord4: #D8DEE9; /* Light gray with a hint of blue */
+    --nord5: #E5E9F0; /* Very light gray (almost white) */
+    --nord6: #ECEFF4; /* Off-white with a cool tone */
+    --nord6-alt: #F7FAFC; /* Pure white with a slight bluish undertone */
+    /* Frost (Cool Accents) */
+    --nord7: #8FBCBB; /* Muted teal (soft greenish-blue) */
+    --nord8: #88C0D0; /* Light cyan-blue */
+    --nord9: #81A1C1; /* Soft steel blue */
+    --nord10: #5E81AC; /* Medium blue with gray undertones */
+    /* Aurora (Vibrant Accents) */
+    --nord11: #BF616A; /* Muted red (warm rose tone) */
+    --nord12: #D08770; /* Warm orange-brown (earthy tone) */
+    --nord13: #EBCB8B; /* Soft golden yellow */
+    --nord14: #A3BE8C; /* Muted green (sage-like) */
+
+
+    /* Project accent alias */
+    --accent: var(--nord11);
+    /* Precomputed RGB fallbacks (useful for rgba() utilities) */
+    --nord0-rgb: 46,52,64;
+    --nord1-rgb: 59,66,82;
+    --nord2-rgb: 67,76,94;
+    --nord3-rgb: 76,86,106;
+    --nord4-rgb: 216,222,233;
+    --nord5-rgb: 229,233,240;
+    --nord6-rgb: 236,239,244;
+    --nord6-alt-rgb: 247,250,252;
+    --nord7-rgb: 143,188,187;
+    --nord8-rgb: 136,192,208;
+    --nord9-rgb: 129,161,193;
+    --nord10-rgb: 94,129,172;
+    --nord11-rgb: 191,97,106;
+    --nord12-rgb: 208,135,112;
+    --nord13-rgb: 235,203,139;
+    --nord14-rgb: 163,190,140;
+    --nord15-rgb: 180,142,173;
+    /* nord0 */
+    --bg-nord0-05: rgba(var(--nord0-rgb), 0.05);
+    --bg-nord0-10: rgba(var(--nord0-rgb), 0.10);
+    --bg-nord0-20: rgba(var(--nord0-rgb), 0.20);
+    --bg-nord0-40: rgba(var(--nord0-rgb), 0.40);
+    /* nord1 */
+    --bg-nord1-05: rgba(var(--nord1-rgb), 0.05);
+    --bg-nord1-10: rgba(var(--nord1-rgb), 0.10);
+    --bg-nord1-20: rgba(var(--nord1-rgb), 0.20);
+    --bg-nord1-40: rgba(var(--nord1-rgb), 0.40);
+    /* nord2 */
+    --bg-nord2-05: rgba(var(--nord2-rgb), 0.05);
+    --bg-nord2-10: rgba(var(--nord2-rgb), 0.10);
+    --bg-nord2-20: rgba(var(--nord2-rgb), 0.20);
+    --bg-nord2-40: rgba(var(--nord2-rgb), 0.40);
+    /* nord3 */
+    --bg-nord3-05: rgba(var(--nord3-rgb), 0.05);
+    --bg-nord3-10: rgba(var(--nord3-rgb), 0.10);
+    --bg-nord3-20: rgba(var(--nord3-rgb), 0.20);
+    --bg-nord3-40: rgba(var(--nord3-rgb), 0.40);
+    /* nord4 */
+    --bg-nord4-05: rgba(var(--nord4-rgb), 0.05);
+    --bg-nord4-10: rgba(var(--nord4-rgb), 0.10);
+    --bg-nord4-20: rgba(var(--nord4-rgb), 0.20);
+    --bg-nord4-40: rgba(var(--nord4-rgb), 0.40);
+    /* nord5 */
+    --bg-nord5-05: rgba(var(--nord5-rgb), 0.05);
+    --bg-nord5-10: rgba(var(--nord5-rgb), 0.10);
+    --bg-nord5-20: rgba(var(--nord5-rgb), 0.20);
+    --bg-nord5-40: rgba(var(--nord5-rgb), 0.40);
+    /* nord6 */
+    --bg-nord6-05: rgba(var(--nord6-rgb), 0.05);
+    --bg-nord6-10: rgba(var(--nord6-rgb), 0.10);
+    --bg-nord6-20: rgba(var(--nord6-rgb), 0.20);
+    --bg-nord6-40: rgba(var(--nord6-rgb), 0.40);
+    /* nord7 */
+    --bg-nord7-05: rgba(var(--nord7-rgb), 0.05);
+    --bg-nord7-10: rgba(var(--nord7-rgb), 0.10);
+    --bg-nord7-20: rgba(var(--nord7-rgb), 0.20);
+    --bg-nord7-40: rgba(var(--nord7-rgb), 0.40);
+    /* nord8 */
+    --bg-nord8-05: rgba(var(--nord8-rgb), 0.05);
+    --bg-nord8-10: rgba(var(--nord8-rgb), 0.10);
+    --bg-nord8-20: rgba(var(--nord8-rgb), 0.20);
+    --bg-nord8-40: rgba(var(--nord8-rgb), 0.40);
+    /* nord9 */
+    --bg-nord9-05: rgba(var(--nord9-rgb), 0.05);
+    --bg-nord9-10: rgba(var(--nord9-rgb), 0.10);
+    --bg-nord9-20: rgba(var(--nord9-rgb), 0.20);
+    --bg-nord9-40: rgba(var(--nord9-rgb), 0.40);
+    /* nord10 */
+    --bg-nord10-05: rgba(var(--nord10-rgb), 0.05);
+    --bg-nord10-10: rgba(var(--nord10-rgb), 0.10);
+    --bg-nord10-20: rgba(var(--nord10-rgb), 0.20);
+    --bg-nord10-40: rgba(var(--nord10-rgb), 0.40);
+    /* nord11 */
+    --bg-nord11-05: rgba(var(--nord11-rgb), 0.05);
+    --bg-nord11-10: rgba(var(--nord11-rgb), 0.10);
+    --bg-nord11-20: rgba(var(--nord11-rgb), 0.20);
+    --bg-nord11-40: rgba(var(--nord11-rgb), 0.40);
+    /* nord12 */
+    --bg-nord12-05: rgba(var(--nord12-rgb), 0.05);
+    --bg-nord12-10: rgba(var(--nord12-rgb), 0.10);
+    --bg-nord12-20: rgba(var(--nord12-rgb), 0.20);
+    --bg-nord12-40: rgba(var(--nord12-rgb), 0.40);
+    /* nord13 */
+    --bg-nord13-05: rgba(var(--nord13-rgb), 0.05);
+    --bg-nord13-10: rgba(var(--nord13-rgb), 0.10);
+    --bg-nord13-20: rgba(var(--nord13-rgb), 0.20);
+    --bg-nord13-40: rgba(var(--nord13-rgb), 0.40);
+    /* nord14 */
+    --bg-nord14-05: rgba(var(--nord14-rgb), 0.05);
+    --bg-nord14-10: rgba(var(--nord14-rgb), 0.10);
+    --bg-nord14-20: rgba(var(--nord14-rgb), 0.20);
+    --bg-nord14-40: rgba(var(--nord14-rgb), 0.40);
+    /* nord15 */
+    --bg-nord15-05: rgba(var(--nord15-rgb), 0.05);
+    --bg-nord15-10: rgba(var(--nord15-rgb), 0.10);
+    --bg-nord15-20: rgba(var(--nord15-rgb), 0.20);
+    --bg-nord15-40: rgba(var(--nord15-rgb), 0.40);
+}
+
+body {
+  background: var(--nord6-alt);
+  color: var(--nord0);
+  font-family: "Inter", "Segoe UI", Roboto, -apple-system, system-ui, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure header band covers full viewport in all browsers (Safari fix) */
+html, body { margin: 0; padding: 0; }
+
+/* Layout header: subtle accent (slimmer & lighter) */
+#PartTracker-layout-header {
+  background: linear-gradient(90deg, rgba(136,192,208,0.03), rgba(94,129,172,0.02));
+  color: var(--nord0);
+}
+
+.navbar-brand {
+  color: var(--nord0) !important;
+  letter-spacing: 1px;
+}
+
+.header-logout-btn{
+  background: transparent;
+  border: 1px solid rgba(46,52,64,0.06);
+  color: var(--nord0);
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.header-logout-btn:hover{
+  background: rgba(94,129,172,0.06);
+}
+
+/* Cards and tables: keep light, with small nord accents */
+.card {
+  background: #ffffff;
+  border: 1px solid rgba(46,52,64,0.06);
+  color: var(--nord0);
+}
+
+.table-light thead th {
+  background: rgba(94,129,172,0.06);
+  color: var(--nord0);
+}
+
+.table td, .table th {
+  vertical-align: middle;
+  color: var(--nord0);
+}
+
+.btn-primary {
+  background: var(--nord10);
+  border-color: var(--nord10);
+  color: #fff;
+}
+
+.btn-outline-secondary {
+  color: var(--nord0);
+  border-color: rgba(46,52,64,0.08);
+}
+
+.btn-info {
+  background: var(--nord8);
+  border-color: var(--nord8);
+  color: #fff;
+}
+
+.text-muted { color: rgba(46,52,64,0.55) !important; }
+
+/* Inputs */
+.form-control {
+  background: #fff;
+  border: 1px solid rgba(46,52,64,0.08);
+  color: var(--nord0);
+}
+
+.form-control:focus {
+  box-shadow: 0 0 0 0.06rem rgba(136,192,208,0.12);
+  border-color: var(--nord8);
+}
+
+/* Footer */
+footer {
+  background: transparent;
+  color: rgba(46,52,64,0.6);
+}
+
+/* Layout header specifics */
+.PartTracker-header{ height: 60px; background: var(--nord4); /* solid band */ position: sticky; top: 0; left: 0; right: 0; z-index: 1030; width:100%; padding:8px 0; box-sizing: border-box; box-shadow:none; }
+.PartTracker-header .container-fluid{ background:transparent; padding-left:0.75rem; padding-right:0.75rem; }
+.brand-mark{ font-weight:700; color:var(--nord10); margin-right:4px; }
+.brand-logotype{ color:var(--nord0); font-weight:600; }
+.brand-PartTracker{ font-weight:700; font-size:0.98rem; color:var(--nord10); letter-spacing:0.8px; }
+
+/* tweak typography for a cleaner, Nord-ish look */
+h1, h2, h3, h4, h5 { font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+.hero-title{ font-weight:700; }
+.tile-title{ font-weight:700; }
+.subnav .nav-link{ color:var(--nord0); margin-right:8px; padding:6px 8px; border-radius:6px; }
+.subnav .nav-link:hover{ background: rgba(94,129,172,0.06); color:var(--nord10); }
+.header-search{ width: 280px; }
+.user-avatar{ width:36px; height:36px; border-radius:8px; background:var(--nord8); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:600; }
+.user-info .user-name{ font-weight:600; color:var(--nord0); }
+.btn-logout{ color:var(--nord0); border-left:1px solid rgba(46,52,64,0.04); padding-left:12px; }
+.layout-container{ max-width:1200px; }
+.site-footer{ color: rgba(46,52,64,0.6); border-top:1px solid rgba(46,52,64,0.04); }
+
+/* Home page Nord styling */
+.nord-hero-card {
+  background: linear-gradient(135deg, rgba(59,69,78,0.05), rgba(76,86,106,0.1)); /* polar night gradient */
+  border: 2px solid rgba(67,76,94,0.15); /* darker polar night border */
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(46,52,64,0.15); /* polar night shadow */
+}
+
+.nord-nav-tile {
+  background: linear-gradient(135deg, rgba(247,250,252,0.9), rgba(216,222,233,0.2));
+  border: 2px solid rgba(59,69,78,0.12); /* polar night border */
+  border-radius: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.nord-nav-tile:hover {
+  /* Removed vertical lift on hover */
+  box-shadow: 0 12px 32px rgba(46,52,64,0.2); /* deeper polar night shadow */
+  border-color: #BF616A; /* aurora red accent */
+}
+
+.tile-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #BF616A, #D08770); /* aurora gradient */
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.tile-badge {
+  font-size: 0.75rem;
+  color: #fff; /* white text on dark */
+  background: linear-gradient(135deg, #4C566A, #434C5E); /* polar night gradient */
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.tile-title {
+  margin: 0.2rem 0;
+  font-size: 1rem;
+  color: #2E3440; /* polar night dark */
+}
+
+.tile-desc {
+  font-size: 0.85rem;
+  color: #4C566A; /* polar night muted */
+}
+
+.quick-nav {
+  max-width: 400px;
+  border: 2px solid rgba(67,76,94,0.2); /* polar night border */
+  background: rgba(247,250,252,0.8);
+}
+
+.quick-nav:focus {
+  border-color: #A3BE8C; /* aurora green */
+  box-shadow: 0 0 0 0.1rem rgba(163,190,140,0.25);
+}
+
+/* TaPickingHourly Nord styling - simple and purposeful for forklift terminals */
+.nord-industrial-container {
+  background: var(--nord6);
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.nord-header-panel {
+  background: #ffffff; /* remove busy gradient */
+  border: 2px solid rgba(46,52,64,0.12); /* subtle polar night edge */
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(46,52,64,0.12);
+}
+
+.nord-header-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--nord0); /* polar night dark */
+  text-shadow: 1px 1px 2px rgba(46,52,64,0.3);
+}
+
+.nord-area-selector {
+  background: linear-gradient(135deg, rgba(247,250,252,0.9), rgba(216,222,233,0.2));
+  border: 2px solid rgba(59,69,78,0.12);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(46,52,64,0.08);
+}
+
+.nord-header-selector {
+  display: flex;
+  align-items: center;
+}
+
+.nord-selector-label {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--nord0);
+  margin-bottom: 0;
+}
+
+/* Utility classes similar to Bootstrap: bg-nordX, text-nordX, border-nordX */
+/* Use `AdditionalClass` on components (or directly on elements) to apply these */
+.bg-nord0 { background-color: var(--nord0) !important; }
+.bg-nord1 { background-color: var(--nord1) !important; }
+.bg-nord2 { background-color: var(--nord2) !important; }
+.bg-nord3 { background-color: var(--nord3) !important; }
+.bg-nord4 { background-color: var(--nord4) !important; }
+.bg-nord5 { background-color: var(--nord5) !important; }
+.bg-nord6 { background-color: var(--nord6) !important; }
+.bg-nord7 { background-color: var(--nord7) !important; }
+.bg-nord8 { background-color: var(--nord8) !important; }
+.bg-nord9 { background-color: var(--nord9) !important; }
+.bg-nord10 { background-color: var(--nord10) !important; }
+.bg-nord11 { background-color: var(--nord11) !important; }
+.bg-nord12 { background-color: var(--nord12) !important; }
+.bg-nord13 { background-color: var(--nord13) !important; }
+.bg-nord14 { background-color: var(--nord14) !important; }
+.bg-nord15 { background-color: var(--nord15) !important; }
+
+.text-nord0 { color: var(--nord0) !important; }
+.text-nord1 { color: var(--nord1) !important; }
+.text-nord2 { color: var(--nord2) !important; }
+.text-nord3 { color: var(--nord3) !important; }
+.text-nord4 { color: var(--nord4) !important; }
+.text-nord5 { color: var(--nord5) !important; }
+.text-nord6 { color: var(--nord6) !important; }
+.text-nord7 { color: var(--nord7) !important; }
+.text-nord8 { color: var(--nord8) !important; }
+.text-nord9 { color: var(--nord9) !important; }
+.text-nord10 { color: var(--nord10) !important; }
+.text-nord11 { color: var(--nord11) !important; }
+.text-nord12 { color: var(--nord12) !important; }
+.text-nord13 { color: var(--nord13) !important; }
+.text-nord14 { color: var(--nord14) !important; }
+.text-nord15 { color: var(--nord15) !important; }
+
+.border-nord0 { border-color: var(--nord0) !important; }
+.border-nord1 { border-color: var(--nord1) !important; }
+.border-nord2 { border-color: var(--nord2) !important; }
+.border-nord3 { border-color: var(--nord3) !important; }
+.border-nord4 { border-color: var(--nord4) !important; }
+.border-nord5 { border-color: var(--nord5) !important; }
+.border-nord6 { border-color: var(--nord6) !important; }
+.border-nord7 { border-color: var(--nord7) !important; }
+.border-nord8 { border-color: var(--nord8) !important; }
+.border-nord9 { border-color: var(--nord9) !important; }
+.border-nord10 { border-color: var(--nord10) !important; }
+.border-nord11 { border-color: var(--nord11) !important; }
+.border-nord12 { border-color: var(--nord12) !important; }
+.border-nord13 { border-color: var(--nord13) !important; }
+.border-nord14 { border-color: var(--nord14) !important; }
+.border-nord15 { border-color: var(--nord15) !important; }
+
+/* Extended utilities: alpha background variants, muted text, badge helpers */
+/* Background alpha helpers: bg-nordX-05 (5%), -10 (10%), -20 (20%), -40 (40%) */
+@media (prefers-reduced-motion: no-preference) {
+  .bg-nord0-05  { background-color: rgba(var(--nord0-rgb), 0.05) !important; }
+  .bg-nord0-10  { background-color: rgba(var(--nord0-rgb), 0.10) !important; }
+  .bg-nord0-20  { background-color: rgba(var(--nord0-rgb), 0.20) !important; }
+  .bg-nord0-40  { background-color: rgba(var(--nord0-rgb), 0.40) !important; }
+  .bg-nord1-05  { background-color: rgba(var(--nord1-rgb), 0.05) !important; }
+  .bg-nord1-10  { background-color: rgba(var(--nord1-rgb), 0.10) !important; }
+  .bg-nord1-20  { background-color: rgba(var(--nord1-rgb), 0.20) !important; }
+  .bg-nord1-40  { background-color: rgba(var(--nord1-rgb), 0.40) !important; }
+  .bg-nord2-05  { background-color: rgba(var(--nord2-rgb), 0.05) !important; }
+  .bg-nord2-10  { background-color: rgba(var(--nord2-rgb), 0.10) !important; }
+  .bg-nord2-20  { background-color: rgba(var(--nord2-rgb), 0.20) !important; }
+  .bg-nord2-40  { background-color: rgba(var(--nord2-rgb), 0.40) !important; }
+  .bg-nord3-05  { background-color: rgba(var(--nord3-rgb), 0.05) !important; }
+  .bg-nord3-10  { background-color: rgba(var(--nord3-rgb), 0.10) !important; }
+  .bg-nord3-20  { background-color: rgba(var(--nord3-rgb), 0.20) !important; }
+  .bg-nord3-40  { background-color: rgba(var(--nord3-rgb), 0.40) !important; }
+  .bg-nord4-05  { background-color: rgba(var(--nord4-rgb), 0.05) !important; }
+  .bg-nord4-10  { background-color: rgba(var(--nord4-rgb), 0.10) !important; }
+  .bg-nord4-20  { background-color: rgba(var(--nord4-rgb), 0.20) !important; }
+  .bg-nord4-40  { background-color: rgba(var(--nord4-rgb), 0.40) !important; }
+  .bg-nord5-05  { background-color: rgba(var(--nord5-rgb), 0.05) !important; }
+  .bg-nord5-10  { background-color: rgba(var(--nord5-rgb), 0.10) !important; }
+  .bg-nord5-20  { background-color: rgba(var(--nord5-rgb), 0.20) !important; }
+  .bg-nord5-40  { background-color: rgba(var(--nord5-rgb), 0.40) !important; }
+  .bg-nord6-05  { background-color: rgba(var(--nord6-rgb), 0.05) !important; }
+  .bg-nord6-10  { background-color: rgba(var(--nord6-rgb), 0.10) !important; }
+  .bg-nord6-20  { background-color: rgba(var(--nord6-rgb), 0.20) !important; }
+  .bg-nord6-40  { background-color: rgba(var(--nord6-rgb), 0.40) !important; }
+  .bg-nord7-05  { background-color: rgba(var(--nord7-rgb), 0.05) !important; }
+  .bg-nord7-10  { background-color: rgba(var(--nord7-rgb), 0.10) !important; }
+  .bg-nord7-20  { background-color: rgba(var(--nord7-rgb), 0.20) !important; }
+  .bg-nord7-40  { background-color: rgba(var(--nord7-rgb), 0.40) !important; }
+  .bg-nord8-05  { background-color: rgba(var(--nord8-rgb), 0.05) !important; }
+  .bg-nord8-10  { background-color: rgba(var(--nord8-rgb), 0.10) !important; }
+  .bg-nord8-20  { background-color: rgba(var(--nord8-rgb), 0.20) !important; }
+  .bg-nord8-40  { background-color: rgba(var(--nord8-rgb), 0.40) !important; }
+  .bg-nord9-05  { background-color: rgba(var(--nord9-rgb), 0.05) !important; }
+  .bg-nord9-10  { background-color: rgba(var(--nord9-rgb), 0.10) !important; }
+  .bg-nord9-20  { background-color: rgba(var(--nord9-rgb), 0.20) !important; }
+  .bg-nord9-40  { background-color: rgba(var(--nord9-rgb), 0.40) !important; }
+  .bg-nord10-05 { background-color: rgba(var(--nord10-rgb), 0.05) !important; }
+  .bg-nord10-10 { background-color: rgba(var(--nord10-rgb), 0.10) !important; }
+  .bg-nord10-20 { background-color: rgba(var(--nord10-rgb), 0.20) !important; }
+  .bg-nord10-40 { background-color: rgba(var(--nord10-rgb), 0.40) !important; }
+  .bg-nord11-05 { background-color: rgba(var(--nord11-rgb), 0.05) !important; }
+  .bg-nord11-10 { background-color: rgba(var(--nord11-rgb), 0.10) !important; }
+  .bg-nord11-20 { background-color: rgba(var(--nord11-rgb), 0.20) !important; }
+  .bg-nord11-40 { background-color: rgba(var(--nord11-rgb), 0.40) !important; }
+  .bg-nord12-05 { background-color: rgba(var(--nord12-rgb), 0.05) !important; }
+  .bg-nord12-10 { background-color: rgba(var(--nord12-rgb), 0.10) !important; }
+  .bg-nord12-20 { background-color: rgba(var(--nord12-rgb), 0.20) !important; }
+  .bg-nord12-40 { background-color: rgba(var(--nord12-rgb), 0.40) !important; }
+  .bg-nord13-05 { background-color: rgba(var(--nord13-rgb), 0.05) !important; }
+  .bg-nord13-10 { background-color: rgba(var(--nord13-rgb), 0.10) !important; }
+  .bg-nord13-20 { background-color: rgba(var(--nord13-rgb), 0.20) !important; }
+  .bg-nord13-40 { background-color: rgba(var(--nord13-rgb), 0.40) !important; }
+  .bg-nord14-05 { background-color: rgba(var(--nord14-rgb), 0.05) !important; }
+  .bg-nord14-10 { background-color: rgba(var(--nord14-rgb), 0.10) !important; }
+  .bg-nord14-20 { background-color: rgba(var(--nord14-rgb), 0.20) !important; }
+  .bg-nord14-40 { background-color: rgba(var(--nord14-rgb), 0.40) !important; }
+  .bg-nord15-05 { background-color: rgba(var(--nord15-rgb), 0.05) !important; }
+  .bg-nord15-10 { background-color: rgba(var(--nord15-rgb), 0.10) !important; }
+  .bg-nord15-20 { background-color: rgba(var(--nord15-rgb), 0.20) !important; }
+  .bg-nord15-40 { background-color: rgba(var(--nord15-rgb), 0.40) !important; }
+}
+
+/* Muted text helpers */
+.text-muted-nord0 { color: rgba(var(--nord0-rgb), 0.6) !important; }
+.text-muted-nord4 { color: rgba(var(--nord4-rgb), 0.75) !important; }
+.text-muted-nord6 { color: rgba(var(--nord6-rgb), 0.6) !important; }
+
+/* Badge helpers */
+.badge-nord0 { background: var(--nord0); color: #fff; }
+.badge-nord4 { background: var(--nord4); color: var(--nord0); }
+.badge-nord11 { background: var(--nord11); color: #fff; }
+.badge-nord12 { background: var(--nord12); color: #fff; }
+.badge-nord13 { background: var(--nord13); color: #111; }
+.badge-nord14 { background: var(--nord14); color: #111; }
+.badge-nord15 { background: var(--nord15); color: #fff; }
+
+/* Helper for subtle card accents */
+.card-accent-nord12 { box-shadow: 0 6px 18px rgba(var(--nord12-rgb), 0.08); border: 1px solid rgba(var(--nord12-rgb), 0.08); }
+.card-accent-nord11 { box-shadow: 0 6px 18px rgba(var(--nord11-rgb), 0.08); border: 1px solid rgba(var(--nord11-rgb), 0.08); }
+
+/* Helper inline utilities */
+.p-nord { padding: 0.75rem !important; }
+.px-nord { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+.py-nord { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+
+.nord-custom-select {
+ min-width: 120px;
+}
+
+.nord-custom-select:focus {
+  border-color: #BF616A; /* aurora red */
+  box-shadow: 0 0 0 0.2rem rgba(191,97,106,0.25), inset 0 2px 4px rgba(46,52,64,0.1);
+  outline: none;
+  background: #ffffff;
+}
+
+.nord-custom-select:hover {
+  border-color: var(--nord8);
+}
+
+/* hide ms edge dropdown arrow */
+.nord-custom-select::-ms-expand { display: none; }
+
+.nord-custom-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nord-select-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.2rem;
+  height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--nord8), var(--nord9));
+  color: #fff;
+  border-radius: 6px;
+  font-size: 1.2rem;
+  box-shadow: 0 2px 6px rgba(46,52,64,0.25);
+  pointer-events: none; /* allow clicks to pass to select */
+}
+
+.nord-empty-state {
+  background: linear-gradient(135deg, rgba(247,250,252,0.9), rgba(216,222,233,0.2));
+  border: 2px solid rgba(59,69,78,0.12);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.nord-animated-icon {
+  font-size: 3rem;
+  color: var(--nord8);
+  margin-bottom: 1rem;
+}
+
+.nord-material-card {
+  background: linear-gradient(135deg, rgba(163,190,140,0.1), rgba(143,188,187,0.1));
+  border: 3px solid rgba(163,190,140,0.3);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(163,190,140,0.2);
+}
+
+.nord-material-header h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--nord0);
+  margin-bottom: 1rem;
+}
+
+.nord-chart-wrapper {
+  max-width: 400px;
+}
+
+.nord-chart-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--nord0);
+  margin-bottom: 1rem;
+}
+
+.nord-stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.nord-stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(76,86,106,0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(67,76,94,0.1);
+}
+
+.nord-stat-label {
+  font-weight: 600;
+  color: var(--nord0);
+}
+
+.nord-stat-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--nord10);
+}
+
+.nord-action-btn {
+  padding: 1rem 1.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nord-primary-btn {
+  background: var(--nord10);
+  color: #fff;
+}
+
+.nord-primary-btn:hover:not(:disabled) {
+  background: var(--nord9);
+  /* Removed subtle upward movement */
+  box-shadow: 0 4px 12px rgba(94,129,172,0.3);
+}
+
+.nord-package-table {
+  background: linear-gradient(135deg, rgba(247,250,252,0.9), rgba(229,233,240,0.3));
+  border-radius: 12px;
+  box-shadow: 0 8px 24px var(--bg-nord0-20);
+  overflow-x: auto;
+}
+
+.nord-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;  
+}
+
+.nord-table th {
+  background: var(--nord3);
+  color: var(--nord6);
+  font-weight: 700;
+  padding: 1.5rem 1rem; /* Larger padding */
+  font-size: 1.1rem;
+}
+
+.nord-table td {
+  padding: 0.5rem 0.5rem;
+  border-bottom: 2px solid rgba(67,76,94,0.15);
+  color: var(--nord0);
+  font-size: 1.6rem;
+}
+
+.nord-table-compact td { 
+  padding: 0.3rem 0.2rem;
+}
+
+.nord-table-compact th {
+    padding: 0.7rem 0.2rem; /* Larger padding */
+      font-weight: normal;
+      font-size: medium;
+}
+
+.nord-table-compact tbody tr:hover { background-color: var(--nord6); }
+
+.nord-status-pick { background: linear-gradient(90deg, rgba(247,250,252,1) 0%, rgba(216,222,233,0.55) 100%); }
+.nord-status-picked { background: linear-gradient(90deg, rgba(163,190,140,0.65) 0%, rgba(143,188,187,0.5) 100%); }
+.nord-status-short { background: linear-gradient(90deg, rgba(191,97,106,0.65) 0%, rgba(208,135,112,0.5) 100%); }
+.nord-status-overflowed { background: linear-gradient(90deg, rgba(97, 164, 191, 0.65) 0%, rgba(112, 181, 208, 0.5) 100%); }
+.nord-table tbody tr { transition: background-color .25s ease, transform .15s ease; }
+.nord-table:not(.nord-table-compact) tbody tr:hover { /* Removed lateral shift */ box-shadow:0 4px 12px rgba(46,52,64,0.25); }
+
+.nord-bg-warning {
+  background: rgba(235,203,139,0.2) !important;
+  border: 1px solid rgba(235,203,139,0.3);
+}
+
+.nord-package-actions .nord-action-btn {
+  padding: 1rem 1.5rem; /* Larger padding */
+  font-size: 1.2rem; /* Bigger font */
+  font-weight: 700;
+  min-height: 50px; /* Minimum height for touch */
+  border-radius: 10px;
+}
+
+.nord-danger-btn {
+  background: #BF616A;
+  color: #fff;
+}
+
+.nord-danger-btn:hover:not(:disabled) {
+  background: #A9444A;
+}
+
+.nord-success-btn {
+  background: #A3BE8C;
+  color: #fff;
+}
+
+.nord-success-btn:hover:not(:disabled) {
+  background: #8FA876;
+}
+
+.nord-info-btn {
+  background: var(--nord8);
+  color: #fff;
+}
+
+.nord-info-btn:hover:not(:disabled) {
+  background: var(--nord7);
+}
+
+.nord-fixed-bottom {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(135deg, rgba(143,188,187,0.1), rgba(163,190,140,0.1)); /* Frost and aurora */
+  border-top: 3px solid rgba(143,188,187,0.3);
+  box-shadow: 0 -6px 20px rgba(143,188,187,0.15);
+  z-index: 1000;
+}
+
+/* unified progress bar */
+.nord-progress-wrapper { width:100%; }
+.nord-progress { width:100%; height:60px; position:relative; background:linear-gradient(135deg, var(--nord1), var(--nord2)); border:3px solid var(--nord1); border-radius:12px; overflow:hidden; }
+.nord-progress-bar { position:absolute; top:0; left:0; bottom:0; width:var(--progress); max-width:100%; background-color:var(--nord9); display:flex; align-items:center; padding-left:1.25rem; font-weight:700; font-size:1.3rem; color:#fff; transition:width .6s ease, background-color .6s ease; }
+.nord-progress-label { text-shadow:1px 1px 3px rgba(46,52,64,.7); }
+
+/* completed state */
+.nord-progress-complete .nord-progress-bar {
+  background-color:#A3BE8C; /* green */
+  cursor: pointer;
+  animation: completionFlash 1.1s ease-out 1;
+}
+.nord-progress-complete .nord-progress-bar:hover { box-shadow:0 0 0 3px rgba(163,190,140,0.35) inset; }
+.nord-progress-complete .nord-progress-bar:focus { outline:3px solid rgba(163,190,140,0.6); outline-offset:2px; }
+
+/* Additional progress states (moved from component CSS) */
+.nord-progress-active .nord-progress-bar { background: var(--nord10); }
+.nord-progress-unclosed .nord-progress-bar { background: var(--accent); }
+.nord-progress-unclosed .nord-progress-label,
+.nord-progress-active .nord-progress-label { color:#fff; }
+
+/* Status label color helpers */
+.nord-status-unfinished { color: var(--accent); font-weight:600; }
+.nord-status-finished { color: #A3BE8C; font-weight:600; }
+.nord-status-active { color: var(--nord4); font-weight:500; }
+
+@keyframes completionFlash {
+  0% { box-shadow:0 0 0 0 rgba(163,190,140,0.0); }
+  40% { box-shadow:0 0 0 10px rgba(163,190,140,0.25); }
+  70% { box-shadow:0 0 0 6px rgba(163,190,140,0.15); }
+  100% { box-shadow:0 0 0 0 rgba(163,190,140,0.0); }
+}
+
+/* override cleanup: previous duplicate .nord-progress-bar removed */
+.nord-selector-icon {
+  width:46px; height:46px; border-radius:10px; background:linear-gradient(135deg,var(--nord2), var(--nord3)); color:var(--nord4); font-size:1.4rem; box-shadow:0 2px 6px rgba(46,52,64,.3);
+}
+
+.nord-badge {
+  border-radius: 10px;
+  font-weight: 700;
+  border: 3px solid rgba(59,69,78,0.3);
+  font-size: 1.1rem;
+  padding: 1rem;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nord-badge.bg-success {
+  background: linear-gradient(135deg, #A3BE8C, #8FA876) !important;
+  border-color: #A3BE8C;
+}
+
+.nord-badge.bg-danger {
+  background: linear-gradient(135deg, #BF616A, #A9444A) !important;
+  border-color: #BF616A;
+}
+
+.nord-badge.bg-secondary {
+  background: linear-gradient(135deg, var(--nord8), var(--nord7)) !important;
+  border-color: var(--nord8);
+}
+
+.nord-finish-btn {
+  background: linear-gradient(135deg, #A3BE8C, #8FA876);
+  border: 3px solid rgba(163,190,140,0.4);
+  color: #fff;
+  font-size: 1.3rem;
+  padding: 1.25rem 2rem;
+  border-radius: 12px;
+  font-weight: 700;
+  min-height: 60px; /* match progress height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- TaHandleDeviations additions --- */
+.nord-btn-group-2 {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+    width:100%;
+}
+.nord-btn-single {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    white-space:nowrap;
+}
+.nord-cell-comment,
+.nord-cell-comment-edit {
+    display:flex;
+    align-items:center;
+}
+.nord-btn-td { vertical-align:middle; }
+
+/* Soft aurora yellow manual shortage row */
+.nord-row-manual-soft {
+    background:rgba(235,203,139,0.18) !important;
+}
+.nord-row-manual-soft-border {
+  box-shadow: inset 4px 0 0 0 rgba(235,203,139,0.55);  /* left vertical stripe inside the cell */
+}
+
+.nord-row-manual-soft td { color:#3b2f14; }
+
+/* Nord primary button - beautiful blue gradient from login screen */
+.btn-nord-primary {
+    background: var(--nord10);
+    border-color: var(--nord10);
+    color: #fff;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-nord-primary:hover {
+    background: var(--nord9);
+    border-color: var(--nord9);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(94,129,172,0.3);
+}
+
+.btn-nord-primary:active,
+.btn-nord-primary:focus {
+    background: var(--nord10);
+    border-color: var(--nord10);
+    color: #fff;
+    box-shadow: 0 0 0 0.2rem rgba(94,129,172,0.25);
+}
+
+.btn-nord-primary:disabled {
+    background: rgba(94,129,172,0.4);
+    border-color: rgba(94,129,172,0.4);
+    color: rgba(255,255,255,0.7);
+    cursor: not-allowed;
+}
+
+/* Nord button - same as login screen button */
+.nord-btn {
+    background: var(--nord9) !important;
+    border-color: var(--nord9) !important;
+    color: #fff !important;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.nord-btn:hover {
+    background: var(--nord10) !important;
+    border-color: var(--nord10) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(94,129,172,0.3);
+}
+
+.nord-btn:active,
+.nord-btn:focus {
+    background: var(--nord10) !important;
+    border-color: var(--nord10) !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 0.1rem rgba(76,86,106,0.25);
+}
+
+.nord-btn:disabled {
+    background: var(--nord3) !important;
+    border-color: var(--nord3) !important;
+    color: var(--nord4) !important;
+    cursor: not-allowed !important;
+    opacity: 0.65;
+    box-shadow: none !important;
+    pointer-events: auto !important;
+}
+
+/* Nord warning button - aurora yellow */
+.nord-btn-warning {
+    background: var(--nord13) !important;
+    border-color: var(--nord13) !important;
+    color: var(--nord0) !important;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.nord-btn-warning:hover {
+    background: var(--nord12) !important;
+    border-color: var(--nord12) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(235,203,139,0.3);
+}
+
+.nord-btn-warning:active,
+.nord-btn-warning:focus {
+    background: var(--nord13) !important;
+    border-color: var(--nord13) !important;
+    color: var(--nord0) !important;
+    box-shadow: 0 0 0 0.2rem rgba(235,203,139,0.25);
+}
+
+.nord-btn-warning:disabled {
+    background: var(--nord3) !important;
+    border-color: var(--nord3) !important;
+    color: var(--nord4) !important;
+    cursor: not-allowed !important;
+    opacity: 0.65;
+    box-shadow: none !important;
+    pointer-events: auto !important;
+}
+
+/* Nord danger button - aurora red */
+.nord-btn-danger {
+    background: var(--nord11) !important;
+    border-color: var(--nord11) !important;
+    color: #fff !important;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.nord-btn-danger:hover {
+    background: var(--nord12) !important;
+    border-color: var(--nord12) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(191,97,106,0.3);
+}
+
+.nord-btn-danger:active,
+.nord-btn-danger:focus {
+    background: var(--nord11) !important;
+    border-color: var(--nord11) !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 0.2rem rgba(191,97,106,0.25);
+}
+
+.nord-btn-danger:disabled {
+    background: var(--nord3) !important;
+    border-color: var(--nord3) !important;
+    color: var(--nord4) !important;
+    cursor: not-allowed !important;
+    opacity: 0.65;
+    box-shadow: none !important;
+    pointer-events: auto !important;
+}
+
+/* Nord success button - aurora green */
+.nord-btn-success {
+    background: var(--nord14) !important;
+    border-color: var(--nord14) !important;
+    color: #fff !important;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.nord-btn-success:hover {
+    background: var(--nord7) !important;
+    border-color: var(--nord7) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(163,190,140,0.3);
+}
+
+.nord-btn-success:active,
+.nord-btn-success:focus {
+    background: var(--nord14) !important;
+    border-color: var(--nord14) !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 0.2rem rgba(163,190,140,0.25);
+}
+
+.nord-btn-success:disabled {
+    background: var(--nord3) !important;
+    border-color: var(--nord3) !important;
+    color: var(--nord4) !important;
+    cursor: not-allowed !important;
+    opacity: 0.65;
+    box-shadow: none !important;
+    pointer-events: auto !important;
+}
+
+/* Nord Spinner Component */
+.nord-spinner-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Spinner position variants */
+.nord-spinner-inline {
+    display: inline-flex;
+    flex-direction: row;
+}
+
+.nord-spinner-above {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.nord-spinner-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100px;
+    gap: 0.75rem;
+}
+
+.nord-spinner {
+    border: 2px solid transparent;
+    border-top-color: var(--nord10);
+    border-right-color: var(--nord9);
+    border-radius: 50%;
+    animation: nord-spin 0.8s linear infinite;
+}
+
+.nord-spinner-message {
+    font-weight: 600;
+    color: var(--nord0);
+}
+
+/* Spinner color variants */
+.nord-spinner-container[data-color="primary"] .nord-spinner {
+    border-top-color: var(--nord10);
+    border-right-color: var(--nord9);
+}
+
+.nord-spinner-container[data-color="primary"] .nord-spinner-message {
+    color: var(--nord10);
+}
+
+.nord-spinner-container[data-color="warning"] .nord-spinner {
+    border-top-color: var(--nord13);
+    border-right-color: var(--nord12);
+}
+
+.nord-spinner-container[data-color="warning"] .nord-spinner-message {
+    color: var(--nord13);
+}
+
+.nord-spinner-container[data-color="danger"] .nord-spinner {
+    border-top-color: var(--nord11);
+    border-right-color: var(--nord12);
+}
+
+.nord-spinner-container[data-color="danger"] .nord-spinner-message {
+    color: var(--nord11);
+}
+
+.nord-spinner-container[data-color="success"] .nord-spinner {
+    border-top-color: var(--nord14);
+    border-right-color: var(--nord7);
+}
+
+.nord-spinner-container[data-color="success"] .nord-spinner-message {
+    color: var(--nord14);
+}
+
+@keyframes nord-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Borders */
+.border-success {
+    border-color: var(--nord14) !important;
+    border-width: 1px !important;
+}
+
+.border-danger {
+    border-color: var(--nord11) !important;
+    border-width: 1px !important;
+}
+
+.border-warning {
+    border-color: var(--nord13) !important;
+    border-width: 1px !important;
+}
+
+/* Category Icon Background Colors - Distinct Nord colors for each category */
+.tile-icon-work {
+    background: linear-gradient(135deg, var(--nord12), var(--nord11)) !important; /* Aurora: orange to red */
+}
+
+.tile-icon-dashboard {
+    background: linear-gradient(135deg, var(--nord14), var(--nord13)) !important; /* Aurora: green to yellow */
+}
+
+.tile-icon-admin {
+    background: linear-gradient(135deg, var(--nord9), var(--nord10)) !important; /* Frost: blue */
+}
+
+.tile-icon-users {
+    background: linear-gradient(135deg, var(--nord15), var(--nord12)) !important; /* Aurora: purple to orange */
+}
+
+.tile-icon-system {
+    background: linear-gradient(135deg, var(--nord3), var(--nord2)) !important; /* Polar Night: dark gray */
+}
+
+.tile-icon-vehicle {
+    background: linear-gradient(135deg, var(--nord13), var(--nord14)) !important; /* Aurora: yellow to green */
+}
+
+.tile-icon-team {
+    background: linear-gradient(135deg, var(--nord14), var(--nord7)) !important; /* Aurora/Frost: green to cyan */
+}
+
+.tile-icon-scrum {
+    background: linear-gradient(135deg, var(--nord11), var(--nord12)) !important; /* Aurora: red to orange */
+}
+
+.tile-icon-krona {
+    background: linear-gradient(135deg, var(--nord9), var(--nord8)) !important; /* Frost: blue to cyan */
+}
+
+.tile-icon-topas {
+    background: linear-gradient(135deg, var(--nord10), var(--nord8)) !important; /* Frost: blue to cyan */
+}
+/* =======================================================
+   Table row left accent helpers (for any tables)
+   Usage: <tr class="tr-accent-danger"> � </tr>
+   ======================================================= */
+
+.tr-accent-danger > td:first-child,
+.tr-accent-danger > th:first-child,
+.tr-accent-info > td:first-child,
+.tr-accent-info > th:first-child,
+.tr-accent-warning > td:first-child,
+.tr-accent-warning > th:first-child,
+.tr-accent-primary > td:first-child,
+.tr-accent-primary > th:first-child {
+    position: relative;
+}
+
+    .tr-accent-danger > td:first-child::before,
+    .tr-accent-danger > th:first-child::before,
+    .tr-accent-info > td:first-child::before,
+    .tr-accent-info > th:first-child::before,
+    .tr-accent-warning > td:first-child::before,
+    .tr-accent-warning > th:first-child::before,
+    .tr-accent-primary > td:first-child::before,
+    .tr-accent-primary > th:first-child::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 14px;
+        border-radius: 2px;
+    }
+
+    /* Red bar � �danger� (brist) */
+    .tr-accent-danger > td:first-child::before,
+    .tr-accent-danger > th:first-child::before {
+        background: var(--nord11);
+    }
+
+    /* Blue bar � �info� (overflow or similar) */
+    .tr-accent-info > td:first-child::before,
+    .tr-accent-info > th:first-child::before,
+    .tr-accent-primary > td:first-child::before,
+    .tr-accent-primary > th:first-child::before {
+        background: var(--nord9);
+    }
+
+    /* Orange/yellow bar � �warning� (soft issues etc.) */
+    .tr-accent-warning > td:first-child::before,
+    .tr-accent-warning > th:first-child::before {
+        background: var(--nord13);
+    }
+
+

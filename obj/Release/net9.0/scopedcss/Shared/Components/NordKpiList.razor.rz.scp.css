@@ -1,0 +1,205 @@
+/* Nord KPI List Component - Table Style */
+.nord-kpi-list[b-754ev5mfgm] {
+    background: var(--nord1);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.list-title[b-754ev5mfgm] {
+    color: var(--nord4);
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+}
+
+.list-title i[b-754ev5mfgm] {
+    color: var(--nord8);
+    margin-right: 0.5rem;
+}
+
+.list-items[b-754ev5mfgm] {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.list-item[b-754ev5mfgm] {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--nord2);
+    border-radius: 0;
+    box-shadow: none;
+    transition: background-color 0.2s ease;
+}
+
+.list-item:hover[b-754ev5mfgm] {
+    transform: none;
+    box-shadow: none;
+    background-color: var(--nord2);
+}
+
+.list-item:last-child[b-754ev5mfgm] {
+    border-bottom: none;
+}
+
+.item-rank[b-754ev5mfgm] {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--nord3);
+    color: var(--nord6);
+    font-weight: 700;
+    font-size: 1rem;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.item-content[b-754ev5mfgm] {
+    flex: 1;
+    min-width: 0;
+}
+
+.item-title[b-754ev5mfgm] {
+    font-size: 0.95rem;
+    color: var(--nord6);
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.item-subtitle[b-754ev5mfgm] {
+    font-size: 0.85rem;
+    color: var(--nord4);
+    opacity: 0.9;
+}
+
+.item-badge[b-754ev5mfgm] {
+    padding: 0.5rem 1rem;
+    background: var(--nord3);
+    color: var(--nord6);
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 1rem;
+    font-family: 'Courier New', monospace;
+    flex-shrink: 0;
+}
+
+/* Status Colors */
+.list-item.item-good .item-badge[b-754ev5mfgm] {
+    background: var(--nord14);
+    color: var(--nord0);
+}
+
+.list-item.item-warning .item-badge[b-754ev5mfgm] {
+    background: var(--nord13);
+    color: var(--nord0);
+}
+
+.list-item.item-bad .item-badge[b-754ev5mfgm] {
+    background: var(--nord11);
+    color: var(--nord6);
+}
+
+.list-item.item-good .item-title[b-754ev5mfgm] {
+    color: var(--nord14);
+}
+
+.list-item.item-warning .item-title[b-754ev5mfgm] {
+    color: var(--nord13);
+}
+
+.list-item.item-bad .item-title[b-754ev5mfgm] {
+    color: var(--nord11);
+}
+
+.list-empty[b-754ev5mfgm] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    color: var(--nord4);
+    opacity: 0.6;
+}
+
+.list-empty i[b-754ev5mfgm] {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.list-footer[b-754ev5mfgm] {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--nord3);
+}
+
+/* Color variants - accent for rank badge */
+.nord-kpi-list.nord8 .item-rank[b-754ev5mfgm] {
+    background: var(--nord8);
+    color: var(--nord0);
+}
+
+.nord-kpi-list.nord9 .item-rank[b-754ev5mfgm] {
+    background: var(--nord9);
+    color: var(--nord0);
+}
+
+.nord-kpi-list.nord10 .item-rank[b-754ev5mfgm] {
+    background: var(--nord10);
+    color: var(--nord6);
+}
+
+.nord-kpi-list.nord11 .item-rank[b-754ev5mfgm] {
+    background: var(--nord11);
+    color: var(--nord6);
+}
+
+.nord-kpi-list.nord12 .item-rank[b-754ev5mfgm] {
+    background: var(--nord12);
+    color: var(--nord0);
+}
+
+.nord-kpi-list.nord13 .item-rank[b-754ev5mfgm] {
+    background: var(--nord13);
+    color: var(--nord0);
+}
+
+.nord-kpi-list.nord14 .item-rank[b-754ev5mfgm] {
+    background: var(--nord14);
+    color: var(--nord0);
+}
+
+.nord-kpi-list.nord15 .item-rank[b-754ev5mfgm] {
+    background: var(--nord15);
+    color: var(--nord6);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .item-rank[b-754ev5mfgm] {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+    
+    .item-title[b-754ev5mfgm] {
+        font-size: 0.9rem;
+    }
+    
+    .item-subtitle[b-754ev5mfgm] {
+        font-size: 0.8rem;
+    }
+    
+    .item-badge[b-754ev5mfgm] {
+        font-size: 0.9rem;
+        padding: 0.4rem 0.75rem;
+    }
+}

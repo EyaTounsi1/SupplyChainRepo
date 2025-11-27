@@ -1,0 +1,101 @@
+/* ===== Layout Container ===== */
+body[b-2i4n7m0cal], html[b-2i4n7m0cal] {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+/* ===== Header ===== */
+header.navbar[b-2i4n7m0cal] {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+header .navbar-brand[b-2i4n7m0cal] {
+    font-size: 1.2rem;
+}
+
+header .btn[b-2i4n7m0cal] {
+    transition: all 0.2s ease-in-out;
+}
+
+header .btn:hover[b-2i4n7m0cal] {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+/* ===== Main ===== */
+main article.container[b-2i4n7m0cal] {
+    animation: fadeIn-b-2i4n7m0cal 0.4s ease-in-out;
+}
+
+/* ===== Footer ===== */
+footer[b-2i4n7m0cal] {
+    font-size: 0.9rem;
+    background-color: #f8f9fa;
+    color: #6c757d;
+    border-top: 1px solid #dee2e6;
+}
+#PartTracker-layout-header[b-2i4n7m0cal]{
+    font-family: '3270NerdFont', monospace, sans-serif;
+    letter-spacing: 0.05em;
+    color: #212529;
+    user-select: none; 
+}
+#PartTracker-layout-header[b-2i4n7m0cal]::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px; 
+    background-image: linear-gradient(to right, #4f9df7, #66707E);
+    border-radius: 2px;
+}
+.user-info[b-2i4n7m0cal] {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.header-logout-btn[b-2i4n7m0cal] {
+    background: transparent;
+    border: none;
+    border-left: 4px solid;
+    border-image-slice: 1;
+    border-image-source: linear-gradient(to bottom, #4f9df7, #66707E);
+    color: #4f9df7;
+    font-weight: 600;
+    font-size: 1rem;
+    height: 100%; 
+    padding: 0 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    user-select: none;
+    transition: background-color 0.25s ease, color 0.25s ease;
+}
+.header-logout-btn:hover[b-2i4n7m0cal],
+.header-logout-btn:focus[b-2i4n7m0cal] {
+    background-color: rgba(79, 157, 247, 0.15); 
+    color: #1a6cd8;
+    outline: none;
+}
+
+
+
+
+@keyframes fadeIn-b-2i4n7m0cal {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== Responsive Adjustments ===== */
+@media (max-width: 576px) {
+    header .navbar-brand[b-2i4n7m0cal] {
+        font-size: 1.25rem;
+    }
+
+    header .btn[b-2i4n7m0cal] {
+        font-size: 0.85rem;
+    }
+}
