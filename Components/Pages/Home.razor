@@ -1,51 +1,142 @@
 @page "/"
+@using PartTracker.Components.Layout
+@layout MainLayout
+@using Microsoft.EntityFrameworkCore
 @using MudBlazor
-@using MudBlazor.Charts
+@using PartTracker.Models
+@inject AppDbContext DbContext
 
-<MudPaper Class="pa-4">
-    <MudChart ChartType="ChartType.Donut" Width="300px" Height="300px" @bind-SelectedIndex="Index" InputData="@data" InputLabels="@labels"></MudChart>
-</MudPaper>
-<MudPaper Class="pa-4 mt-2 d-flex justify-center">
-    <MudButton OnClick="AddDataSize" Variant="Variant.Filled" Color="Color.Primary">Add</MudButton>
-    <MudButton @onclick="RandomizeData" Variant="Variant.Filled" Class="mx-4">Randomize</MudButton>
-    <MudButton OnClick="RemoveDataSize" Variant="Variant.Filled" Color="Color.Secondary">Remove</MudButton>  
-</MudPaper>
-<MudText Typo="Typo.h6">Selected portion of the chart: @Index</MudText>
+<MudText Typo="Typo.h3" Class="mb-4">Parts In Transit by Supplier</MudText>
+
+@if (partsInTransit == null)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <MudText>Loading parts in transit...</MudText>
+}
+else if (!partsInTransit.Any())
+{
+    <MudAlert Severity="Severity.Info">No parts in transit found.</MudAlert>
+}
+else
+{
+    var groupedByLevNr = partsInTransit.GroupBy(p => p.LevNr)
+                                      .Select(g => new { LevNr = g.Key, Count = g.Count() })
+                                      .OrderByDescending(x => x.Count)
+                                      .ToList();
+
+    var top20 = groupedByLevNr.Take(20).ToList();
+
+    <MudGrid>
+        <MudItem xs="12">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h5" Class="mb-4">Total Parts: @partsInTransit.Count.ToString("N0")</MudText>
+                <MudText Typo="Typo.h6" Class="mb-2">Unique Suppliers: @groupedByLevNr.Count</MudText>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-4">Top 20 Suppliers</MudText>
+                @if (top20.Any())
+                {
+                    var maxCountTop20 = (double)top20.Max(x => x.Count);
+                    var chartHeightPx = 400.0;
+                    var minBarPx = 18.0;
+                    var totalParts = (double)partsInTransit.Count;
+
+                    <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px;">
+                        <div style="display: flex; align-items: flex-end; justify-content: space-around; gap: 4px; height:@(chartHeightPx)px; border-bottom: 3px solid #333;">
+                            @foreach (var item in top20)
+                            {
+                                var percentage = ((double)item.Count / totalParts) * 100;
+                                var normalized = (double)item.Count / maxCountTop20;
+
+                                // ✅ Improved scaling: use power curve for better visual spread
+                                var scaled = Math.Pow(normalized, 0.4); // 0.4 exaggerates differences more than sqrt
+                                var barHeight = Math.Max(minBarPx, scaled * chartHeightPx);
+
+                                <div style="display: flex; flex-direction: column; align-items: center; width: 50px;">
+                                    <MudText Typo="Typo.caption" Class="mb-1" Style="font-size: 0.7rem; color: #333; font-weight: bold;">
+                                        @percentage.ToString("F1")%
+                                    </MudText>
+                                    <MudTooltip Text="@($"{item.LevNr}: {item.Count:N0} parts ({percentage:F2}%)")">
+                                        <div style="width: 45px; height:@(barHeight)px; background-color:#5E81AC; border:2px solid #4C6B8A; border-radius:4px 4px 0 0; cursor:pointer; min-height:10px;"></div>
+                                    </MudTooltip>
+                                </div>
+                            }
+                        </div>
+                        <div style="display: flex; justify-content: space-around; gap: 4px; margin-top: 8px;">
+                            @foreach (var item in top20)
+                            {
+                                <div style="width: 50px; text-align: center;">
+                                    <MudText Typo="Typo.caption" Style="font-size: 0.7rem; font-weight: bold;">@item.LevNr</MudText>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <MudText Typo="Typo.caption" Class="mt-2" Style="color: #666;">
+                        Bar heights use a power curve (0.4) for better visual differentiation.
+                    </MudText>
+                }
+                else
+                {
+                    <MudAlert Severity="Severity.Warning">No chart data available</MudAlert>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudPaper Class="pa-4">
+                <MudTable Items="@groupedByLevNr" Hover="true" Striped="true" Dense="true" Filter="new Func<dynamic,bool>(FilterFunc)">
+                    <ToolBarContent>
+                        <MudText Typo="Typo.h6">All Suppliers</MudText>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+                    </ToolBarContent>
+                    <HeaderContent>
+                        <MudTh>Supplier (LevNr)</MudTh>
+                        <MudTh><MudTableSortLabel SortBy="new Func<dynamic, object>(x=>x.Count)">Parts Count</MudTableSortLabel></MudTh>
+                        <MudTh>Percentage</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="LevNr">@context.LevNr</MudTd>
+                        <MudTd DataLabel="Count">@context.Count.ToString("N0")</MudTd>
+                        <MudTd DataLabel="Percentage">@(((double)context.Count / partsInTransit.Count * 100).ToString("F2"))%</MudTd>
+                    </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new int[]{10, 25, 50, 100}" />
+                    </PagerContent>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
 
 @code {
-    private int Index = -1; //default value cannot be 0 -> first selectedindex is 0.
-    int dataSize = 4;
-    public double[] data = { 50, 25, 20, 5 };
-    public string[] labels = { "Fossil", "Nuclear", "Solar", "Wind", "Oil", "Coal", "Gas", "Biomass",
-                                "Hydro", "Geothermal", "Nuclear Fusion", "Pumped Storage", "Solar", "Wind", "Oil",
-                                "Coal", "Gas", "Biomass", "Hydro", "Geothermal" };
+    private List<PartsInTransit>? partsInTransit;
+    private string searchString = "";
 
-    Random random = new Random();
-
-    void RandomizeData()
+    protected override async Task OnInitializedAsync()
     {
-        var new_data = new double[dataSize];
-        for (int i = 0; i < new_data.Length; i++)
-            new_data[i] = random.NextDouble() * 100;
-        data = new_data;
-        StateHasChanged();
-    }
-
-    void AddDataSize()
-    {
-        if (dataSize < 20)
+        try
         {
-            dataSize = dataSize + 1;
-            RandomizeData();
+            partsInTransit = await DbContext.PartsInTransit.ToListAsync();
+            Console.WriteLine($"Loaded {partsInTransit?.Count ?? 0} parts in transit");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading data: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
         }
     }
 
-    void RemoveDataSize()
+    private bool FilterFunc(dynamic element)
     {
-        if (dataSize > 0)
-        {
-            dataSize = dataSize - 1;
-            RandomizeData();
-        }
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+        if (element.LevNr != null && element.LevNr.Contains(searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
     }
 }
