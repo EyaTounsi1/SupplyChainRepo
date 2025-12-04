@@ -27,7 +27,7 @@ else
         {
             var today = DateTime.Today;
             todaysBookingsCount = await DbContext.ChangeLogEntries
-                .CountAsync(e => (e.AftermarketCollectionOrSpeedUp ?? "").ToLower() == "aftermarket collection" 
+                .CountAsync(e => (e.PremiumBooking ?? "").ToLower() == "aftermarket collection" 
                               && e.StartTime.HasValue 
                               && e.StartTime.Value.Date == today);
         }

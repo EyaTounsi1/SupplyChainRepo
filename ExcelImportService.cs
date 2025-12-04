@@ -24,7 +24,7 @@ public class ExcelImportService : IExcelImportService
 
     public async Task ImportChangeLogAsync(CancellationToken cancellationToken = default)
     {
-        var excelFilePath = Path.Combine(_env.WebRootPath, "ActivityLog.xlsx");
+        var excelFilePath = @"C:\Users\ETOUNSI\OneDrive - Volvo Cars\Desktop\Supply Chain\Power Bi\Activity Form Answers\Let's log your changes! [Activity] 3.xlsx";
 
         if (!File.Exists(excelFilePath))
         {
