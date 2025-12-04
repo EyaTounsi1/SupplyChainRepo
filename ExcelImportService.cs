@@ -34,7 +34,7 @@ public class ExcelImportService : IExcelImportService
 
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
-        using var package = new ExcelPackage(new FileInfo(excelFilePath));
+        using var package = new ExcelPackage(new FileStream(excelFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
         var ws = package.Workbook.Worksheets[0]; // First sheet
 
         int currentRow = 2; // assuming row 1 is headers
