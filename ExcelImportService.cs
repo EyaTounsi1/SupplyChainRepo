@@ -24,7 +24,7 @@ public class ExcelImportService : IExcelImportService
 
     public async Task ImportChangeLogAsync(CancellationToken cancellationToken = default)
     {
-        var excelFilePath = @"C:\Users\ETOUNSI\OneDrive - Volvo Cars\Desktop\Supply Chain\Power Bi\Activity Form Answers\Let's log your changes! [Activity] 3.xlsx";
+        var excelFilePath = @"C:\Users\ETOUNSI\OneDrive - Volvo Cars\Desktop\Supply Chain\Power Bi\Activity Form Answers\Activity.xlsx";
 
         if (!File.Exists(excelFilePath))
         {
@@ -39,6 +39,7 @@ public class ExcelImportService : IExcelImportService
 
         int currentRow = 2; // assuming row 1 is headers
         var now = DateTime.UtcNow;
+        int premiumTodayCount = 0;
 
         while (true)
         {
@@ -73,6 +74,11 @@ public class ExcelImportService : IExcelImportService
                 Comment2 = ws.Cells[currentRow, 24].Text,
                 LastUpdated = now
             };
+
+            if (string.Equals(entry.PremiumBooking, "premium booking", StringComparison.OrdinalIgnoreCase) && entry.CompletionTime.HasValue && entry.CompletionTime.Value.Date == DateTime.Today)
+            {
+                premiumTodayCount++;
+            }
 
             // Use ExcelId as unique key
             var existing = await _db.ChangeLogEntries
@@ -113,6 +119,8 @@ public class ExcelImportService : IExcelImportService
 
             currentRow++;
         }
+
+        _logger.LogInformation("Premium bookings in file for today: {Count}", premiumTodayCount);
 
         await _db.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Excel sync completed at {Time}", now);
