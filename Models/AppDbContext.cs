@@ -8,6 +8,7 @@ public class AppDbContext : DbContext
 {
 	
 	public DbSet<PartsInTransit> PartsInTransit { get; set; }
+	public DbSet<ChangeLogEntry> ChangeLogEntries { get; set; }
 
 	public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 	private static string ToSnakeCase(string input)

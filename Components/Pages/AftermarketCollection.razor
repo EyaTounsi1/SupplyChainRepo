@@ -1,0 +1,43 @@
+@page "/aftermarket-collection"
+@layout MainLayout
+@inject AppDbContext DbContext
+
+<MudText Typo="Typo.h3">Aftermarket Collection</MudText>
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <MudText>Loading data...</MudText>
+}
+else
+{
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h4">Today's Bookings</MudText>
+        <MudText Typo="Typo.h5" Color="Color.Primary">@todaysBookingsCount bookings made today</MudText>
+    </MudPaper>
+}
+
+@code {
+    private int todaysBookingsCount;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var today = DateTime.Today;
+            todaysBookingsCount = await DbContext.ChangeLogEntries
+                .CountAsync(e => (e.AftermarketCollectionOrSpeedUp ?? "").ToLower() == "aftermarket collection" 
+                              && e.StartTime.HasValue 
+                              && e.StartTime.Value.Date == today);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

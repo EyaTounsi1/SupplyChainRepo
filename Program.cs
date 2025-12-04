@@ -29,7 +29,7 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 
     // options.AddInterceptors(sp.GetRequiredService<TopasMaterialInterceptor>());
 });
-
+builder.Services.AddScoped<AnotherSnowflakeService>();
 // Blazor and Session Storage
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
@@ -43,6 +43,17 @@ builder.Services.AddMudServices();
 // builder.Services.AddSingleton<TopasMaterialInterceptor>();
 builder.Services.AddHttpClient();
 // builder.Services.AddScoped<TaPartSearchEngine>();
+
+// Excel import service
+builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
+builder.Services.AddHostedService<ExcelSyncBackgroundService>();
+
+// Safety stock service
+builder.Services.AddScoped<ISafetyStockService, SafetyStockService>();
+builder.Services.AddScoped<AnotherSnowflakeService>();
+
+// Forecast service
+builder.Services.AddScoped<IForecastService, ForecastService>();
 
 // Services
 // builder.Services.AddScoped<LaunchService>();

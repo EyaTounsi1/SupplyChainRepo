@@ -1,0 +1,52 @@
+@page "/forecast-digital-twin"
+@layout MainLayout
+@inject IForecastService ForecastService
+
+<MudText Typo="Typo.h3">Forecast & Digital Twin</MudText>
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <MudText>Loading forecast data...</MudText>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <MudAlert Severity="Severity.Error">@errorMessage</MudAlert>
+}
+else
+{
+    <MudTable Items="@forecastItems" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Product</MudTh>
+            <MudTh>Date</MudTh>
+            <MudTh>Forecast Value</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Product</MudTd>
+            <MudTd>@context.Date.ToShortDateString()</MudTd>
+            <MudTd>@context.ForecastValue</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<ForecastItem> forecastItems = new();
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            forecastItems = await ForecastService.GetForecastDataAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading forecast data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

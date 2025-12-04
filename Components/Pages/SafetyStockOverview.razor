@@ -1,0 +1,91 @@
+@page "/safety-stock"
+@layout MainLayout
+@inject ISafetyStockService SafetyStockService
+@inject AnotherSnowflakeService AnotherSnowflakeService
+
+<MudText Typo="Typo.h3">Safety Stock Overview</MudText>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="TestFirstConnection">Test First Snowflake Connection</MudButton>
+<MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="TestSecondConnection">Test Second Snowflake Connection</MudButton>
+
+@if (!string.IsNullOrEmpty(connectionTestResult))
+{
+    <MudAlert Severity="@(connectionTestSuccess ? Severity.Success : Severity.Error)">@connectionTestResult</MudAlert>
+}
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <MudText>Loading safety stock data...</MudText>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <MudAlert Severity="Severity.Error">@errorMessage</MudAlert>
+}
+else
+{
+    <MudTable Items="@safetyStockItems" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Part Number</MudTh>
+            <MudTh>Safety Stock Nr of Parts</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.PartNumber</MudTd>
+            <MudTd>@context.SafetyStockNrOfParts</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    private List<SafetyStockItem> safetyStockItems = new();
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
+    private string connectionTestResult = string.Empty;
+    private bool connectionTestSuccess = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            safetyStockItems = await SafetyStockService.GetSafetyStockDataAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading safety stock data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task TestFirstConnection()
+    {
+        try
+        {
+            var success = await SafetyStockService.TestConnectionAsync();
+            connectionTestResult = success ? "First Snowflake connection successful!" : "First Snowflake connection failed.";
+            connectionTestSuccess = success;
+        }
+        catch (Exception ex)
+        {
+            connectionTestResult = $"Error testing first connection: {ex.Message}";
+            connectionTestSuccess = false;
+        }
+    }
+
+    private async Task TestSecondConnection()
+    {
+        try
+        {
+            var success = await AnotherSnowflakeService.TestConnectionAsync();
+            connectionTestResult = success ? "Second Snowflake connection successful!" : "Second Snowflake connection failed.";
+            connectionTestSuccess = success;
+        }
+        catch (Exception ex)
+        {
+            connectionTestResult = $"Error testing second connection: {ex.Message}";
+            connectionTestSuccess = false;
+        }
+    }
+}

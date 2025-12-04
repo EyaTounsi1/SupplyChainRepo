@@ -3,10 +3,12 @@
 @layout MainLayout
 @using Microsoft.EntityFrameworkCore
 @using MudBlazor
-@using PartTracker.Models
+@using OfficeOpenXml
 @inject AppDbContext DbContext
+@inject HttpClient HttpClient
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Env
 
-<MudText Typo="Typo.h3" Class="mb-4">Parts In Transit by Supplier</MudText>
+<MudText Typo="Typo.h3" Class="mb-4">Parts in transit</MudText>
 
 @if (partsInTransit == null)
 {
@@ -113,9 +115,40 @@ else
     </MudGrid>
 }
 
+@if (excelRows == null)
+{
+    <MudProgressCircular Color="Color.Secondary" Indeterminate="true" />
+    <MudText>Loading Excel data...</MudText>
+}
+else if (!excelRows.Any())
+{
+    <MudAlert Severity="Severity.Info">No data in Excel file.</MudAlert>
+}
+else
+{
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h4" Class="mb-4">Activity Log from Excel</MudText>
+        <MudTable Items="@excelRows" Hover="true" Dense="true">
+            <HeaderContent>
+                @for (int i = 0; i < excelRows.First().Count; i++)
+                {
+                    <MudTh>Column @(i + 1)</MudTh>
+                }
+            </HeaderContent>
+            <RowTemplate>
+                @foreach (var cell in context)
+                {
+                    <MudTd>@cell</MudTd>
+                }
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
 @code {
     private List<PartsInTransit>? partsInTransit;
     private string searchString = "";
+    private List<List<string>> excelRows = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -123,6 +156,32 @@ else
         {
             partsInTransit = await DbContext.PartsInTransit.ToListAsync();
             Console.WriteLine($"Loaded {partsInTransit?.Count ?? 0} parts in transit");
+
+            // Load Excel data
+            var filePath = Path.Combine(Env.WebRootPath, "ActivityLog.xlsx");
+            if (File.Exists(filePath))
+            {
+                var bytes = File.ReadAllBytes(filePath);
+                using var stream = new MemoryStream(bytes);
+                using var package = new ExcelPackage(stream);
+                var worksheet = package.Workbook.Worksheets[0];
+                if (worksheet != null && worksheet.Dimension != null)
+                {
+                    for (int row = 1; row <= worksheet.Dimension.End.Row; row++)
+                    {
+                        var rowData = new List<string>();
+                        for (int col = 1; col <= worksheet.Dimension.End.Column; col++)
+                        {
+                            rowData.Add(worksheet.Cells[row, col].Text);
+                        }
+                        excelRows.Add(rowData);
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine("Excel file not found");
+            }
         }
         catch (Exception ex)
         {
