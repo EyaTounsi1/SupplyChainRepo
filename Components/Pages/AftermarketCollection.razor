@@ -1,6 +1,8 @@
 @page "/aftermarket-collection"
+@rendermode InteractiveServer
 @layout MainLayout
 @inject AppDbContext DbContext
+@inject IJSRuntime JSRuntime
 
 <MudText Typo="Typo.h3">Aftermarket Collection</MudText>
 
@@ -18,20 +20,47 @@ else
         <MudText Typo="Typo.h5" Color="Color.Info">Today's Cost: @todaysCost.ToString("C")</MudText>
         <MudText Typo="Typo.h5" Color="Color.Warning">Total Cost: @totalCost.ToString("C")</MudText>
     </MudPaper>
+
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h4">Cost Histogram (Past 7 Days)</MudText>
+        <canvas id="costHistogram" width="400" height="200"></canvas>
+    </MudPaper>
 }
 
 @code {
-    private int todaysBookingsCount;
-    private int totalBookingsCount;
-    private decimal todaysCost;
-    private decimal totalCost;
+    private int todaysBookingsCount = 0;
+    private int totalBookingsCount = 0;
+    private decimal todaysCost = 0;
+    private decimal totalCost = 0;
     private bool isLoading = true;
+    private List<string> chartLabels = new();
+    private List<decimal> chartData = new();
+    private List<ChangeLogEntry>? _items;
+    private string[] allowedAftermarket = {
+        "Aftermarket Collection",
+        "Premium Booking",
+    };
+    private int daysBack = 25;
+
 
     protected override async Task OnInitializedAsync()
     {
+        _items = await DbContext.ChangeLogEntries.ToListAsync();
+        
+        todaysBookingsCount = _items.Where(e => e.CompletionTime > DateTime.Now.Date.AddDays(-daysBack) && allowedAftermarket.Contains(e.PremiumBooking)).Count();
+        totalBookingsCount = _items.Where(e => allowedAftermarket.Contains(e.PremiumBooking)).Count();
+
+        todaysCost = _items.Where(e => e.CompletionTime > DateTime.Now.Date.AddDays(-daysBack) && allowedAftermarket.Contains(e.PremiumBooking)).Sum(e => e.Cost ?? 0);
+        totalCost = _items.Where(e => allowedAftermarket.Contains(e.PremiumBooking)).Sum(e => e.Cost ?? 0);
+
+
+        isLoading = false;
+
+        /*
         try
         {
             var today = DateTime.Today;
+            var startDate = today.AddDays(-6);
             todaysBookingsCount = await DbContext.ChangeLogEntries
                 .CountAsync(e => (e.PremiumBooking ?? "").ToLower() == "aftermarket collection" 
                               && e.CompletionTime.HasValue 
@@ -46,6 +75,24 @@ else
             totalCost = await DbContext.ChangeLogEntries
                 .Where(e => (e.PremiumBooking ?? "").ToLower() == "aftermarket collection")
                 .SumAsync(e => e.Cost ?? 0);
+
+            // Fetch daily costs for histogram
+            var dailyCosts = await DbContext.ChangeLogEntries
+                .Where(e => (e.PremiumBooking ?? "").ToLower() == "aftermarket collection" 
+                         && e.CompletionTime.HasValue 
+                         && e.CompletionTime >= startDate)
+                .GroupBy(e => e.CompletionTime.Value.Date)
+                .Select(g => new { Date = g.Key, Cost = g.Sum(x => x.Cost ?? 0) })
+                .OrderBy(x => x.Date)
+                .ToListAsync();
+
+            // Prepare chart data
+            for (var date = startDate; date <= today; date = date.AddDays(1))
+            {
+                var cost = dailyCosts.FirstOrDefault(d => d.Date == date)?.Cost ?? 0;
+                chartLabels.Add(date.ToString("MMM dd"));
+                chartData.Add(cost);
+            }
         }
         catch (Exception ex)
         {
@@ -54,6 +101,15 @@ else
         finally
         {
             isLoading = false;
+        }*/
+    }
+    /*
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !isLoading)
+        {
+            await JSRuntime.InvokeVoidAsync("drawCostHistogram", chartLabels, chartData);
         }
     }
+    */
 }

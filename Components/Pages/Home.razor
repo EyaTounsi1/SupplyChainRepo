@@ -7,6 +7,7 @@
 @inject AppDbContext DbContext
 @inject HttpClient HttpClient
 @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment Env
+@inject IJSRuntime JSRuntime
 
 <MudText Typo="Typo.h3" Class="mb-4">Parts in transit</MudText>
 
@@ -87,6 +88,20 @@ else
             </MudPaper>
         </MudItem>
 
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-4">Bookings Made Today</MudText>
+                <canvas id="todayBookingsPie" width="300" height="300"></canvas>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-4">Total Bookings Made So Far</MudText>
+                <canvas id="totalBookingsPie" width="300" height="300"></canvas>
+            </MudPaper>
+        </MudItem>
+
         <MudItem xs="12">
             <MudPaper Class="pa-4">
                 <MudTable Items="@groupedByLevNr" Hover="true" Striped="true" Dense="true" Filter="new Func<dynamic,bool>(FilterFunc)">
@@ -149,6 +164,10 @@ else
     private List<PartsInTransit>? partsInTransit;
     private string searchString = "";
     private List<List<string>> excelRows = new();
+    private List<string> todayLabels = new();
+    private List<int> todayData = new();
+    private List<string> totalLabels = new();
+    private List<int> totalData = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -182,11 +201,36 @@ else
             {
                 Console.WriteLine("Excel file not found");
             }
+
+            // Load booking data for pie charts
+            var today = DateTime.Today;
+            var todayPremium = await DbContext.ChangeLogEntries.CountAsync(e => (e.PremiumBooking ?? "").ToLower().Contains("premium") && e.CompletionTime.HasValue && e.CompletionTime.Value.Date == today);
+            var todayAftermarket = await DbContext.ChangeLogEntries.CountAsync(e => (e.PremiumBooking ?? "").ToLower().Contains("aftermarket") && e.CompletionTime.HasValue && e.CompletionTime.Value.Date == today);
+            var todaySpeedUp = await DbContext.ChangeLogEntries.CountAsync(e => (e.PremiumBooking ?? "").ToLower().Contains("speed") && e.CompletionTime.HasValue && e.CompletionTime.Value.Date == today);
+
+            todayLabels = new List<string> { "Premium", "Aftermarket", "Speed-up" };
+            todayData = new List<int> { todayPremium, todayAftermarket, todaySpeedUp };
+
+            var totalPremium = await DbContext.ChangeLogEntries.CountAsync(e => (e.PremiumBooking ?? "").ToLower().Contains("premium"));
+            var totalAftermarket = await DbContext.ChangeLogEntries.CountAsync(e => (e.PremiumBooking ?? "").ToLower().Contains("aftermarket"));
+            var totalSpeedUp = await DbContext.ChangeLogEntries.CountAsync(e => (e.PremiumBooking ?? "").ToLower().Contains("speed"));
+
+            totalLabels = new List<string> { "Premium", "Aftermarket", "Speed-up" };
+            totalData = new List<int> { totalPremium, totalAftermarket, totalSpeedUp };
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading data: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JSRuntime.InvokeVoidAsync("drawPackagePieChart", "todayBookingsPie", todayLabels, todayData);
+            await JSRuntime.InvokeVoidAsync("drawPackagePieChart", "totalBookingsPie", totalLabels, totalData);
         }
     }
 

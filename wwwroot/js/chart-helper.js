@@ -1,6 +1,6 @@
-window.drawPackagePieChart = (labels, data) => {
-    const ctx = document.getElementById('packagePieChart').getContext('2d');
-    if (window.packageChart) window.packageChart.destroy();
+window.drawPackagePieChart = (canvasId, labels, data) => {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    if (window[canvasId + 'Chart']) window[canvasId + 'Chart'].destroy();
 
     // Build a contrasted Nord-based palette with tints and aurora accents.
     const baseColors = [
@@ -22,7 +22,7 @@ window.drawPackagePieChart = (labels, data) => {
     const colors = labels.map((_, i) => baseColors[i % baseColors.length]);
     const borderColors = colors.map(c => '#ffffff');
 
-    window.packageChart = new Chart(ctx, {
+    window[canvasId + 'Chart'] = new Chart(ctx, {
         type: 'pie',
         data: {
             labels,
@@ -42,6 +42,44 @@ window.drawPackagePieChart = (labels, data) => {
                 tooltip: {
                     callbacks: {
                         label: (context) => `${context.label}: ${context.raw}%`
+                    }
+                }
+            }
+        }
+    });
+};
+
+window.drawCostHistogram = (labels, data) => {
+    const ctx = document.getElementById('costHistogram').getContext('2d');
+    if (window.costChart) window.costChart.destroy();
+
+    window.costChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Daily Cost',
+                data,
+                backgroundColor: '#5E81AC',
+                borderColor: '#4C566A',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: (value) => `$${value.toFixed(2)}`
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `Cost: $${context.raw.toFixed(2)}`
                     }
                 }
             }
