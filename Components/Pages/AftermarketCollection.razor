@@ -14,11 +14,13 @@ else
     <MudPaper Class="pa-4">
         <MudText Typo="Typo.h4">Today's Bookings</MudText>
         <MudText Typo="Typo.h5" Color="Color.Primary">@todaysBookingsCount bookings made today</MudText>
+        <MudText Typo="Typo.h5" Color="Color.Secondary">@totalBookingsCount total bookings made so far</MudText>
     </MudPaper>
 }
 
 @code {
     private int todaysBookingsCount;
+    private int totalBookingsCount;
     private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
@@ -30,6 +32,8 @@ else
                 .CountAsync(e => (e.PremiumBooking ?? "").ToLower() == "aftermarket collection" 
                               && e.CompletionTime.HasValue 
                               && e.CompletionTime.Value.Date == today);
+            totalBookingsCount = await DbContext.ChangeLogEntries
+                .CountAsync(e => (e.PremiumBooking ?? "").ToLower() == "aftermarket collection");
         }
         catch (Exception ex)
         {
