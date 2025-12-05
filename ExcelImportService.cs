@@ -33,7 +33,7 @@ public class ExcelImportService : IExcelImportService
             return;
         }
 
-        var pricesFilePath = Path.Combine(Path.GetDirectoryName(excelFilePath)!, "PartPrices.xlsx");
+        var pricesFilePath = Path.Combine(Path.GetDirectoryName(excelFilePath)!, "Price to BP2TH.xlsx");
         var partPrices = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
 
         if (File.Exists(pricesFilePath))
