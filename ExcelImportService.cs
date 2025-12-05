@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
 using PartTracker.Models;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,6 +31,35 @@ public class ExcelImportService : IExcelImportService
         {
             _logger.LogWarning("Excel file not found at {Path}", excelFilePath);
             return;
+        }
+
+        var pricesFilePath = Path.Combine(Path.GetDirectoryName(excelFilePath)!, "PartPrices.xlsx");
+        var partPrices = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+
+        if (File.Exists(pricesFilePath))
+        {
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+            using var pricesPackage = new ExcelPackage(new FileStream(pricesFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
+            var pricesWs = pricesPackage.Workbook.Worksheets[1]; // Second sheet (0-based index 1)
+
+            int pricesRow = 2; // assuming row 1 is headers
+            while (true)
+            {
+                var partNum = pricesWs.Cells[pricesRow, 1].Text;
+                if (string.IsNullOrWhiteSpace(partNum)) break;
+
+                var priceText = pricesWs.Cells[pricesRow, 2].Text;
+                if (decimal.TryParse(priceText, out decimal price))
+                {
+                    partPrices[partNum] = price;
+                }
+                pricesRow++;
+            }
+            _logger.LogInformation("Loaded {Count} part prices from {Path}", partPrices.Count, pricesFilePath);
+        }
+        else
+        {
+            _logger.LogWarning("Part prices file not found at {Path}", pricesFilePath);
         }
 
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
@@ -73,6 +103,14 @@ public class ExcelImportService : IExcelImportService
                 LastUpdated = now
             };
 
+            // Calculate cost for aftermarket collection
+            if (string.Equals(entry.PremiumBooking, "aftermarket collection", StringComparison.OrdinalIgnoreCase) &&
+                int.TryParse(entry.Quantity, out int qty) &&
+                partPrices.TryGetValue(entry.PartNumber, out decimal price))
+            {
+                entry.Cost = qty * price;
+            }
+
             if (string.Equals(entry.PremiumBooking, "premium booking", StringComparison.OrdinalIgnoreCase) && entry.CompletionTime.HasValue && entry.CompletionTime.Value.Date == DateTime.Today)
             {
                 premiumTodayCount++;
@@ -110,6 +148,7 @@ public class ExcelImportService : IExcelImportService
                 existing.MfgCode1 = entry.MfgCode1;
                 existing.Reasons2 = entry.Reasons2;
                 existing.Comment2 = entry.Comment2;
+                existing.Cost = entry.Cost;
                 existing.LastUpdated = now;
             }
 

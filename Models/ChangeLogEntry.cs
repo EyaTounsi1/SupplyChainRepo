@@ -30,5 +30,7 @@ public class ChangeLogEntry
     public string? Reasons2 { get; set; }
     public string? Comment2 { get; set; }
 
+    public decimal? Cost { get; set; }
+
     public DateTime LastUpdated { get; set; }
 }
