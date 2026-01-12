@@ -21,7 +21,7 @@
           "Microsoft.EntityFrameworkCore.Tools": "9.0.0",
           "MudBlazor": "8.14.0",
           "Pomelo.EntityFrameworkCore.MySql": "9.0.0",
-          "Snowflake.Data": "5.1.0"
+          "Snowflake.Data": "5.2.0"
         },
         "runtime": {
           "PartTracker.dll": {}
@@ -1310,7 +1310,7 @@
           }
         }
       },
-      "Snowflake.Data/5.1.0": {
+      "Snowflake.Data/5.2.0": {
         "dependencies": {
           "AWSSDK.S3": "4.0.4",
           "Apache.Arrow": "14.0.2",
@@ -1326,9 +1326,9 @@
           "Tomlyn.Signed": "0.17.0"
         },
         "runtime": {
-          "lib/netstandard2.0/Snowflake.Data.dll": {
-            "assemblyVersion": "5.1.0.0",
-            "fileVersion": "5.1.0.0"
+          "lib/net8.0/Snowflake.Data.dll": {
+            "assemblyVersion": "5.2.0.0",
+            "fileVersion": "5.2.0.0"
           }
         }
       },
@@ -2284,12 +2284,12 @@
       "path": "pomelo.entityframeworkcore.mysql/9.0.0",
       "hashPath": "pomelo.entityframeworkcore.mysql.9.0.0.nupkg.sha512"
     },
-    "Snowflake.Data/5.1.0": {
+    "Snowflake.Data/5.2.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-aVxUXsIpAv5iXAIzFvmprabb6aRfhzLqwx2/PfE85zMptMxBuEyOKjZ8GB8bX//+eKU3dnlvQTUJsoxxnuXImw==",
-      "path": "snowflake.data/5.1.0",
-      "hashPath": "snowflake.data.5.1.0.nupkg.sha512"
+      "sha512": "sha512-Ce+i23XS8pyGEYIBZAGj6zVoRVQgj/EkQewJcZtW8/sSDZdV+1nZBVhrUCdX6Jc1/0fcnWeDgIIbJ89BrOKJfg==",
+      "path": "snowflake.data/5.2.0",
+      "hashPath": "snowflake.data.5.2.0.nupkg.sha512"
     },
     "System.Buffers/4.6.0": {
       "type": "package",

@@ -15,6 +15,7 @@ public class ExcelImportService : IExcelImportService
     private readonly AppDbContext _db;
     private readonly ILogger<ExcelImportService> _logger;
     private readonly IWebHostEnvironment _env;
+    private static readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     public ExcelImportService(AppDbContext db, ILogger<ExcelImportService> logger, IWebHostEnvironment env)
     {
@@ -25,7 +26,14 @@ public class ExcelImportService : IExcelImportService
 
     public async Task ImportChangeLogAsync(CancellationToken cancellationToken = default)
     {
-        var excelFilePath = @"C:\Users\ETOUNSI\OneDrive - Volvo Cars\Desktop\Supply Chain\Power Bi\Activity Form Answers\Activity.xlsx";
+        // Temporarily disabled to avoid Excel import errors while testing Snowflake.
+        _logger.LogWarning("ImportChangeLogAsync is temporarily disabled.");
+        // return; // uncomment to fully disable execution
+
+        await _semaphore.WaitAsync(cancellationToken);
+        try
+        {
+            var excelFilePath = @"C:\Users\ETOUNSI\OneDrive - Volvo Cars\Let's log your changes! [Activity] 3.xlsx";
 
         if (!File.Exists(excelFilePath))
         {
@@ -33,7 +41,7 @@ public class ExcelImportService : IExcelImportService
             return;
         }
 
-        var pricesFilePath = Path.Combine(Path.GetDirectoryName(excelFilePath)!, "Price to BP2TH.xlsx");
+        var pricesFilePath = @"C:\Users\ETOUNSI\OneDrive - Volvo Cars\Desktop\Supply Chain\Power Bi\Activity Form Answers\Price to BP2TH.xlsx";
         var partPrices = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
 
         if (File.Exists(pricesFilePath))
@@ -159,6 +167,11 @@ public class ExcelImportService : IExcelImportService
 
         await _db.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Excel sync completed at {Time}", now);
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 
     private DateTime? ParseDate(string dateString)
@@ -168,5 +181,27 @@ public class ExcelImportService : IExcelImportService
         dateString = System.Text.RegularExpressions.Regex.Replace(dateString.Trim(), @"\s+", " ");
         if (DateTime.TryParse(dateString, out var date)) return date;
         return null;
+    }
+
+    public async Task<HashSet<string>> GetToNumbersFromFileAsync(string filePath)
+    {
+        var toNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!File.Exists(filePath))
+        {
+            _logger.LogWarning("File not found: {Path}", filePath);
+            return toNumbers;
+        }
+        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+        using var package = new ExcelPackage(new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
+        var worksheet = package.Workbook.Worksheets[0]; // First sheet
+        int row = 2; // Assuming headers in row 1
+        while (true)
+        {
+            var toNumber = worksheet.Cells[row, 1].Text;
+            if (string.IsNullOrWhiteSpace(toNumber)) break;
+            toNumbers.Add(toNumber.Trim());
+            row++;
+        }
+        return toNumbers;
     }
 }

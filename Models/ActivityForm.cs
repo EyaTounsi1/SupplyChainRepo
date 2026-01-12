@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-namespace ActivityEntry.Models;
-public class ActivityEntry
+namespace PartTracker.Models;
+public class ActivityForm
     {
         public int Id { get; set; }                      // from Excel "Id" (0..N)
 
@@ -13,7 +13,8 @@ public class ActivityEntry
         public string? Language { get; set; }            // "Language"
 
         // "Premium Booking, Aftermarket collection or Speed-up"
-        public string? PremiumBookingAftermarketOrSpeedUp { get; set; }
+        public string? CollectionType { get; set; }
+        public DateTime? Date { get; set; }
 
         public string? TONumber { get; set; }            // "TO number"
         public string? MfgCode { get; set; }             // "MFG Code"

@@ -10,7 +10,7 @@ using MudBlazor.Services;
 // using PartTracker.Shared.Variables;
 // using PartTracker.Shared.Functions;
 // using PartTracker.Configurations;
-// using PartTracker.Shared.Services;
+using PartTracker.Shared.Services;
 // using PartTracker.Components.Pages.PartTracker.Avdelningar.TA.Cyclic;
 
 
@@ -29,6 +29,15 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 
     // options.AddInterceptors(sp.GetRequiredService<TopasMaterialInterceptor>());
 });
+
+builder.Services.AddDbContext<AutomationDbContext>(options =>
+{
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("AutomationConnection"),
+        new MySqlServerVersion(new Version(8, 0, 36)))
+        .EnableSensitiveDataLogging(builder.Environment.IsDevelopment());
+});
+
 builder.Services.AddScoped<AnotherSnowflakeService>();
 // Blazor and Session Storage
 builder.Services.AddRazorPages();
@@ -46,7 +55,12 @@ builder.Services.AddHttpClient();
 
 // Excel import service
 builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
-builder.Services.AddHostedService<ExcelSyncBackgroundService>();
+builder.Services.AddScoped<ExcelImportService>();
+// Temporarily disabled to avoid Excel import errors while testing Snowflake
+// builder.Services.AddHostedService<ExcelSyncBackgroundService>();
+
+// Snowflake service
+builder.Services.AddScoped<PartTracker.Shared.Services.SnowflakeService>();
 
 // Safety stock service
 builder.Services.AddScoped<ISafetyStockService, SafetyStockService>();

@@ -1,0 +1,59 @@
+@using System.Data
+
+@page "/Dashboards/snowflake-test"
+@inject PartTracker.Shared.Services.SnowflakeService Snowflake
+ 
+<h3>Snowflake PCID History (Test)</h3>
+ 
+@if (_isLoading)
+{
+<div class="alert alert-info">Loading is slow... Hold on</div>
+}
+else if (!string.IsNullOrWhiteSpace(_error))
+{
+<div class="alert alert-danger">@_error</div>
+}
+else if (rows is not null)
+{
+<div class="card">
+        @rows.Rows.Count rows retrieved from Snowflake.
+</div>
+}
+ 
+@code {
+    private DataTable? rows;
+    private bool _isLoading = true;
+    private string? _error;
+ 
+    protected override async Task OnInitializedAsync()
+    {
+        await FetchData();
+    }
+ 
+    private async Task FetchData()
+    {
+        _isLoading = true;
+        _error = null;
+        rows = null;
+ 
+        try
+        {
+            Console.WriteLine($"{DateTime.Now} Starting to load");
+ 
+            rows = await Snowflake.QueryAsync(
+                "SELECT * FROM VCT.ANDON.UNPLANNEDLOSS LIMIT 10"
+            );
+ 
+            Console.WriteLine($"{DateTime.Now} Loaded");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+            _error = ex.Message; // or ex.ToString() if you want full detail in UI
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

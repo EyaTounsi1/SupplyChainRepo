@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PartTracker")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fbfc490a2d7bb0f6adeca17b5a3c55e818b15679")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c7d360da3e30abd113aa918b567a3065c6cf7900")]
 [assembly: System.Reflection.AssemblyProductAttribute("PartTracker")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PartTracker")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

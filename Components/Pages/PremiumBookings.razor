@@ -1,6 +1,5 @@
 @page "/premium-bookings"
 @layout MainLayout
-@inject AppDbContext DbContext
 
 <MudText Typo="Typo.h3">Premium Bookings</MudText>
 
@@ -12,36 +11,165 @@
 else
 {
     <MudPaper Class="pa-4">
-        <MudText Typo="Typo.h4">Today's Bookings</MudText>
-        <MudText Typo="Typo.h5" Color="Color.Primary">@todaysBookingsCount bookings made today</MudText>
-        <MudText Typo="Typo.h5" Color="Color.Secondary">@totalBookingsCount total bookings made so far</MudText>
+        <MudText Typo="Typo.h4">Premium Bookings Trends</MudText>
+        @if (trendLabels.Any())
+        {
+            <div style="position: relative; height: 400px; width: 100%; margin-top: 20px;">
+                <canvas id="premiumTrendsChart" style="max-height: 400px;"></canvas>
+            </div>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1">No trends data available.</MudText>
+        }
     </MudPaper>
-}
 
-@code {
-    private int todaysBookingsCount;
-    private int totalBookingsCount;
-    private bool isLoading = true;
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h4">Reason Code Trends Over Time</MudText>
+        @if (reasonCodeTrendLabels.Any())
+        {
+            <div style="position: relative; height: 400px; width: 100%; margin-top: 20px;">
+                <canvas id="reasonCodeTrendsChart" style="max-height: 400px;"></canvas>
+            </div>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1">No reason code trends data available.</MudText>
+        }
+    </MudPaper>
 
-    protected override async Task OnInitializedAsync()
-    {
-        try
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h4">Reason Code Distribution</MudText>
+        @if (reasonCodeLabels.Any())
         {
-            var today = DateTime.Today;
-            todaysBookingsCount = await DbContext.ChangeLogEntries
-                .CountAsync(e => (e.PremiumBooking ?? "").ToLower() == "premium booking" 
-                              && e.CompletionTime.HasValue 
-                              && e.CompletionTime.Value.Date == today);
-            totalBookingsCount = await DbContext.ChangeLogEntries
-                .CountAsync(e => (e.PremiumBooking ?? "").ToLower() == "premium booking");
+            <div style="position: relative; height: 400px; width: 100%; margin-top: 20px;">
+                <canvas id="reasonCodePieChart" style="max-height: 400px;"></canvas>
+            </div>
         }
-        catch (Exception ex)
+        else
         {
-            Console.WriteLine($"Error loading data: {ex.Message}");
+            <MudText Typo="Typo.body1">No reason code data available.</MudText>
         }
-        finally
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h4">Yesterday's Bookings</MudText>
+        <MudText Typo="Typo.h5" Color="Color.Primary">@yesterdaybooking bookings made yesterday</MudText>
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h4">Bookings Per Person</MudText>
+        <MudRadioGroup T="string" Value="@selectedTimeFrame" ValueChanged="@OnTimeFrameChanged">
+            <MudRadio T="string" Value="@("all")" Color="Color.Primary">All Time</MudRadio>
+            <MudRadio T="string" Value="@("week")" Color="Color.Primary">Last Week</MudRadio>
+            <MudRadio T="string" Value="@("month")" Color="Color.Primary">Last Month</MudRadio>
+            <MudRadio T="string" Value="@("3months")" Color="Color.Primary">Last 3 Months</MudRadio>
+        </MudRadioGroup>
+        @if (bookingsPerPerson.Any())
         {
-            isLoading = false;
+            <MudTable Items="@bookingsPerPerson" Dense="true" Hover="true">
+                <HeaderContent>
+                    <MudTh>Contact Person</MudTh>
+                    <MudTh>Number of Bookings</MudTh>
+                    <MudTh>Visual</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Contact Person">@context.PersonName</MudTd>
+                    <MudTd DataLabel="Count">@context.Count</MudTd>
+                    <MudTd DataLabel="Visual">
+                        <div style="width: 100%; background-color: #e0e0e0; border-radius: 4px;">
+                            <div style="width: @context.Count px; background-color: #1976d2; height: 20px; border-radius: 4px;"></div>
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
         }
-    }
+        else
+        {
+            <MudText Typo="Typo.body1">No booking data available.</MudText>
+        }
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h4">Cost Per Person (EUR)</MudText>
+        <MudRadioGroup T="string" Value="@selectedCostTimeFrame" ValueChanged="@OnCostTimeFrameChanged">
+            <MudRadio T="string" Value="@("all")" Color="Color.Primary">All Time</MudRadio>
+            <MudRadio T="string" Value="@("week")" Color="Color.Primary">Last Week</MudRadio>
+            <MudRadio T="string" Value="@("month")" Color="Color.Primary">Last Month</MudRadio>
+            <MudRadio T="string" Value="@("3months")" Color="Color.Primary">Last 3 Months</MudRadio>
+        </MudRadioGroup>
+        @if (costPerPerson.Any())
+        {
+            <MudTable Items="@costPerPerson" Dense="true" Hover="true">
+                <HeaderContent>
+                    <MudTh>Contact Person</MudTh>
+                    <MudTh>Total Cost (EUR)</MudTh>
+                    <MudTh>Visual</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Contact Person">@context.PersonName</MudTd>
+                    <MudTd DataLabel="Total Cost">€@context.TotalCost.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Visual">
+                        <div style="width: 100%; background-color: #e0e0e0; border-radius: 4px;">
+                            <div style="width: @(((double)context.TotalCost / (double)maxCost * 100).ToString("F2"))%; background-color: #2e7d32; height: 20px; border-radius: 4px;"></div>
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1">No cost data available.</MudText>
+        }
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h4">Reason Codes Per Contact Person</MudText>
+        @if (reasonCodesPerSCC.Any())
+        {
+            <MudTable Items="@reasonCodesPerSCC" Dense="true" Hover="true">
+                <HeaderContent>
+                    <MudTh>Contact Person</MudTh>
+                    <MudTh>Reason Code</MudTh>
+                    <MudTh>Count</MudTh>
+                    <MudTh>Visual</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Contact Person">@context.SCC</MudTd>
+                    <MudTd DataLabel="Reason Code">@context.ReasonCode</MudTd>
+                    <MudTd DataLabel="Count">@context.Count</MudTd>
+                    <MudTd DataLabel="Visual">
+                        <div style="width: 100%; background-color: #e0e0e0; border-radius: 4px;">
+                            <div style="width: @(((double)context.Count / (double)maxReasonCodes * 100).ToString("F2"))%; background-color: #d32f2f; height: 20px; border-radius: 4px;"></div>
+                        </div>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1">No reason code data available.</MudText>
+        }
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h4">Premium bookings not logged in the form</MudText>
+        @if (missingFormBookings.Any())
+        {
+            <MudTable Items="@missingFormBookings">
+                <HeaderContent>
+                    <MudTh>Transport Order</MudTh>
+                    <MudTh>Contact Person</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@context.TransportOrder</MudTd>
+                    <MudTd>@context.ContactPerson</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1">No missing premium bookings found.</MudText>
+        }
+    </MudPaper>
 }

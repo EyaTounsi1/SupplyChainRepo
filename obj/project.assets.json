@@ -2093,7 +2093,7 @@
           }
         }
       },
-      "Snowflake.Data/5.1.0": {
+      "Snowflake.Data/5.2.0": {
         "type": "package",
         "dependencies": {
           "AWSSDK.S3": "4.0.4",
@@ -2110,10 +2110,10 @@
           "Tomlyn.Signed": "0.17.0"
         },
         "compile": {
-          "lib/netstandard2.0/Snowflake.Data.dll": {}
+          "lib/net8.0/Snowflake.Data.dll": {}
         },
         "runtime": {
-          "lib/netstandard2.0/Snowflake.Data.dll": {}
+          "lib/net8.0/Snowflake.Data.dll": {}
         }
       },
       "System.Buffers/4.6.0": {
@@ -5890,15 +5890,18 @@
         "pomelo.entityframeworkcore.mysql.nuspec"
       ]
     },
-    "Snowflake.Data/5.1.0": {
-      "sha512": "aVxUXsIpAv5iXAIzFvmprabb6aRfhzLqwx2/PfE85zMptMxBuEyOKjZ8GB8bX//+eKU3dnlvQTUJsoxxnuXImw==",
+    "Snowflake.Data/5.2.0": {
+      "sha512": "Ce+i23XS8pyGEYIBZAGj6zVoRVQgj/EkQewJcZtW8/sSDZdV+1nZBVhrUCdX6Jc1/0fcnWeDgIIbJ89BrOKJfg==",
       "type": "package",
-      "path": "snowflake.data/5.1.0",
+      "path": "snowflake.data/5.2.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
+        "lib/net481/Snowflake.Data.dll",
+        "lib/net8.0-windows7.0/Snowflake.Data.dll",
+        "lib/net8.0/Snowflake.Data.dll",
         "lib/netstandard2.0/Snowflake.Data.dll",
-        "snowflake.data.5.1.0.nupkg.sha512",
+        "snowflake.data.5.2.0.nupkg.sha512",
         "snowflake.data.nuspec"
       ]
     },
@@ -7254,7 +7257,7 @@
       "Microsoft.EntityFrameworkCore.Tools >= 9.0.0",
       "MudBlazor >= 8.14.0",
       "Pomelo.EntityFrameworkCore.MySql >= 9.0.0",
-      "Snowflake.Data >= 5.1.0"
+      "Snowflake.Data >= 5.2.0"
     ]
   },
   "packageFolders": {
@@ -7358,7 +7361,7 @@
           },
           "Snowflake.Data": {
             "target": "Package",
-            "version": "[5.1.0, )"
+            "version": "[5.2.0, )"
           }
         },
         "imports": [

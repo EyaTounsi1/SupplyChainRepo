@@ -2,11 +2,26 @@
 @layout MainLayout
 @inject ISafetyStockService SafetyStockService
 @inject AnotherSnowflakeService AnotherSnowflakeService
+@using PartTracker.Models
 
 <MudText Typo="Typo.h3">Safety Stock Overview</MudText>
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="TestFirstConnection">Test First Snowflake Connection</MudButton>
 <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="TestSecondConnection">Test Second Snowflake Connection</MudButton>
+
+<MudPaper Class="pa-4 mt-4">
+    <MudText Typo="Typo.h4">Filters</MudText>
+    <MudStack Row="true" Spacing="2">
+        <MudTextField @bind-Value="filterSite" Label="Site" Variant="Variant.Outlined" />
+        <MudTextField @bind-Value="filterPlanningPoint" Label="Planning Point" Variant="Variant.Outlined" />
+        <MudSwitch T="bool" @bind-Checked="onlyNrOfPartsChanged" Color="Color.Primary">Only number-of-parts changes</MudSwitch>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ApplyFilters">Apply</MudButton>
+    </MudStack>
+    @if (!string.IsNullOrEmpty(filterError))
+    {
+        <MudAlert Severity="Severity.Error">@filterError</MudAlert>
+    }
+</MudPaper>
 
 @if (!string.IsNullOrEmpty(connectionTestResult))
 {
@@ -34,10 +49,37 @@ else
             <MudTd>@context.SafetyStockNrOfParts</MudTd>
         </RowTemplate>
     </MudTable>
+
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h4">Changed Safety Stock Rows</MudText>
+        <MudText Typo="Typo.body1">Total changed: @changedRowsCount</MudText>
+        <MudTable Items="@DisplayChanges" Hover="true" Striped="true">
+            <HeaderContent>
+                <MudTh>Part Number</MudTh>
+                <MudTh>Planning Point</MudTh>
+                <MudTh>Supplier</MudTh>
+                <MudTh>Yesterday Parts</MudTh>
+                <MudTh>Today Parts</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.PartNumber</MudTd>
+                <MudTd>@context.PlanningPoint</MudTd>
+                <MudTd>@context.MfgSupplierCode</MudTd>
+                <MudTd>@context.YSafetyStockNrOfParts</MudTd>
+                <MudTd>@context.TSafetyStockNrOfParts</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
 }
 
 @code {
     private List<SafetyStockItem> safetyStockItems = new();
+    private List<SafetyStockChange> safetyStockChanges = new();
+    private int changedRowsCount = 0;
+    private string filterSite = "VCT";
+    private string filterPlanningPoint = "1003";
+    private bool onlyNrOfPartsChanged = false;
+    private string filterError = string.Empty;
     private bool isLoading = true;
     private string errorMessage = string.Empty;
     private string connectionTestResult = string.Empty;
@@ -48,6 +90,8 @@ else
         try
         {
             safetyStockItems = await SafetyStockService.GetSafetyStockDataAsync();
+            safetyStockChanges = await SafetyStockService.GetSafetyStockChangesAsync(filterSite, filterPlanningPoint);
+            changedRowsCount = safetyStockChanges.FirstOrDefault()?.NumChangedRows ?? safetyStockChanges.Count;
         }
         catch (Exception ex)
         {
@@ -56,6 +100,25 @@ else
         finally
         {
             isLoading = false;
+        }
+    }
+
+    private IEnumerable<SafetyStockChange> DisplayChanges =>
+        onlyNrOfPartsChanged
+            ? safetyStockChanges.Where(c => c.YSafetyStockNrOfParts != c.TSafetyStockNrOfParts)
+            : safetyStockChanges;
+
+    private async Task ApplyFilters()
+    {
+        filterError = string.Empty;
+        try
+        {
+            safetyStockChanges = await SafetyStockService.GetSafetyStockChangesAsync(filterSite, filterPlanningPoint);
+            changedRowsCount = safetyStockChanges.FirstOrDefault()?.NumChangedRows ?? safetyStockChanges.Count;
+        }
+        catch (Exception ex)
+        {
+            filterError = ex.Message;
         }
     }
 

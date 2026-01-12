@@ -168,6 +168,8 @@ else
     private List<int> todayData = new();
     private List<string> totalLabels = new();
     private List<int> totalData = new();
+    private bool isDataLoaded = false;
+    private bool chartsDrawn = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -217,6 +219,9 @@ else
 
             totalLabels = new List<string> { "Premium", "Aftermarket", "Speed-up" };
             totalData = new List<int> { totalPremium, totalAftermarket, totalSpeedUp };
+
+            isDataLoaded = true;
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -227,10 +232,11 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (isDataLoaded && !chartsDrawn)
         {
             await JSRuntime.InvokeVoidAsync("drawPackagePieChart", "todayBookingsPie", todayLabels, todayData);
             await JSRuntime.InvokeVoidAsync("drawPackagePieChart", "totalBookingsPie", totalLabels, totalData);
+            chartsDrawn = true;
         }
     }
 
