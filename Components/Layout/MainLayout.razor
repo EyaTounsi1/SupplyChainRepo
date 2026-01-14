@@ -13,7 +13,12 @@
         </MudDrawerHeader>
         <MudNavMenu>
             <MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
-            <MudNavLink Href="/safety-stock">Safety Stock Overview</MudNavLink>
+            
+            <MudNavGroup Title="Safety Stock" Icon="@Icons.Material.Filled.Inventory" Expanded="true">
+                <MudNavLink Href="/safety-stock">Overview</MudNavLink>
+                <MudNavLink Href="/safety-stock/simulation">Simulation</MudNavLink>
+            </MudNavGroup>
+            
             <MudNavLink Href="/aftermarket-collection">Aftermarket Collection</MudNavLink>
             <MudNavLink Href="/premium-bookings">Premium Bookings</MudNavLink>
             <MudNavLink Href="/speed-ups">Speed-ups</MudNavLink>

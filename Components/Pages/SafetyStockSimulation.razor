@@ -1,0 +1,166 @@
+@page "/safety-stock/simulation"
+@using Microsoft.EntityFrameworkCore
+@using PartTracker.Models
+@using PartTracker.Shared.Services
+@using System.Data
+@inject AppDbContext DbContext
+@inject SnowflakeService SnowflakeService
+
+<PageTitle>Safety Stock Simulation</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Safety Stock Simulation</MudText>
+    
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Simulation Parameters</MudText>
+        
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="partNumber" Label="Part Number" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="mfgCode" Label="MFG Supplier Code" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField @bind-Value="newSafetyStock" Label="New Safety Stock (Nr of Parts)" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RunSimulation" FullWidth="true" Class="mt-2">
+                    Run Simulation
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-4">@errorMessage</MudAlert>
+    }
+
+    @if (simulationResults.Any())
+    {
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-3">Simulation Results</MudText>
+            
+            <MudTable Items="@simulationResults" Hover="true" Striped="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Site</MudTh>
+                    <MudTh>Planning Point</MudTh>
+                    <MudTh>Part Number</MudTh>
+                    <MudTh>MFG Code</MudTh>
+                    <MudTh>Current Safety Stock</MudTh>
+                    <MudTh>Standard Price</MudTh>
+                    <MudTh>Currency</MudTh>
+                    <MudTh>Current Value</MudTh>
+                    <MudTh>New Value</MudTh>
+                    <MudTh>Savings</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Site">@context.Site</MudTd>
+                    <MudTd DataLabel="Planning Point">@context.PlanningPoint</MudTd>
+                    <MudTd DataLabel="Part Number">@context.PartNumber</MudTd>
+                    <MudTd DataLabel="MFG Code">@context.MfgCode</MudTd>
+                    <MudTd DataLabel="Current Safety Stock">@context.CurrentSafetyStock</MudTd>
+                    <MudTd DataLabel="Standard Price">@context.StandardPrice.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Currency">@context.Currency</MudTd>
+                    <MudTd DataLabel="Current Value">@context.CurrentValue.ToString("N2")</MudTd>
+                    <MudTd DataLabel="New Value">@context.NewValue.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Savings">
+                        <MudChip T="string" Color="@(context.Savings > 0 ? Color.Success : Color.Error)" Size="Size.Small">
+                            @context.Savings.ToString("N2")
+                        </MudChip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private string partNumber = "";
+    private string mfgCode = "";
+    private int newSafetyStock = 0;
+    private List<SafetyStockSimulationResult> simulationResults = new();
+    private string errorMessage = "";
+
+    private async Task RunSimulation()
+    {
+        simulationResults.Clear();
+        errorMessage = "";
+        
+        string sql = @"
+SELECT
+  ss.SITE,
+  ss.PLANNING_POINT,
+  ss.PART_NUMBER,
+  ss.MFG_SUPPLIER_CODE,
+  ss.SAFETY_STOCK_NR_OF_PARTS,
+  pi.STANDARD_PRICE,
+  pi.CURRENCY,
+  (ss.SAFETY_STOCK_NR_OF_PARTS * pi.STANDARD_PRICE) AS SAFETY_STOCK_VALUE,
+  ss.UPLOADED_FROM_SOURCE AS SS_UPLOADED_FROM_SOURCE,
+  pi.UPLOADED_FROM_SOURCE AS PI_UPLOADED_FROM_SOURCE
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED ss
+LEFT JOIN MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INFORMATION_AS_MANUFACTURED.PART_INFORMATION_AS_MANUFACTURED pi
+  ON ss.SITE = pi.SITE
+ AND ss.PART_NUMBER = pi.PART_NUMBER
+WHERE 1=1";
+
+        if (!string.IsNullOrWhiteSpace(partNumber))
+        {
+            sql += $" AND ss.PART_NUMBER = '{partNumber}'";
+        }
+        if (!string.IsNullOrWhiteSpace(mfgCode))
+        {
+            sql += $" AND ss.MFG_SUPPLIER_CODE = '{mfgCode}'";
+        }
+
+        sql += " ORDER BY ss.UPLOADED_FROM_SOURCE DESC LIMIT 6000";
+
+        try
+        {
+            DataTable dt = await SnowflakeService.QueryAsync(sql);
+            
+            foreach (DataRow row in dt.Rows)
+            {
+                var currentStock = Convert.ToInt32(row["SAFETY_STOCK_NR_OF_PARTS"]);
+                var price = Convert.ToDecimal(row["STANDARD_PRICE"]);
+                var currentValue = Convert.ToDecimal(row["SAFETY_STOCK_VALUE"]);
+                var newValue = newSafetyStock * price;
+                var savings = currentValue - newValue;
+                
+                simulationResults.Add(new SafetyStockSimulationResult
+                {
+                    Site = row["SITE"]?.ToString() ?? "",
+                    PlanningPoint = row["PLANNING_POINT"]?.ToString() ?? "",
+                    PartNumber = row["PART_NUMBER"]?.ToString() ?? "",
+                    MfgCode = row["MFG_SUPPLIER_CODE"]?.ToString() ?? "",
+                    CurrentSafetyStock = currentStock,
+                    StandardPrice = price,
+                    Currency = row["CURRENCY"]?.ToString() ?? "",
+                    CurrentValue = currentValue,
+                    NewValue = newValue,
+                    Savings = savings
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error running simulation: {ex.Message}";
+        }
+    }
+
+    public class SafetyStockSimulationResult
+    {
+        public string Site { get; set; } = "";
+        public string PlanningPoint { get; set; } = "";
+        public string PartNumber { get; set; } = "";
+        public string MfgCode { get; set; } = "";
+        public int CurrentSafetyStock { get; set; }
+        public decimal StandardPrice { get; set; }
+        public string Currency { get; set; } = "";
+        public decimal CurrentValue { get; set; }
+        public decimal NewValue { get; set; }
+        public decimal Savings { get; set; }
+    }
+}
