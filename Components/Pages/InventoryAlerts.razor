@@ -1,0 +1,195 @@
+@page "/inventory-alerts"
+@layout MainLayout
+@inject AppDbContext DbContext
+@using Microsoft.EntityFrameworkCore
+
+<MudText Typo="Typo.h3">Inventory Alerts</MudText>
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <MudText>Loading alerts...</MudText>
+}
+else
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="12" md="3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Critical Alerts</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Error">@criticalCount</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Warning Alerts</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Warning">@warningCount</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Info Alerts</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Info">@infoCount</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Total Alerts</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Primary">@totalCount</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h5" Class="mb-4">Active Alerts</MudText>
+        
+        <MudTable Items="@alerts" Hover="true" Breakpoint="Breakpoint.Sm" Dense="true">
+            <HeaderContent>
+                <MudTh>Severity</MudTh>
+                <MudTh>Part Number</MudTh>
+                <MudTh>Alert Type</MudTh>
+                <MudTh>Message</MudTh>
+                <MudTh>Current Stock</MudTh>
+                <MudTh>Safety Stock</MudTh>
+                <MudTh>Date</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Severity">
+                    @if (context.Severity == "Critical")
+                    {
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small">@context.Severity</MudChip>
+                    }
+                    else if (context.Severity == "Warning")
+                    {
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small">@context.Severity</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Info" Size="Size.Small">@context.Severity</MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Part Number">@context.PartNumber</MudTd>
+                <MudTd DataLabel="Alert Type">@context.AlertType</MudTd>
+                <MudTd DataLabel="Message">@context.Message</MudTd>
+                <MudTd DataLabel="Current Stock">@context.CurrentStock</MudTd>
+                <MudTd DataLabel="Safety Stock">@context.SafetyStock</MudTd>
+                <MudTd DataLabel="Date">@context.AlertDate.ToString("yyyy-MM-dd HH:mm")</MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private bool isLoading = true;
+    private int criticalCount = 0;
+    private int warningCount = 0;
+    private int infoCount = 0;
+    private int totalCount = 0;
+    
+    private List<InventoryAlert> alerts = new();
+
+    public class InventoryAlert
+    {
+        public string Severity { get; set; } = "";
+        public string PartNumber { get; set; } = "";
+        public string AlertType { get; set; } = "";
+        public string Message { get; set; } = "";
+        public int CurrentStock { get; set; }
+        public int SafetyStock { get; set; }
+        public DateTime AlertDate { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadAlerts();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading alerts: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadAlerts()
+    {
+        try
+        {
+            // Get safety stock items from database
+            var safetyStockItems = await DbContext.SafetyStockItems
+                .ToListAsync();
+
+            // Generate alerts based on safety stock levels
+            foreach (var item in safetyStockItems)
+            {
+                var safetyStock = (int)item.SafetyStockNrOfParts;
+                
+                // For demonstration, we'll generate some sample alerts
+                // In a real scenario, you would compare against actual inventory levels
+                
+                // Generate alerts for items with high safety stock requirements
+                if (safetyStock > 100)
+                {
+                    alerts.Add(new InventoryAlert
+                    {
+                        Severity = "Warning",
+                        PartNumber = item.PartNumber ?? "Unknown",
+                        AlertType = "High Safety Stock Required",
+                        Message = $"Part requires high safety stock: {safetyStock} units",
+                        CurrentStock = 0, // Would come from actual inventory system
+                        SafetyStock = safetyStock,
+                        AlertDate = DateTime.Now
+                    });
+                }
+                
+                // Generate alerts for items with very high safety stock
+                if (safetyStock > 500)
+                {
+                    alerts.Add(new InventoryAlert
+                    {
+                        Severity = "Critical",
+                        PartNumber = item.PartNumber ?? "Unknown",
+                        AlertType = "Very High Safety Stock",
+                        Message = $"Part requires very high safety stock: {safetyStock} units",
+                        CurrentStock = 0,
+                        SafetyStock = safetyStock,
+                        AlertDate = DateTime.Now
+                    });
+                }
+            }
+
+            // Order alerts by severity and date
+            alerts = alerts
+                .OrderBy(a => a.Severity == "Critical" ? 0 : a.Severity == "Warning" ? 1 : 2)
+                .ThenByDescending(a => a.AlertDate)
+                .Take(50) // Limit to top 50 alerts
+                .ToList();
+
+            // Calculate counts
+            criticalCount = alerts.Count(a => a.Severity == "Critical");
+            warningCount = alerts.Count(a => a.Severity == "Warning");
+            infoCount = alerts.Count(a => a.Severity == "Info");
+            totalCount = alerts.Count;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error generating alerts: {ex.Message}");
+        }
+    }
+}

@@ -34,6 +34,9 @@ namespace PartTracker.Components.Pages
         private List<string> reasonCodeLabels = new();
         private List<int> reasonCodeCounts = new();
         private bool reasonCodePieChartDrawn = false;
+        private List<string> premiumCostLabels = new();
+        private List<decimal> premiumCostData = new();
+        private bool premiumCostChartDrawn = false;
 
         protected override async Task OnInitializedAsync()
         {
@@ -53,6 +56,7 @@ namespace PartTracker.Components.Pages
                 await LoadTrendsData();
                 await LoadReasonCodeTrends();
                 await LoadReasonCodeCounts();
+                await LoadPremiumCostTrends();
 
                 // Find Splunk entries from today that are not in the Activity table
                 // and have a Helper entry with 004TMOR Reason Code starting with VCC
@@ -180,8 +184,8 @@ namespace PartTracker.Components.Pages
                                           join s in AutomationDbContext.Splunk on h.OrderNumber equals s.TransportOrder
                                           where !string.IsNullOrWhiteSpace(h.ReasonCode)
                                           where !string.IsNullOrWhiteSpace(s.DeliveryContactPerson)
-                                          where !s.DeliveryContactPerson.StartsWith("Emmy")
-                                          where !s.DeliveryContactPerson.StartsWith("Wessberg")
+                                          where !s.DeliveryContactPerson!.StartsWith("Emmy")
+                                          where !s.DeliveryContactPerson!.StartsWith("Wessberg")
                                           group h by new { s.DeliveryContactPerson, h.ReasonCode } into g
                                           select new ReasonCodeCount
                                           {
@@ -302,6 +306,50 @@ namespace PartTracker.Components.Pages
             }
         }
 
+        private async Task LoadPremiumCostTrends()
+        {
+            try
+            {
+                var startDate = new DateTime(2025, 1, 1);
+                var endDate = new DateTime(2025, 12, 31, 23, 59, 59);
+
+                // Load data first, then group in memory
+                var records = await AutomationDbContext.Premiums2025
+                    .Where(p => p.ShipmentDate.HasValue 
+                            && p.ShipmentDate.Value >= startDate 
+                            && p.ShipmentDate.Value <= endDate)
+                    .Where(p => p.TotalCostsSek.HasValue)
+                    .Select(p => new
+                    {
+                        p.ShipmentDate,
+                        p.TotalCostsSek
+                    })
+                    .ToListAsync();
+
+                var data = records
+                    .GroupBy(p => new { 
+                        Year = p.ShipmentDate!.Value.Year,
+                        Month = p.ShipmentDate!.Value.Month
+                    })
+                    .Select(g => new
+                    {
+                        Date = new DateTime(g.Key.Year, g.Key.Month, 1),
+                        TotalCost = g.Sum(x => x.TotalCostsSek ?? 0)
+                    })
+                    .OrderBy(x => x.Date)
+                    .ToList();
+
+                premiumCostLabels = data.Select(x => x.Date.ToString("MMM yyyy")).ToList();
+                premiumCostData = data.Select(x => x.TotalCost).ToList();
+
+                Console.WriteLine($"Loaded {premiumCostLabels.Count} premium cost data points for 2025 from {records.Count} records");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading premium cost trends: {ex.Message}");
+            }
+        }
+
         private async Task LoadTrendsData()
         {
             try
@@ -389,6 +437,21 @@ namespace PartTracker.Components.Pages
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error drawing reason code pie chart: {ex.Message}");
+                }
+            }
+
+            if (!isLoading && !premiumCostChartDrawn && premiumCostLabels.Any())
+            {
+                Console.WriteLine($"Drawing premium cost chart with {premiumCostLabels.Count} labels");
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("drawPremiumCostChart", "premiumCostTrendsChart", premiumCostLabels, premiumCostData);
+                    premiumCostChartDrawn = true;
+                    Console.WriteLine("Premium cost chart drawn successfully");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error drawing premium cost chart: {ex.Message}");
                 }
             }
         }

@@ -1,6 +1,9 @@
 @page "/speed-ups"
 @layout MainLayout
 @inject AppDbContext DbContext
+@inject AutomationDbContext AutomationDbContext
+@inject IJSRuntime JSRuntime
+@using Microsoft.EntityFrameworkCore
 
 <MudText Typo="Typo.h3">Speed-ups</MudText>
 
@@ -11,10 +14,60 @@
 }
 else
 {
-    <MudPaper Class="pa-4">
+    <MudPaper Class="pa-4 mb-4">
         <MudText Typo="Typo.h4">Today's Bookings</MudText>
         <MudText Typo="Typo.h5" Color="Color.Primary">@todaysBookingsCount bookings made today</MudText>
         <MudText Typo="Typo.h5" Color="Color.Secondary">@totalBookingsCount total bookings made so far</MudText>
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h4" Class="mb-4">Speed-Up Costs (2025-2026)</MudText>
+        
+        <MudGrid>
+            <MudItem xs="12" md="3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Total Cost 2025</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Primary">€@totalCost2025.ToString("N0")</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Total Cost 2026</MudText>
+                        <MudText Typo="Typo.h4" Color="Color.Secondary">€@totalCost2026.ToString("N0")</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Avg Cost 2025</MudText>
+                        <MudText Typo="Typo.h5">€@avgCost2025.ToString("N0")</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">Count 2025</MudText>
+                        <MudText Typo="Typo.h5">@count2025</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        @if (chartLabels.Any())
+        {
+            <div style="position: relative; height: 400px; width: 100%; margin-top: 20px;">
+                <canvas id="speedUpCostChart" style="max-height: 400px;"></canvas>
+            </div>
+        }
+        else
+        {
+            <MudText Typo="Typo.body1" Class="mt-4">No cost data available.</MudText>
+        }
     </MudPaper>
 }
 
@@ -22,6 +75,15 @@ else
     private int todaysBookingsCount;
     private int totalBookingsCount;
     private bool isLoading = true;
+    
+    private decimal totalCost2025;
+    private decimal totalCost2026;
+    private decimal avgCost2025;
+    private int count2025;
+    
+    private List<string> chartLabels = new();
+    private List<decimal> chartData2025Values = new();
+    private List<decimal> chartData2026Values = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -34,6 +96,9 @@ else
                               && e.CompletionTime.Value.Date == today);
             totalBookingsCount = await DbContext.ChangeLogEntries
                 .CountAsync(e => (e.PremiumBooking ?? "").ToLower() == "speed-up");
+
+            // Load speed-up cost data
+            await LoadSpeedUpCostData();
         }
         catch (Exception ex)
         {
@@ -42,6 +107,84 @@ else
         finally
         {
             isLoading = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && chartLabels.Any())
+        {
+            await JSRuntime.InvokeVoidAsync("drawSpeedUpCostChart", "speedUpCostChart", chartLabels, chartData2025Values, chartData2026Values);
+        }
+    }
+
+    private async Task LoadSpeedUpCostData()
+    {
+        try
+        {
+            var start2025 = new DateTime(2025, 1, 1);
+            var end2025 = new DateTime(2025, 12, 31, 23, 59, 59);
+            var start2026 = new DateTime(2026, 1, 1);
+            var end2026 = new DateTime(2026, 12, 31, 23, 59, 59);
+
+            // Get all speed-up requests with costs
+            var speedUps2025 = await AutomationDbContext.SpeedUpRequests
+                .Where(s => s.NewDeliveryDeadline >= start2025 && s.NewDeliveryDeadline <= end2025)
+                .Where(s => s.ConfirmedCost.HasValue || s.ExtraCost.HasValue)
+                .Select(s => new
+                {
+                    Date = s.NewDeliveryDeadline,
+                    Cost = s.ConfirmedCost ?? s.ExtraCost ?? 0
+                })
+                .ToListAsync();
+
+            var speedUps2026 = await AutomationDbContext.SpeedUpRequests
+                .Where(s => s.NewDeliveryDeadline >= start2026 && s.NewDeliveryDeadline <= end2026)
+                .Where(s => s.ConfirmedCost.HasValue || s.ExtraCost.HasValue)
+                .Select(s => new
+                {
+                    Date = s.NewDeliveryDeadline,
+                    Cost = s.ConfirmedCost ?? s.ExtraCost ?? 0
+                })
+                .ToListAsync();
+
+            // Calculate totals for 2025
+            totalCost2025 = speedUps2025.Sum(s => s.Cost);
+            count2025 = speedUps2025.Count;
+            avgCost2025 = count2025 > 0 ? totalCost2025 / count2025 : 0;
+
+            // Calculate totals for 2026
+            totalCost2026 = speedUps2026.Sum(s => s.Cost);
+
+            // Group by month for 2025
+            var grouped2025 = speedUps2025
+                .Where(s => s.Date.HasValue)
+                .GroupBy(s => s.Date!.Value.Month)
+                .OrderBy(g => g.Key)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Cost));
+
+            // Group by month for 2026
+            var grouped2026 = speedUps2026
+                .Where(s => s.Date.HasValue)
+                .GroupBy(s => s.Date!.Value.Month)
+                .OrderBy(g => g.Key)
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.Cost));
+
+            // Create labels and data arrays (all 12 months)
+            var monthNames = new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+            chartLabels = monthNames.ToList();
+            
+            chartData2025Values = Enumerable.Range(1, 12)
+                .Select(month => grouped2025.ContainsKey(month) ? grouped2025[month] : 0)
+                .ToList();
+            
+            chartData2026Values = Enumerable.Range(1, 12)
+                .Select(month => grouped2026.ContainsKey(month) ? grouped2026[month] : 0)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading speed-up cost data: {ex.Message}");
         }
     }
 }
