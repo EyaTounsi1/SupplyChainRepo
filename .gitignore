@@ -1,0 +1,5 @@
+# Visual Studio / .NET
+.vs/
+bin/
+obj/
+Keys/
