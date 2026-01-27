@@ -392,32 +392,41 @@ window.drawPremiumCostChart = (canvasId, labels, costData) => {
     const ctx = document.getElementById(canvasId).getContext('2d');
     if (window[canvasId + 'Chart']) window[canvasId + 'Chart'].destroy();
 
-    window[canvasId + 'Chart'] = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels,
-            datasets: [
-                {
-                    label: 'Total Cost (SEK)',
-                    data: costData,
-                    borderColor: '#A3BE8C',
-                    backgroundColor: 'rgba(163, 190, 140, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    fill: true
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false
+        window[canvasId + 'Chart'] = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: '2025 Cost (SEK)',
+                        data: costData2025,
+                        borderColor: '#A3BE8C',
+                        backgroundColor: 'rgba(163, 190, 140, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: '2026 Cost (SEK)',
+                        data: costData2026,
+                        borderColor: '#5E81AC',
+                        backgroundColor: 'rgba(94, 129, 172, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
             },
-            plugins: {
-                legend: {
-                    position: 'top',
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
                     labels: { boxWidth: 20, padding: 15 }
                 },
                 tooltip: {

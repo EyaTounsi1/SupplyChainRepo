@@ -183,7 +183,7 @@ public class ExcelImportService : IExcelImportService
         return null;
     }
 
-    public async Task<HashSet<string>> GetToNumbersFromFileAsync(string filePath)
+    public HashSet<string> GetToNumbersFromFileAsync(string filePath)
     {
         var toNumbers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (!File.Exists(filePath))

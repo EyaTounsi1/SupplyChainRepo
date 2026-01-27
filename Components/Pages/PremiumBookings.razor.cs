@@ -35,7 +35,8 @@ namespace PartTracker.Components.Pages
         private List<int> reasonCodeCounts = new();
         private bool reasonCodePieChartDrawn = false;
         private List<string> premiumCostLabels = new();
-        private List<decimal> premiumCostData = new();
+        private List<decimal> premiumCostData2025 = new();
+        private List<decimal> premiumCostData2026 = new();
         private bool premiumCostChartDrawn = false;
 
         protected override async Task OnInitializedAsync()
@@ -307,49 +308,86 @@ namespace PartTracker.Components.Pages
         }
 
         private async Task LoadPremiumCostTrends()
+{
+    try
+    {
+        var startDate2025 = new DateTime(2025, 1, 1);
+        var endDate2025   = new DateTime(2025, 12, 31, 23, 59, 59);
+        var startDate2026 = new DateTime(2026, 1, 1);
+        var endDate2026   = new DateTime(2026, 12, 31, 23, 59, 59);
+
+        // --- Fetch 2025 SEK data (Premiums2025) ---
+        var records2025 = await AutomationDbContext.Premiums2025
+            .Where(p => p.ShipmentDate.HasValue
+                     && p.ShipmentDate.Value >= startDate2025
+                     && p.ShipmentDate.Value <= endDate2025)
+            .Where(p => p.TotalCostsSek.HasValue)
+            .Select(p => new { p.ShipmentDate, p.TotalCostsSek })
+            .ToListAsync();
+
+        var data2025 = records2025
+            .GroupBy(p => new { p.ShipmentDate!.Value.Year, p.ShipmentDate!.Value.Month })
+            .Select(g => new
+            {
+                Year  = g.Key.Year,
+                Month = g.Key.Month,
+                TotalCost = g.Sum(x => x.TotalCostsSek ?? 0m)
+            })
+            .ToList();
+
+        // --- Fetch 2026 EUR data (Splunk) and convert to SEK ---
+        var eurToSek = 11.5m; // adjust if needed
+        var records2026 = await AutomationDbContext.Splunk
+            .Where(e => e.CreatedAt.HasValue
+                     && e.CreatedAt.Value >= startDate2026
+                     && e.CreatedAt.Value <= endDate2026
+                     && e.TotalCostEUR.HasValue)
+            .Select(e => new { e.CreatedAt, e.TotalCostEUR })
+            .ToListAsync();
+
+        var data2026 = records2026
+            .GroupBy(e => new { e.CreatedAt!.Value.Year, e.CreatedAt!.Value.Month })
+            .Select(g => new
+            {
+                Year  = g.Key.Year,
+                Month = g.Key.Month,
+                TotalCost = g.Sum(x => (x.TotalCostEUR ?? 0m) * eurToSek)
+            })
+            .ToList();
+
+        // --- Build timeline months: Jan 2025 -> Dec 2026 ---
+        var months = Enumerable.Range(0, 24)
+            .Select(i => new DateTime(2025, 1, 1).AddMonths(i))
+            .ToList();
+
+        premiumCostLabels = months
+            .Select(d => d.ToString("MMM yyyy"))
+            .ToList();
+
+        // Two datasets aligned to the same 24-month timeline:
+        // 2025 series has values in 2025 months, 0 in 2026 months
+        premiumCostData2025 = months.Select(d =>
         {
-            try
-            {
-                var startDate = new DateTime(2025, 1, 1);
-                var endDate = new DateTime(2025, 12, 31, 23, 59, 59);
+            if (d.Year != 2025) return 0m;
+            var match = data2025.FirstOrDefault(x => x.Year == d.Year && x.Month == d.Month);
+            return match?.TotalCost ?? 0m;
+        }).ToList();
 
-                // Load data first, then group in memory
-                var records = await AutomationDbContext.Premiums2025
-                    .Where(p => p.ShipmentDate.HasValue 
-                            && p.ShipmentDate.Value >= startDate 
-                            && p.ShipmentDate.Value <= endDate)
-                    .Where(p => p.TotalCostsSek.HasValue)
-                    .Select(p => new
-                    {
-                        p.ShipmentDate,
-                        p.TotalCostsSek
-                    })
-                    .ToListAsync();
+        // 2026 series has values in 2026 months, 0 in 2025 months
+        premiumCostData2026 = months.Select(d =>
+        {
+            if (d.Year != 2026) return 0m;
+            var match = data2026.FirstOrDefault(x => x.Year == d.Year && x.Month == d.Month);
+            return match?.TotalCost ?? 0m;
+        }).ToList();
 
-                var data = records
-                    .GroupBy(p => new { 
-                        Year = p.ShipmentDate!.Value.Year,
-                        Month = p.ShipmentDate!.Value.Month
-                    })
-                    .Select(g => new
-                    {
-                        Date = new DateTime(g.Key.Year, g.Key.Month, 1),
-                        TotalCost = g.Sum(x => x.TotalCostsSek ?? 0)
-                    })
-                    .OrderBy(x => x.Date)
-                    .ToList();
-
-                premiumCostLabels = data.Select(x => x.Date.ToString("MMM yyyy")).ToList();
-                premiumCostData = data.Select(x => x.TotalCost).ToList();
-
-                Console.WriteLine($"Loaded {premiumCostLabels.Count} premium cost data points for 2025 from {records.Count} records");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading premium cost trends: {ex.Message}");
-            }
-        }
-
+        Console.WriteLine($"Loaded {premiumCostLabels.Count} premium cost timeline points (Jan 2025 - Dec 2026)");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error loading premium cost trends: {ex.Message}");
+    }
+}
         private async Task LoadTrendsData()
         {
             try
@@ -445,7 +483,7 @@ namespace PartTracker.Components.Pages
                 Console.WriteLine($"Drawing premium cost chart with {premiumCostLabels.Count} labels");
                 try
                 {
-                    await JSRuntime.InvokeVoidAsync("drawPremiumCostChart", "premiumCostTrendsChart", premiumCostLabels, premiumCostData);
+                    await JSRuntime.InvokeVoidAsync("drawPremiumCostChart", "premiumCostTrendsChart", premiumCostLabels, premiumCostData2025, premiumCostData2026);
                     premiumCostChartDrawn = true;
                     Console.WriteLine("Premium cost chart drawn successfully");
                 }

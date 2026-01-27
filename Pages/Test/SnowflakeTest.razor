@@ -1,0 +1,88 @@
+@page "/snowflake-test"
+@using System.Data
+@inject PartTracker.Shared.Services.SnowflakeService Snowflake
+@inject ILoggerFactory LoggerFactory
+
+<h3>Snowflake Connection Test</h3>
+
+<button class="btn btn-primary" @onclick="RunTest" disabled="@IsBusy">
+    @(IsBusy ? "Running..." : "Run Test")
+</button>
+
+@if (!string.IsNullOrWhiteSpace(Status))
+{
+    <div class="alert @(IsOk ? "alert-success" : "alert-danger") mt-3">
+        @Status
+    </div>
+}
+
+@if (IsOk && ResultTable is not null)
+{
+    <table class="table table-sm mt-3">
+        <thead>
+            <tr>
+                @foreach (DataColumn col in ResultTable.Columns)
+                {
+                    <th>@col.ColumnName</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (DataRow row in ResultTable.Rows)
+            {
+                <tr>
+                    @foreach (DataColumn col in ResultTable.Columns)
+                    {
+                        <td>@(row[col]?.ToString())</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private bool IsBusy;
+    private bool IsOk;
+    private string? Status;
+    private DataTable? ResultTable;
+
+    private ILogger? Log;
+
+    protected override void OnInitialized()
+    {
+        Log = LoggerFactory.CreateLogger("SnowflakeTest");
+    }
+
+    private async Task RunTest()
+    {
+        IsBusy = true;
+        Status = null;
+        IsOk = false;
+        ResultTable = null;
+
+        try
+        {
+            var sql = @"
+SELECT
+  CURRENT_USER()      AS CURRENT_USER,
+  CURRENT_ROLE()      AS CURRENT_ROLE,
+  CURRENT_WAREHOUSE() AS CURRENT_WAREHOUSE,
+  CURRENT_DATABASE()  AS CURRENT_DATABASE,
+  CURRENT_SCHEMA()    AS CURRENT_SCHEMA;
+";
+            ResultTable = await Snowflake.QueryAsync(sql);
+            IsOk = true;
+            Status = "Connection OK.";
+        }
+        catch (Exception ex)
+        {
+            Log?.LogError(ex, "Snowflake test failed");
+            Status = "Snowflake test failed. Check server logs for details.";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+}

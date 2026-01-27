@@ -1,154 +1,28 @@
 @page "/safety-stock"
 @layout MainLayout
 @inject ISafetyStockService SafetyStockService
-@inject AnotherSnowflakeService AnotherSnowflakeService
-@using PartTracker.Models
 
 <MudText Typo="Typo.h3">Safety Stock Overview</MudText>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="TestFirstConnection">Test First Snowflake Connection</MudButton>
-<MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="TestSecondConnection">Test Second Snowflake Connection</MudButton>
-
-<MudPaper Class="pa-4 mt-4">
-    <MudText Typo="Typo.h4">Filters</MudText>
-    <MudStack Row="true" Spacing="2">
-        <MudTextField @bind-Value="filterSite" Label="Site" Variant="Variant.Outlined" />
-        <MudTextField @bind-Value="filterPlanningPoint" Label="Planning Point" Variant="Variant.Outlined" />
-        <MudSwitch T="bool" @bind-Checked="onlyNrOfPartsChanged" Color="Color.Primary">Only number-of-parts changes</MudSwitch>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ApplyFilters">Apply</MudButton>
-    </MudStack>
-    @if (!string.IsNullOrEmpty(filterError))
-    {
-        <MudAlert Severity="Severity.Error">@filterError</MudAlert>
-    }
+<MudPaper Class="pa-4">
+	<MudSelect T="string" Label="Select Part Number" @bind-Value="SelectedPartNumber" Dense="true">
+		@foreach (var part in PartNumbers)
+		{
+			<MudSelectItem Value="@part">@part</MudSelectItem>
+		}
+	</MudSelect>
 </MudPaper>
-
-@if (!string.IsNullOrEmpty(connectionTestResult))
-{
-    <MudAlert Severity="@(connectionTestSuccess ? Severity.Success : Severity.Error)">@connectionTestResult</MudAlert>
-}
 
 @if (isLoading)
 {
-    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-    <MudText>Loading safety stock data...</MudText>
+	<MudProgressCircular Color="Color.Primary" Indeterminate="true" />
 }
-else if (!string.IsNullOrEmpty(errorMessage))
+else if (!string.IsNullOrEmpty(SelectedPartNumber))
 {
-    <MudAlert Severity="Severity.Error">@errorMessage</MudAlert>
-}
-else
-{
-    <MudTable Items="@safetyStockItems" Hover="true" Striped="true">
-        <HeaderContent>
-            <MudTh>Part Number</MudTh>
-            <MudTh>Safety Stock Nr of Parts</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd>@context.PartNumber</MudTd>
-            <MudTd>@context.SafetyStockNrOfParts</MudTd>
-        </RowTemplate>
-    </MudTable>
-
-    <MudPaper Class="pa-4 mt-4">
-        <MudText Typo="Typo.h4">Changed Safety Stock Rows</MudText>
-        <MudText Typo="Typo.body1">Total changed: @changedRowsCount</MudText>
-        <MudTable Items="@DisplayChanges" Hover="true" Striped="true">
-            <HeaderContent>
-                <MudTh>Part Number</MudTh>
-                <MudTh>Planning Point</MudTh>
-                <MudTh>Supplier</MudTh>
-                <MudTh>Yesterday Parts</MudTh>
-                <MudTh>Today Parts</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd>@context.PartNumber</MudTd>
-                <MudTd>@context.PlanningPoint</MudTd>
-                <MudTd>@context.MfgSupplierCode</MudTd>
-                <MudTd>@context.YSafetyStockNrOfParts</MudTd>
-                <MudTd>@context.TSafetyStockNrOfParts</MudTd>
-            </RowTemplate>
-        </MudTable>
-    </MudPaper>
-}
-
-@code {
-    private List<SafetyStockItem> safetyStockItems = new();
-    private List<SafetyStockChange> safetyStockChanges = new();
-    private int changedRowsCount = 0;
-    private string filterSite = "VCT";
-    private string filterPlanningPoint = "1003";
-    private bool onlyNrOfPartsChanged = false;
-    private string filterError = string.Empty;
-    private bool isLoading = true;
-    private string errorMessage = string.Empty;
-    private string connectionTestResult = string.Empty;
-    private bool connectionTestSuccess = false;
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            safetyStockItems = await SafetyStockService.GetSafetyStockDataAsync();
-            safetyStockChanges = await SafetyStockService.GetSafetyStockChangesAsync(filterSite, filterPlanningPoint);
-            changedRowsCount = safetyStockChanges.FirstOrDefault()?.NumChangedRows ?? safetyStockChanges.Count;
-        }
-        catch (Exception ex)
-        {
-            errorMessage = $"Error loading safety stock data: {ex.Message}";
-        }
-        finally
-        {
-            isLoading = false;
-        }
-    }
-
-    private IEnumerable<SafetyStockChange> DisplayChanges =>
-        onlyNrOfPartsChanged
-            ? safetyStockChanges.Where(c => c.YSafetyStockNrOfParts != c.TSafetyStockNrOfParts)
-            : safetyStockChanges;
-
-    private async Task ApplyFilters()
-    {
-        filterError = string.Empty;
-        try
-        {
-            safetyStockChanges = await SafetyStockService.GetSafetyStockChangesAsync(filterSite, filterPlanningPoint);
-            changedRowsCount = safetyStockChanges.FirstOrDefault()?.NumChangedRows ?? safetyStockChanges.Count;
-        }
-        catch (Exception ex)
-        {
-            filterError = ex.Message;
-        }
-    }
-
-    private async Task TestFirstConnection()
-    {
-        try
-        {
-            var success = await SafetyStockService.TestConnectionAsync();
-            connectionTestResult = success ? "First Snowflake connection successful!" : "First Snowflake connection failed.";
-            connectionTestSuccess = success;
-        }
-        catch (Exception ex)
-        {
-            connectionTestResult = $"Error testing first connection: {ex.Message}";
-            connectionTestSuccess = false;
-        }
-    }
-
-    private async Task TestSecondConnection()
-    {
-        try
-        {
-            var success = await AnotherSnowflakeService.TestConnectionAsync();
-            connectionTestResult = success ? "Second Snowflake connection successful!" : "Second Snowflake connection failed.";
-            connectionTestSuccess = success;
-        }
-        catch (Exception ex)
-        {
-            connectionTestResult = $"Error testing second connection: {ex.Message}";
-            connectionTestSuccess = false;
-        }
-    }
+	<MudPaper Class="pa-4 mt-4">
+		<MudText Typo="Typo.h6">Safety Stock vs. Actual Demand for @SelectedPartNumber</MudText>
+		<MudChart ChartType="ChartType.Line" Height="400px"
+				  Labels="@DateLabels"
+				  Datasets="@ChartDatasets" />
+	</MudPaper>
 }
