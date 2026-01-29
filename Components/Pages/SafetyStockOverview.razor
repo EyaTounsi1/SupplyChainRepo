@@ -5,12 +5,19 @@
 <MudText Typo="Typo.h3">Safety Stock Overview</MudText>
 
 <MudPaper Class="pa-4">
-	<MudSelect T="string" Label="Select Part Number" @bind-Value="SelectedPartNumber" Dense="true">
-		@foreach (var part in PartNumbers)
-		{
-			<MudSelectItem Value="@part">@part</MudSelectItem>
-		}
-	</MudSelect>
+	@if (PartNumbers != null && PartNumbers.Count > 0)
+	{
+		<MudSelect T="string" Label="Select Part Number" Value="@SelectedPartNumber" ValueChanged="@((string v) => SelectedPartNumber = v)" Dense="true">
+			@foreach (var part in PartNumbers)
+			{
+				<MudSelectItem Value="@part">@part</MudSelectItem>
+			}
+		</MudSelect>
+	}
+	else
+	{
+		<MudText>No part numbers available.</MudText>
+	}
 </MudPaper>
 
 @if (isLoading)
@@ -21,8 +28,8 @@ else if (!string.IsNullOrEmpty(SelectedPartNumber))
 {
 	<MudPaper Class="pa-4 mt-4">
 		<MudText Typo="Typo.h6">Safety Stock vs. Actual Demand for @SelectedPartNumber</MudText>
-		<MudChart ChartType="ChartType.Line" Height="400px"
-				  Labels="@DateLabels"
-				  Datasets="@ChartDatasets" />
+		  <MudChart ChartType="ChartType.Line" Height="400px"
+			  XAxisLabels="@ChartLabelsArray"
+			  ChartSeries="@ChartDatasets" />
 	</MudPaper>
 }

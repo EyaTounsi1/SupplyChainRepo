@@ -42,9 +42,12 @@ else
         <MudText Typo="Typo.h4">Premium Bookings Cost Trends 2025 vs 2026</MudText>
         @if (premiumCostLabels.Any())
         {
-            <div style="position: relative; height: 400px; width: 100%; margin-top: 20px;">
-                <canvas id="premiumCostTrendsChart" style="max-height: 400px;"></canvas>
-            </div>
+            <MudChart ChartType="ChartType.Line" 
+                      ChartSeries="@PremiumCostChartSeries" 
+                      XAxisLabels="@premiumCostLabels.ToArray()" 
+                      Width="100%" 
+                      Height="400px"
+                      ChartOptions="@premiumCostChartOptions" />
         }
         else
         {

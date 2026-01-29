@@ -6,108 +6,35 @@
  
 <button @onclick="RunTest">Run test query</button>
  
-@if (_loading)
+@if (_result != null)
 {
-<p>Running query...</p>
-}
-else if (!string.IsNullOrEmpty(_error))
-{
-<p style="color:red;"><b>Error:</b> @_error</p>
-}
-else if (_result != null)
-{
-<p><b>Connected successfully.</b></p>
+<h4>Snowflake Session Context</h4>
  
-    <table border="1" cellpadding="6">
-<thead>
-<tr>
-                @foreach (DataColumn col in _result.Columns)
-                {
-<th>@col.ColumnName</th>
-                }
-</tr>
-</thead>
+    <table border="1" cellpadding="8" style="border-collapse:collapse; max-width:600px;">
 <tbody>
-            @foreach (DataRow row in _result.Rows)
+            @foreach (DataColumn col in _result.Columns)
             {
 <tr>
-                    @foreach (var item in row.ItemArray)
-                    {
-<td>@item</td>
-                    }
+<td style="font-weight:bold; background:#f4f4f4; width:200px;">
+                        @col.ColumnName
+</td>
+<td>
+                        @_result.Rows[0][col]
+</td>
 </tr>
             }
 </tbody>
 </table>
 }
  
-
+ 
 <hr />
-
-<h3>Snowflake Safety Stock Test Chart</h3>
-<button @onclick="LoadSafetyStockChart">Load Chart Data</button>
-@if (chartLoading)
+ 
+ 
+ 
+@if (!string.IsNullOrWhiteSpace(_createMessage))
 {
-    <p>Loading chart data...</p>
-}
-else if (!string.IsNullOrEmpty(chartError))
-{
-    <p style="color:red;">@chartError</p>
-}
-else if (chartLabels.Count > 0)
-{
-    <MudChart ChartType="ChartType.Line" Height="350px"
-              Labels="@chartLabels"
-              Datasets="@ChartDatasets" />
-}
-
-@code {
-    // ...existing code...
-
-    // Chart test
-    private bool chartLoading = false;
-    private string? chartError = null;
-    private List<string> chartLabels = new();
-    private List<double> chartData = new();
-
-    private List<ChartSeries> ChartDatasets => new List<ChartSeries>
-    {
-        new ChartSeries { Name = "Safety Stock", Data = chartData.ToArray() }
-    };
-
-    private async Task LoadSafetyStockChart()
-    {
-        chartLoading = true;
-        chartError = null;
-        chartLabels.Clear();
-        chartData.Clear();
-        try
-        {
-            // Pick a sample part number (or let user choose)
-            string partNumber = "SAMPLE_PART"; // TODO: Replace with a real part number or make dynamic
-            var sql = $@"
-                SELECT UPLOADED_FROM_SOURCE, SAFETY_STOCK_NR_OF_PARTS
-                FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED_HISTORICAL
-                WHERE PART_NUMBER = '{partNumber}'
-                ORDER BY UPLOADED_FROM_SOURCE
-                LIMIT 100
-            ";
-            var dt = await Snowflake.QueryAsync(sql);
-            foreach (DataRow row in dt.Rows)
-            {
-                chartLabels.Add(((DateTime)row[0]).ToString("yyyy-MM-dd"));
-                chartData.Add(row.IsNull(1) ? 0 : Convert.ToDouble(row[1]));
-            }
-        }
-        catch (Exception ex)
-        {
-            chartError = ex.Message;
-        }
-        finally
-        {
-            chartLoading = false;
-        }
-    }
+<p style="margin-top:10px;"><b>@_createMessage</b></p>
 }
  
 @code {
@@ -132,9 +59,17 @@ else if (chartLabels.Count > 0)
  
         try
         {
-            _result = await Snowflake.QueryAsync(
-                "SELECT CURRENT_WAREHOUSE() AS WAREHOUSE"
-            );
+            _result = await Snowflake.QueryAsync(@"
+SELECT
+  CURRENT_ROLE()      AS ROLE,
+  CURRENT_USER()      AS USERNAME,
+  CURRENT_WAREHOUSE() AS WAREHOUSE,
+  CURRENT_DATABASE()  AS DATABASE,
+  CURRENT_SCHEMA()    AS SCHEMA
+");
+ 
+         
+ 
         }
         catch (Exception ex)
         {
@@ -146,37 +81,5 @@ else if (chartLabels.Count > 0)
         }
     }
  
-    private async Task CreateTable()
-    {
-        _createMessage = null;
- 
-        if (string.IsNullOrWhiteSpace(newTableName) ||
-            string.IsNullOrWhiteSpace(col1) ||
-            string.IsNullOrWhiteSpace(col2) ||
-            string.IsNullOrWhiteSpace(col3) ||
-            string.IsNullOrWhiteSpace(col4))
-        {
-            _createMessage = "All fields are required.";
-            return;
-        }
- 
-        var sql = $@"
-CREATE TABLE DEV_MFG_VCT_BIZ_DB.VCT_ANALYTICS.{newTableName} (
-    {col1} VARCHAR,
-    {col2} VARCHAR,
-    {col3} VARCHAR,
-    {col4} VARCHAR
-)";
- 
- 
-        try
-        {
-            await Snowflake.QueryAsync(sql);
-            _createMessage = $"Table '{newTableName}' created successfully.";
-        }
-        catch (Exception ex)
-        {
-            _createMessage = ex.Message;
-        }
-    }
+   
 }

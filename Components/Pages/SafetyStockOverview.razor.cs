@@ -1,3 +1,4 @@
+    // ...usings...
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Configuration;
 using Snowflake.Data.Client;
@@ -8,16 +9,17 @@ using System.Threading.Tasks;
 
 namespace PartTracker.Components.Pages
 {
-    public class ChartSeries
-    {
-        public string Name { get; set; }
-        public double[] Data { get; set; }
-    }
     public partial class SafetyStockOverview : ComponentBase
     {
+        public string[] ChartLabelsArray => DateLabels.ToArray();
+        public List<MudBlazor.ChartSeries> ChartDatasets => new List<MudBlazor.ChartSeries>
+        {
+            new MudBlazor.ChartSeries { Name = "Actual Demand", Data = ActualDemandSeries.ToArray() },
+            new MudBlazor.ChartSeries { Name = "Safety Stock", Data = SafetyStockSeries.ToArray() }
+        };
         [Inject] IConfiguration Configuration { get; set; }
 
-        private List<string> PartNumbers = new();
+        public List<string> PartNumbers { get; set; } = new();
         // Use property with backing field in .razor
         // private string SelectedPartNumber; // REMOVED, use property only
         private bool isLoading = true;
@@ -30,11 +32,7 @@ namespace PartTracker.Components.Pages
         public List<double> SafetyStockSeries { get; set; } = new();
         public List<double> ActualDemandSeries { get; set; } = new();
 
-        public List<ChartSeries> ChartDatasets => new List<ChartSeries>
-        {
-            new ChartSeries { Name = "Actual Demand", Data = ActualDemandSeries.ToArray() },
-            new ChartSeries { Name = "Safety Stock", Data = SafetyStockSeries.ToArray() }
-        };
+        // Removed ChartDatasets, not needed for MudChart Data/XAxisLabels
 
         protected override async Task OnInitializedAsync()
         {
@@ -203,8 +201,8 @@ namespace PartTracker.Components.Pages
                 }
             }
         }
+
     }
 }
 
-// ...existing code...
 

@@ -388,7 +388,7 @@ window.drawSpeedUpCostChart = (canvasId, labels, data2025, data2026) => {
     });
 };
 
-window.drawPremiumCostChart = (canvasId, labels, costData) => {
+window.drawPremiumCostChart = (canvasId, labels, costData2025, costData2026) => {
     const ctx = document.getElementById(canvasId).getContext('2d');
     if (window[canvasId + 'Chart']) window[canvasId + 'Chart'].destroy();
 

@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using PartTracker;
 using PartTracker.Models;
+using MudBlazor;
 
 namespace PartTracker.Components.Pages
 {
@@ -37,7 +38,21 @@ namespace PartTracker.Components.Pages
         private List<string> premiumCostLabels = new();
         private List<decimal> premiumCostData2025 = new();
         private List<decimal> premiumCostData2026 = new();
-        private bool premiumCostChartDrawn = false;
+    
+        private List<MudBlazor.ChartSeries> PremiumCostChartSeries => new()
+        {
+            new MudBlazor.ChartSeries { Name = "2025 Cost (SEK)", Data = premiumCostData2025.Select(x => (double)x).ToArray() },
+            new MudBlazor.ChartSeries { Name = "2026 Cost (SEK)", Data = premiumCostData2026.Select(x => (double)x).ToArray() }
+        };
+    
+        private ChartOptions premiumCostChartOptions = new()
+        {
+            YAxisTicks = 10,
+            MaxNumYAxisTicks = 10,
+            YAxisFormat = "N0",
+            InterpolationOption = InterpolationOption.Straight,
+            LineStrokeWidth = 2
+        };
 
         protected override async Task OnInitializedAsync()
         {
@@ -311,6 +326,7 @@ namespace PartTracker.Components.Pages
 {
     try
     {
+        Console.WriteLine("=== Starting LoadPremiumCostTrends ===");
         var startDate2025 = new DateTime(2025, 1, 1);
         var endDate2025   = new DateTime(2025, 12, 31, 23, 59, 59);
         var startDate2026 = new DateTime(2026, 1, 1);
@@ -325,6 +341,8 @@ namespace PartTracker.Components.Pages
             .Select(p => new { p.ShipmentDate, p.TotalCostsSek })
             .ToListAsync();
 
+        Console.WriteLine($"Records from 2025 (Premiums2025): {records2025.Count}");
+
         var data2025 = records2025
             .GroupBy(p => new { p.ShipmentDate!.Value.Year, p.ShipmentDate!.Value.Month })
             .Select(g => new
@@ -334,6 +352,12 @@ namespace PartTracker.Components.Pages
                 TotalCost = g.Sum(x => x.TotalCostsSek ?? 0m)
             })
             .ToList();
+
+        Console.WriteLine($"Grouped 2025 data: {data2025.Count} months");
+        foreach (var item in data2025)
+        {
+            Console.WriteLine($"  {item.Year}-{item.Month:D2}: {item.TotalCost:N2} SEK");
+        }
 
         // --- Fetch 2026 EUR data (Splunk) and convert to SEK ---
         var eurToSek = 11.5m; // adjust if needed
@@ -345,6 +369,8 @@ namespace PartTracker.Components.Pages
             .Select(e => new { e.CreatedAt, e.TotalCostEUR })
             .ToListAsync();
 
+        Console.WriteLine($"Records from 2026 (Splunk): {records2026.Count}");
+
         var data2026 = records2026
             .GroupBy(e => new { e.CreatedAt!.Value.Year, e.CreatedAt!.Value.Month })
             .Select(g => new
@@ -355,37 +381,49 @@ namespace PartTracker.Components.Pages
             })
             .ToList();
 
-        // --- Build timeline months: Jan 2025 -> Dec 2026 ---
-        var months = Enumerable.Range(0, 24)
-            .Select(i => new DateTime(2025, 1, 1).AddMonths(i))
-            .ToList();
-
-        premiumCostLabels = months
-            .Select(d => d.ToString("MMM yyyy"))
-            .ToList();
-
-        // Two datasets aligned to the same 24-month timeline:
-        // 2025 series has values in 2025 months, 0 in 2026 months
-        premiumCostData2025 = months.Select(d =>
+        Console.WriteLine($"Grouped 2026 data: {data2026.Count} months");
+        foreach (var item in data2026)
         {
-            if (d.Year != 2025) return 0m;
+            Console.WriteLine($"  {item.Year}-{item.Month:D2}: {item.TotalCost:N2} SEK");
+        }
+
+        // --- Build timeline months: Jan -> Dec (12 months only) ---
+        var months2025 = Enumerable.Range(1, 12)
+            .Select(month => new DateTime(2025, month, 1))
+            .ToList();
+        
+        var months2026 = Enumerable.Range(1, 12)
+            .Select(month => new DateTime(2026, month, 1))
+            .ToList();
+
+        // Labels: Jan, Feb, Mar, ... Dec
+        premiumCostLabels = Enumerable.Range(1, 12)
+            .Select(m => new DateTime(2025, m, 1).ToString("MMM"))
+            .ToList();
+
+        // 2025 data for Jan-Dec 2025
+        premiumCostData2025 = months2025.Select(d =>
+        {
             var match = data2025.FirstOrDefault(x => x.Year == d.Year && x.Month == d.Month);
             return match?.TotalCost ?? 0m;
         }).ToList();
 
-        // 2026 series has values in 2026 months, 0 in 2025 months
-        premiumCostData2026 = months.Select(d =>
+        // 2026 data for Jan-Dec 2026
+        premiumCostData2026 = months2026.Select(d =>
         {
-            if (d.Year != 2026) return 0m;
             var match = data2026.FirstOrDefault(x => x.Year == d.Year && x.Month == d.Month);
             return match?.TotalCost ?? 0m;
         }).ToList();
 
-        Console.WriteLine($"Loaded {premiumCostLabels.Count} premium cost timeline points (Jan 2025 - Dec 2026)");
+        Console.WriteLine($"Loaded {premiumCostLabels.Count} premium cost timeline points (Jan - Dec)");
+        Console.WriteLine($"2025 data count: {premiumCostData2025.Count}, Sum: {premiumCostData2025.Sum():N2}");
+        Console.WriteLine($"2026 data count: {premiumCostData2026.Count}, Sum: {premiumCostData2026.Sum():N2}");
+        Console.WriteLine($"premiumCostLabels.Any(): {premiumCostLabels.Any()}");
     }
     catch (Exception ex)
     {
         Console.WriteLine($"Error loading premium cost trends: {ex.Message}");
+        Console.WriteLine($"Stack trace: {ex.StackTrace}");
     }
 }
         private async Task LoadTrendsData()
@@ -478,20 +516,7 @@ namespace PartTracker.Components.Pages
                 }
             }
 
-            if (!isLoading && !premiumCostChartDrawn && premiumCostLabels.Any())
-            {
-                Console.WriteLine($"Drawing premium cost chart with {premiumCostLabels.Count} labels");
-                try
-                {
-                    await JSRuntime.InvokeVoidAsync("drawPremiumCostChart", "premiumCostTrendsChart", premiumCostLabels, premiumCostData2025, premiumCostData2026);
-                    premiumCostChartDrawn = true;
-                    Console.WriteLine("Premium cost chart drawn successfully");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error drawing premium cost chart: {ex.Message}");
-                }
-            }
+            // Premium cost chart now uses MudBlazor - no JS rendering needed
         }
 
         private async Task<List<PremiumCsvRow>> ReadPremiumCsvAsync(string path)
