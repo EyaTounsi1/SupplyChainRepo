@@ -55,6 +55,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xTYWZldHlTdG9ja0Zvcm0ucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/ETOUNSI/Documents/GitHub/SupplyChain/Components/Pages/SafetyStockHistory.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xTYWZldHlTdG9ja0hpc3RvcnkucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/ETOUNSI/Documents/GitHub/SupplyChain/Components/Pages/SafetyStockOverview.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xTYWZldHlTdG9ja092ZXJ2aWV3LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 

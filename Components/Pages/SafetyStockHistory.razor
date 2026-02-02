@@ -1,0 +1,232 @@
+@page "/safety-stock/history"
+@using PartTracker.Shared.Services
+@using System.Data
+@inject SnowflakeService SnowflakeService
+
+<PageTitle>Safety Stock Historical Variation</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Safety Stock Historical Variation</MudText>
+    
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Filter Parameters</MudText>
+        
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                @if (partNumbers.Any())
+                {
+                    <MudSelect T="string" @bind-Value="partNumber" Label="Part Number" Variant="Variant.Outlined" Dense="true">
+                        @foreach (var part in partNumbers)
+                        {
+                            <MudSelectItem Value="@part">@part</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else if (isLoadingPartNumbers)
+                {
+                    <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                    <MudText Typo="Typo.body2">Loading part numbers...</MudText>
+                }
+                else
+                {
+                    <MudTextField @bind-Value="partNumber" Label="Part Number" Variant="Variant.Outlined" />
+                }
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="site" Label="Site" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadChartData" FullWidth="true" Class="mt-2" Disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <MudProgressCircular Color="Color.Default" Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                        <span>Loading...</span>
+                    }
+                    else
+                    {
+                        <span>Load Data</span>
+                    }
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mb-4">@errorMessage</MudAlert>
+    }
+
+    @if (chartLabels.Any())
+    {
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-3">Safety Stock Variation Over Time</MudText>
+            <MudText Typo="Typo.body2" Class="mb-4">Part: @partNumber | Site: @site</MudText>
+            
+            <MudChart ChartType="ChartType.Line" 
+                      ChartSeries="@chartSeries" 
+                      XAxisLabels="@chartLabels.ToArray()" 
+                      Width="100%" 
+                      Height="400px"
+                      ChartOptions="@chartOptions"/>
+        </MudPaper>
+
+        @if (dataPoints.Any())
+        {
+            <MudPaper Class="pa-4 mt-4">
+                <MudText Typo="Typo.h6" Class="mb-3">Data Points (@dataPoints.Count)</MudText>
+                
+                <MudTable Items="@dataPoints" Hover="true" Striped="true" Dense="true" Height="400px">
+                    <HeaderContent>
+                        <MudTh>Date</MudTh>
+                        <MudTh>Safety Stock Shifts</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Date">@context.Date.ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
+                        <MudTd DataLabel="Safety Stock Shifts">@context.SafetyStockShifts.ToString("N2")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        }
+    }
+</MudContainer>
+
+@code {
+    private string partNumber = "31493276";
+    private string site = "VCT";
+    private bool isLoading = false;
+    private bool isLoadingPartNumbers = false;
+    private string errorMessage = "";
+    
+    private List<string> partNumbers = new();
+    private List<string> chartLabels = new();
+    private List<MudBlazor.ChartSeries> chartSeries = new();
+    private List<SafetyStockDataPoint> dataPoints = new();
+    
+    private MudBlazor.ChartOptions chartOptions = new()
+    {
+        YAxisTicks = 10,
+        MaxNumYAxisTicks = 10,
+        YAxisLines = true,
+        XAxisLines = true,
+        LineStrokeWidth = 2.5
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPartNumbers();
+        await LoadChartData();
+    }
+
+    private async Task LoadPartNumbers()
+    {
+        isLoadingPartNumbers = true;
+        
+        try
+        {
+            string sql = @"
+SELECT DISTINCT PART_NUMBER 
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED_HISTORICAL
+ORDER BY PART_NUMBER
+LIMIT 5000";
+
+            DataTable dt = await SnowflakeService.QueryAsync(sql);
+            
+            foreach (DataRow row in dt.Rows)
+            {
+                var part = row["PART_NUMBER"]?.ToString();
+                if (!string.IsNullOrWhiteSpace(part))
+                {
+                    partNumbers.Add(part);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading part numbers: {ex.Message}";
+        }
+        finally
+        {
+            isLoadingPartNumbers = false;
+        }
+    }
+
+    private async Task LoadChartData()
+    {
+        if (string.IsNullOrWhiteSpace(partNumber) || string.IsNullOrWhiteSpace(site))
+        {
+            errorMessage = "Please enter both Part Number and Site";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = "";
+        chartLabels.Clear();
+        chartSeries.Clear();
+        dataPoints.Clear();
+        
+        try
+        {
+            string sql = $@"
+SELECT
+    UPLOADED_FROM_SOURCE,
+    COALESCE(
+        FLS_YARD_LEADTIME_SHIFTS_CALC,
+        SAFETY_STOCK_LEAD_TIME
+    ) AS SAFETY_STOCK_SHIFTS
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED_HISTORICAL
+WHERE PART_NUMBER = '{partNumber}'
+  AND SITE = '{site}'
+ORDER BY UPLOADED_FROM_SOURCE";
+
+            DataTable dt = await SnowflakeService.QueryAsync(sql);
+            
+            if (dt.Rows.Count == 0)
+            {
+                errorMessage = "No data found for the specified Part Number and Site";
+                return;
+            }
+
+            var safetyStockValues = new List<double>();
+            
+            foreach (DataRow row in dt.Rows)
+            {
+                var date = Convert.ToDateTime(row["UPLOADED_FROM_SOURCE"]);
+                var safetyStockShifts = row["SAFETY_STOCK_SHIFTS"] != DBNull.Value 
+                    ? Convert.ToDouble(row["SAFETY_STOCK_SHIFTS"]) 
+                    : 0.0;
+                
+                chartLabels.Add(date.ToString("yyyy-MM-dd"));
+                safetyStockValues.Add(safetyStockShifts);
+                
+                dataPoints.Add(new SafetyStockDataPoint
+                {
+                    Date = date,
+                    SafetyStockShifts = safetyStockShifts
+                });
+            }
+            
+            chartSeries = new List<MudBlazor.ChartSeries>
+            {
+                new MudBlazor.ChartSeries 
+                { 
+                    Name = "Safety Stock Shifts", 
+                    Data = safetyStockValues.ToArray() 
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private class SafetyStockDataPoint
+    {
+        public DateTime Date { get; set; }
+        public double SafetyStockShifts { get; set; }
+    }
+}

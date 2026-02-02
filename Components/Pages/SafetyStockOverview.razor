@@ -5,6 +5,7 @@
 <MudText Typo="Typo.h3">Safety Stock Overview</MudText>
 
 <MudPaper Class="pa-4">
+	
 	@if (PartNumbers != null && PartNumbers.Count > 0)
 	{
 		<MudSelect T="string" Label="Select Part Number" Value="@SelectedPartNumber" ValueChanged="@((string v) => SelectedPartNumber = v)" Dense="true">
@@ -16,7 +17,7 @@
 	}
 	else
 	{
-		<MudText>No part numbers available.</MudText>
+		<MudText>Part numbers available.</MudText>
 	}
 </MudPaper>
 
