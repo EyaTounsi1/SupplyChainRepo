@@ -32,6 +32,30 @@ namespace PartTracker.Components.Pages
         public List<double> SafetyStockSeries { get; set; } = new();
         public List<double> ActualDemandSeries { get; set; } = new();
 
+        // Lead Time Chart Data
+        private bool isLoadingLeadTime = false;
+        public List<string> LeadTimeMonthLabels { get; set; } = new();
+        public List<double> AvgLeadTimeData { get; set; } = new();
+        public List<double> MedianLeadTimeData { get; set; } = new();
+        public List<MudBlazor.ChartSeries> LeadTimeChartSeries => new List<MudBlazor.ChartSeries>
+        {
+            new MudBlazor.ChartSeries { Name = "Average Lead Time (Shifts)", Data = AvgLeadTimeData.ToArray() },
+            new MudBlazor.ChartSeries { Name = "Median Lead Time (Shifts)", Data = MedianLeadTimeData.ToArray() }
+        };
+
+        // Quantity Chart Data
+        private bool isLoadingQuantity = false;
+        public List<string> QuantityMonthLabels { get; set; } = new();
+        public List<double> TotalQuantityData { get; set; } = new();
+        public List<double> AvgQuantityData { get; set; } = new();
+        public List<double> MedianQuantityData { get; set; } = new();
+        public List<MudBlazor.ChartSeries> QuantityChartSeries => new List<MudBlazor.ChartSeries>
+        {
+            new MudBlazor.ChartSeries { Name = "Total SS Parts", Data = TotalQuantityData.ToArray() },
+            new MudBlazor.ChartSeries { Name = "Average SS Parts", Data = AvgQuantityData.ToArray() },
+            new MudBlazor.ChartSeries { Name = "Median SS Parts", Data = MedianQuantityData.ToArray() }
+        };
+
         // Removed ChartDatasets, not needed for MudChart Data/XAxisLabels
 
         protected override async Task OnInitializedAsync()
@@ -45,6 +69,10 @@ namespace PartTracker.Components.Pages
             }
 
             isLoading = false;
+
+            // Load aggregate charts
+            _ = LoadLeadTimeTrendAsync();
+            _ = LoadQuantityTrendAsync();
         }
 
         private async Task OnPartNumberChanged(string partNumber)
@@ -188,6 +216,166 @@ namespace PartTracker.Components.Pages
                 // Handle error (log, show message, etc.)
             }
         }
+        private async Task LoadLeadTimeTrendAsync()
+        {
+            isLoadingLeadTime = true;
+            LeadTimeMonthLabels.Clear();
+            AvgLeadTimeData.Clear();
+            MedianLeadTimeData.Clear();
+
+            try
+            {
+                using var conn = new SnowflakeDbConnection();
+                conn.ConnectionString = GetSnowflakeConnectionString();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+WITH filtered_parts AS (
+  SELECT
+      SITE,
+      PLANNING_POINT,
+      PART_NUMBER,
+      MFG_SUPPLIER_CODE
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_SUPPLIER_INFORMATION_AS_MANUFACTURED.PART_SUPPLIER_INFORMATION_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+    AND MFG_SUPPLIER_CODE NOT ILIKE '%BSNRA%'
+    AND COALESCE(SEQUENCE_PARTS_FLAG, '') <> 'Sequence Part'
+),
+monthly_snapshot AS (
+  SELECT
+      h.SITE,
+      h.PLANNING_POINT,
+      h.PART_NUMBER,
+      h.MFG_SUPPLIER_CODE,
+      DATE_TRUNC('month', h.UPLOADED_FROM_SOURCE) AS MONTH,
+      COALESCE(NULLIF(h.FLS_YARD_LEADTIME_SHIFTS_CALC, 0), h.SAFETY_STOCK_LEAD_TIME) AS EFFECTIVE_SS_SHIFTS,
+      h.SAFETY_STOCK_NR_OF_PARTS AS SS_PARTS,
+      h.UPLOADED_FROM_SOURCE
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED_HISTORICAL h
+  INNER JOIN filtered_parts p
+    ON  h.SITE = p.SITE
+    AND h.PLANNING_POINT = p.PLANNING_POINT
+    AND h.PART_NUMBER = p.PART_NUMBER
+    AND h.MFG_SUPPLIER_CODE = p.MFG_SUPPLIER_CODE
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY h.SITE, h.PLANNING_POINT, h.PART_NUMBER, h.MFG_SUPPLIER_CODE, DATE_TRUNC('month', h.UPLOADED_FROM_SOURCE)
+    ORDER BY h.UPLOADED_FROM_SOURCE DESC
+  ) = 1
+)
+SELECT
+  MONTH,
+  COUNT(*) AS PART_SUPPLIER_ROWS,
+  AVG(EFFECTIVE_SS_SHIFTS) AS AVG_EFFECTIVE_SS_SHIFTS,
+  MEDIAN(EFFECTIVE_SS_SHIFTS) AS MEDIAN_EFFECTIVE_SS_SHIFTS
+FROM monthly_snapshot
+GROUP BY 1
+ORDER BY 1";
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var month = reader.GetDateTime(0);
+                    var avg = reader.IsDBNull(2) ? 0 : Convert.ToDouble(reader.GetValue(2));
+                    var median = reader.IsDBNull(3) ? 0 : Convert.ToDouble(reader.GetValue(3));
+
+                    LeadTimeMonthLabels.Add(month.ToString("MMM yyyy"));
+                    AvgLeadTimeData.Add(avg);
+                    MedianLeadTimeData.Add(median);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle error
+            }
+            finally
+            {
+                isLoadingLeadTime = false;
+                StateHasChanged();
+            }
+        }
+
+        private async Task LoadQuantityTrendAsync()
+        {
+            isLoadingQuantity = true;
+            QuantityMonthLabels.Clear();
+            TotalQuantityData.Clear();
+            AvgQuantityData.Clear();
+            MedianQuantityData.Clear();
+
+            try
+            {
+                using var conn = new SnowflakeDbConnection();
+                conn.ConnectionString = GetSnowflakeConnectionString();
+                await conn.OpenAsync();
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+WITH filtered_parts AS (
+  SELECT
+      SITE,
+      PLANNING_POINT,
+      PART_NUMBER,
+      MFG_SUPPLIER_CODE
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_SUPPLIER_INFORMATION_AS_MANUFACTURED.PART_SUPPLIER_INFORMATION_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+    AND MFG_SUPPLIER_CODE NOT ILIKE '%BSNRA%'
+    AND COALESCE(SEQUENCE_PARTS_FLAG, '') <> 'Sequence Part'
+),
+monthly_snapshot AS (
+  SELECT
+      h.SITE,
+      h.PLANNING_POINT,
+      h.PART_NUMBER,
+      h.MFG_SUPPLIER_CODE,
+      DATE_TRUNC('month', h.UPLOADED_FROM_SOURCE) AS MONTH,
+      COALESCE(NULLIF(h.FLS_YARD_LEADTIME_SHIFTS_CALC, 0), h.SAFETY_STOCK_LEAD_TIME) AS EFFECTIVE_SS_SHIFTS,
+      h.SAFETY_STOCK_NR_OF_PARTS AS SS_PARTS,
+      h.UPLOADED_FROM_SOURCE
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED_HISTORICAL h
+  INNER JOIN filtered_parts p
+    ON  h.SITE = p.SITE
+    AND h.PLANNING_POINT = p.PLANNING_POINT
+    AND h.PART_NUMBER = p.PART_NUMBER
+    AND h.MFG_SUPPLIER_CODE = p.MFG_SUPPLIER_CODE
+  QUALIFY ROW_NUMBER() OVER (
+    PARTITION BY h.SITE, h.PLANNING_POINT, h.PART_NUMBER, h.MFG_SUPPLIER_CODE, DATE_TRUNC('month', h.UPLOADED_FROM_SOURCE)
+    ORDER BY h.UPLOADED_FROM_SOURCE DESC
+  ) = 1
+)
+SELECT
+  MONTH,
+  COUNT(*) AS PART_SUPPLIER_ROWS,
+  SUM(SS_PARTS) AS TOTAL_SS_PARTS,
+  AVG(SS_PARTS) AS AVG_SS_PARTS,
+  MEDIAN(SS_PARTS) AS MEDIAN_SS_PARTS
+FROM monthly_snapshot
+GROUP BY 1
+ORDER BY 1";
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    var month = reader.GetDateTime(0);
+                    var total = reader.IsDBNull(2) ? 0 : Convert.ToDouble(reader.GetValue(2));
+                    var avg = reader.IsDBNull(3) ? 0 : Convert.ToDouble(reader.GetValue(3));
+                    var median = reader.IsDBNull(4) ? 0 : Convert.ToDouble(reader.GetValue(4));
+
+                    QuantityMonthLabels.Add(month.ToString("MMM yyyy"));
+                    TotalQuantityData.Add(total);
+                    AvgQuantityData.Add(avg);
+                    MedianQuantityData.Add(median);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Handle error
+            }
+            finally
+            {
+                isLoadingQuantity = false;
+                StateHasChanged();
+            }
+        }
+
         private string selectedPartNumber;
         public string SelectedPartNumber
         {

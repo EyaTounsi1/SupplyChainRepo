@@ -34,3 +34,39 @@ else if (!string.IsNullOrEmpty(SelectedPartNumber))
 			  ChartSeries="@ChartDatasets" />
 	</MudPaper>
 }
+
+<MudPaper Class="pa-4 mt-4">
+	<MudText Typo="Typo.h6" Class="mb-3">Safety Stock in Shifts (Lead Time) Trend </MudText>
+	@if (isLoadingLeadTime)
+	{
+		<MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+	}
+	else if (LeadTimeMonthLabels.Any())
+	{
+		<MudChart ChartType="ChartType.Bar" Height="400px"
+			  XAxisLabels="@LeadTimeMonthLabels.ToArray()"
+			  ChartSeries="@LeadTimeChartSeries" />
+	}
+	else
+	{
+		<MudText>No lead time data available</MudText>
+	}
+</MudPaper>
+
+<MudPaper Class="pa-4 mt-4">
+	<MudText Typo="Typo.h6" Class="mb-3">Safety Stock in Quantity (Part number) Trend</MudText>
+	@if (isLoadingQuantity)
+	{
+		<MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+	}
+	else if (QuantityMonthLabels.Any())
+	{
+		<MudChart ChartType="ChartType.Bar" Height="400px"
+			  XAxisLabels="@QuantityMonthLabels.ToArray()"
+			  ChartSeries="@QuantityChartSeries" />
+	}
+	else
+	{
+		<MudText>No quantity data available</MudText>
+	}
+</MudPaper>

@@ -12,6 +12,14 @@
     <button style="margin-left:8px;" @onclick="RunSampleDataQuery" disabled="@_loading">
         Run sample data query (LIMIT 100)
     </button>
+
+    <button style="margin-left:8px;" @onclick="TestPartInfoTable" disabled="@_loading">
+        Test PART_INFORMATION_AS_MANUFACTURED table
+    </button>
+
+    <button style="margin-left:8px;" @onclick="TestInventoryCoverageTable" disabled="@_loading">
+        Test INVENTORY_COVERAGE_AS_MANUFACTURED table
+    </button>
 </div>
 
 @if (_loading)
@@ -146,6 +154,60 @@ SELECT
             _result = await Snowflake.QueryAsync(@"
 select MFG_SUPPLIER_CODE from MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
 where PART_NUMBER = '31493276'  AND SITE = 'VCT';
+");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task TestPartInfoTable()
+    {
+        _loading = true;
+        _error = null;
+        _result = null;
+
+        _showContext = false;
+        _showSample = true;
+
+        try
+        {
+            _result = await Snowflake.QueryAsync(@"
+SELECT MFG_SUPPLIER_CODE 
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INFORMATION_AS_MANUFACTURED.PART_INFORMATION_AS_MANUFACTURED
+where PART_NUMBER = '31493276'  AND SITE = 'VCT';
+");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task TestInventoryCoverageTable()
+    {
+        _loading = true;
+        _error = null;
+        _result = null;
+
+        _showContext = false;
+        _showSample = true;
+
+        try
+        {
+            _result = await Snowflake.QueryAsync(@"
+SELECT PART_NUMBER 
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED 
+LIMIT 20;
 ");
         }
         catch (Exception ex)

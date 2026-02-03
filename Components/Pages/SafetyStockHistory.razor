@@ -77,12 +77,10 @@
                 
                 <MudTable Items="@dataPoints" Hover="true" Striped="true" Dense="true" Height="400px">
                     <HeaderContent>
-                        <MudTh>Date</MudTh>
                         <MudTh>Safety Stock Shifts</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd DataLabel="Date">@context.Date.ToString("yyyy-MM-dd HH:mm:ss")</MudTd>
-                        <MudTd DataLabel="Safety Stock Shifts">@context.SafetyStockShifts.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Safety Stock Shifts" title="@context.Date.ToString("yyyy-MM-dd HH:mm:ss")">@context.SafetyStockShifts.ToString("N2")</MudTd>
                     </RowTemplate>
                 </MudTable>
             </MudPaper>
@@ -176,6 +174,7 @@ SELECT
 FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED_HISTORICAL
 WHERE PART_NUMBER = '{partNumber}'
   AND SITE = '{site}'
+  AND UPLOADED_FROM_SOURCE >= '2024-01-01'
 ORDER BY UPLOADED_FROM_SOURCE";
 
             DataTable dt = await SnowflakeService.QueryAsync(sql);
@@ -187,6 +186,7 @@ ORDER BY UPLOADED_FROM_SOURCE";
             }
 
             var safetyStockValues = new List<double>();
+            var monthlyData = new Dictionary<string, (DateTime date, List<double> values)>();
             
             foreach (DataRow row in dt.Rows)
             {
@@ -195,14 +195,27 @@ ORDER BY UPLOADED_FROM_SOURCE";
                     ? Convert.ToDouble(row["SAFETY_STOCK_SHIFTS"]) 
                     : 0.0;
                 
-                chartLabels.Add(date.ToString("yyyy-MM-dd"));
-                safetyStockValues.Add(safetyStockShifts);
+                var monthKey = date.ToString("yyyy-MM");
+                
+                if (!monthlyData.ContainsKey(monthKey))
+                {
+                    monthlyData[monthKey] = (new DateTime(date.Year, date.Month, 1), new List<double>());
+                }
+                
+                monthlyData[monthKey].values.Add(safetyStockShifts);
                 
                 dataPoints.Add(new SafetyStockDataPoint
                 {
                     Date = date,
                     SafetyStockShifts = safetyStockShifts
                 });
+            }
+            
+            // Create chart data with monthly aggregation (average)
+            foreach (var month in monthlyData.OrderBy(x => x.Key))
+            {
+                chartLabels.Add(month.Value.date.ToString("MMM yyyy"));
+                safetyStockValues.Add(month.Value.values.Average());
             }
             
             chartSeries = new List<MudBlazor.ChartSeries>
