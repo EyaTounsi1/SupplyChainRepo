@@ -3,6 +3,7 @@
 @using PartTracker.Shared.Services
 @using System.Data
 @inject AppDbContext DbContext
+@inject AutomationDbContext AutomationDb
 @inject SnowflakeService SnowflakeService
 
 <PageTitle>Safety Stock Simulation</PageTitle>
@@ -87,6 +88,10 @@
         simulationResults.Clear();
         errorMessage = "";
         
+        // Load prices from MySQL automation database
+        var priceMap = await AutomationDb.PartPrices
+            .ToDictionaryAsync(p => new { p.Site, p.PartNumber }, p => new { p.StandardPrice, p.Currency });
+        
         string sql = @"
 SELECT
   ss.SITE,
@@ -94,15 +99,8 @@ SELECT
   ss.PART_NUMBER,
   ss.MFG_SUPPLIER_CODE,
   ss.SAFETY_STOCK_NR_OF_PARTS,
-  pi.STANDARD_PRICE,
-  pi.CURRENCY,
-  (ss.SAFETY_STOCK_NR_OF_PARTS * pi.STANDARD_PRICE) AS SAFETY_STOCK_VALUE,
-  ss.UPLOADED_FROM_SOURCE AS SS_UPLOADED_FROM_SOURCE,
-  pi.UPLOADED_FROM_SOURCE AS PI_UPLOADED_FROM_SOURCE
+  ss.UPLOADED_FROM_SOURCE AS SS_UPLOADED_FROM_SOURCE
 FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED ss
-LEFT JOIN MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INFORMATION_AS_MANUFACTURED.PART_INFORMATION_AS_MANUFACTURED pi
-  ON ss.SITE = pi.SITE
- AND ss.PART_NUMBER = pi.PART_NUMBER
 WHERE 1=1";
 
         if (!string.IsNullOrWhiteSpace(partNumber))
@@ -122,21 +120,34 @@ WHERE 1=1";
             
             foreach (DataRow row in dt.Rows)
             {
+                var site = row["SITE"]?.ToString() ?? "";
+                var partNum = row["PART_NUMBER"]?.ToString() ?? "";
                 var currentStock = Convert.ToInt32(row["SAFETY_STOCK_NR_OF_PARTS"]);
-                var price = Convert.ToDecimal(row["STANDARD_PRICE"]);
-                var currentValue = Convert.ToDecimal(row["SAFETY_STOCK_VALUE"]);
+                
+                // Get price from MySQL automation database
+                var key = new { Site = (string?)site, PartNumber = partNum };
+                decimal price = 0;
+                string currency = "";
+                
+                if (priceMap.TryGetValue(key, out var priceInfo))
+                {
+                    price = priceInfo.StandardPrice;
+                    currency = priceInfo.Currency ?? "";
+                }
+                
+                var currentValue = currentStock * price;
                 var newValue = newSafetyStock * price;
                 var savings = currentValue - newValue;
                 
                 simulationResults.Add(new SafetyStockSimulationResult
                 {
-                    Site = row["SITE"]?.ToString() ?? "",
+                    Site = site,
                     PlanningPoint = row["PLANNING_POINT"]?.ToString() ?? "",
-                    PartNumber = row["PART_NUMBER"]?.ToString() ?? "",
+                    PartNumber = partNum,
                     MfgCode = row["MFG_SUPPLIER_CODE"]?.ToString() ?? "",
                     CurrentSafetyStock = currentStock,
                     StandardPrice = price,
-                    Currency = row["CURRENCY"]?.ToString() ?? "",
+                    Currency = currency,
                     CurrentValue = currentValue,
                     NewValue = newValue,
                     Savings = savings

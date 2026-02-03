@@ -17,14 +17,22 @@ else
 {
     <MudTable Items="@forecastItems" Hover="true" Striped="true">
         <HeaderContent>
-            <MudTh>Product</MudTh>
+            <MudTh>Site</MudTh>
+            <MudTh>Part Number</MudTh>
             <MudTh>Date</MudTh>
-            <MudTh>Forecast Value</MudTh>
+            <MudTh>WIP Balance</MudTh>
+            <MudTh>GIT Balance</MudTh>
+            <MudTh>Total Capital (M SEK)</MudTh>
+            <MudTh>Safety Stock</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd>@context.Product</MudTd>
+            <MudTd>@context.Site</MudTd>
+            <MudTd>@context.Part_Number</MudTd>
             <MudTd>@context.Date.ToShortDateString()</MudTd>
-            <MudTd>@context.ForecastValue</MudTd>
+            <MudTd>@context.Wip_Balance.ToString("N0")</MudTd>
+            <MudTd>@context.Git_Balance.ToString("N0")</MudTd>
+            <MudTd>@context.Total_Capital_M_Sek.ToString("N2")</MudTd>
+            <MudTd>@context.Safety_Stock_Nr_Of_Parts?.ToString("N0")</MudTd>
         </RowTemplate>
     </MudTable>
 }

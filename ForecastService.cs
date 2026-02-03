@@ -8,14 +8,20 @@ namespace PartTracker;
 public class ForecastService : IForecastService
 {
     private readonly AppDbContext _db;
+    private readonly AutomationDbContext _automationDb;
 
-    public ForecastService(AppDbContext db)
+    public ForecastService(AppDbContext db, AutomationDbContext automationDb)
     {
         _db = db;
+        _automationDb = automationDb;
     }
 
     public async Task<List<ForecastItem>> GetForecastDataAsync()
     {
+        // Load prices from MySQL automation database
+        var priceMap = await _automationDb.PartPrices
+            .ToDictionaryAsync(p => new { p.Site, p.PartNumber }, p => p.StandardPrice);
+
         // Replace this SQL with your actual MySQL forecast script
         var sql = @"
 --===========================================================================
@@ -31,8 +37,8 @@ WITH starting_wip_events AS (
         pis.AVAILABLE_INVENTORY AS quantity,
         0 AS git_impact,
         pis.AVAILABLE_INVENTORY AS wip_impact,
-        (pis.AVAILABLE_INVENTORY * pis.STANDARD_PRICE) / 1000000.0 AS wip_value_m_sek,
-        pis.STANDARD_PRICE AS price
+        0 AS wip_value_m_sek,  -- Will be calculated from MySQL prices after query
+        NULL as price  -- Will be populated from MySQL Part_Price table
     FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INVENTORY_IN_STOCK_AS_MANUFACTURED.PART_INVENTORY_IN_STOCK_AS_MANUFACTURED pis
     --- charleston site data is as of previous day
       WHERE pis.PRODUCTION_DAY =
@@ -265,6 +271,7 @@ all_events_filtered AS (
 
 -- ============================================================================
 -- STEP 6: ADD PRICES (only for events that don't have them yet)
+-- Note: Prices will be populated from MySQL Part_Price table after query execution
 -- ============================================================================
 events_with_prices AS (
     SELECT
@@ -275,13 +282,9 @@ events_with_prices AS (
         e.quantity,
         e.git_impact,
         e.wip_impact,
-        -- Use price from event if present (Starting Balance), otherwise from part info
-        COALESCE(e.price, pi.STANDARD_PRICE, 0) AS price
+        -- Use price from event if present (Starting Balance), otherwise will be filled from MySQL
+        COALESCE(e.price, 0) AS price
     FROM all_events_filtered  e
-    LEFT JOIN MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INFORMATION_AS_MANUFACTURED.PART_INFORMATION_AS_MANUFACTURED pi
-        ON e.part_number = pi.PART_NUMBER
-        AND e.site = pi.SITE
-        AND e.price IS NULL
 ),
 
 -- ============================================================================
@@ -495,6 +498,36 @@ ORDER BY  dt.total_capital_m_sek DESC,
         var items = await _db.Set<ForecastItem>()
             .FromSqlRaw(sql)
             .ToListAsync();
+
+        // Post-process: Update prices from MySQL automation database
+        foreach (var item in items)
+        {
+            if (!string.IsNullOrEmpty(item.Site) && !string.IsNullOrEmpty(item.Part_Number))
+            {
+                var key = new { Site = (string?)item.Site, PartNumber = item.Part_Number };
+                if (priceMap.TryGetValue(key, out var mysqlPrice) && mysqlPrice > 0)
+                {
+                    item.Price = mysqlPrice;
+                    
+                    // Recalculate all price-dependent values
+                    item.Git_Value_Sek = item.Git_Balance * item.Price;
+                    item.Wip_Value_Sek = item.Wip_Balance * item.Price;
+                    item.Git_Value_M_Sek = item.Git_Value_Sek / 1000000.0m;
+                    item.Wip_Value_M_Sek = item.Wip_Value_Sek / 1000000.0m;
+                    item.Total_Capital_M_Sek = item.Git_Value_M_Sek + item.Wip_Value_M_Sek;
+                    
+                    // Recalculate capital at risk
+                    if (item.Wip_Balance < (item.Safety_Stock_Nr_Of_Parts ?? 0))
+                    {
+                        item.Capital_At_Risk_Sek = ((item.Safety_Stock_Nr_Of_Parts ?? 0) - item.Wip_Balance) * item.Price;
+                    }
+                    else
+                    {
+                        item.Capital_At_Risk_Sek = 0;
+                    }
+                }
+            }
+        }
 
         return items;
     }
