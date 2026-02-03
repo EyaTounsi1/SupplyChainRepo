@@ -1,112 +1,57 @@
-using System;
-using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
 using System.Data;
-using System.Linq;
-using System.Threading.Tasks;
-using PartTracker.Models;
 using PartTracker.Shared.Services;
+using PartTracker.Models;
 
-namespace PartTracker;
-
-public sealed class SafetyStockSnapshotResult
+namespace PartTracker
 {
-    public DateTime? SnapshotDate { get; init; }
-    public List<SafetyStockItem> Items { get; init; } = new();
-}
-
-public class SafetyStockService : ISafetyStockService
-{
-
-    public async Task<bool> TestConnectionAsync()
+    public class SafetyStockService : ISafetyStockService
     {
-        try
+        private readonly SnowflakeService _snowflake;
+
+        public SafetyStockService(SnowflakeService snowflake, IConfiguration config)
         {
-            // Lightweight query (fast + safe)
-            var dt = await _snowflake.QueryAsync("SELECT 1;");
-            return dt.Rows.Count > 0;
+            _snowflake = snowflake;
         }
-        catch
+
+        // SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
+        public Task<DataTable> GetSafetyStockSettingsAsync()
         {
-            return false;
+            var sql = """
+                SELECT *
+                FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
+            """;
+
+            return _snowflake.QueryAsync(sql);
         }
-    }
-    private readonly SnowflakeService _snowflake;
 
-    // Fixed values per your requirement
-    private const string Site = "VCT";
-    private const string PlanningPoint = "1003";
-
-    public SafetyStockService(SnowflakeService snowflake)
-    {
-        _snowflake = snowflake;
-    }
-
-    // Implement missing ISafetyStockService methods for legacy interface compatibility
-    public async Task<List<SafetyStockItem>> GetSafetyStockDataAsync()
-    {
-        var result = await GetSafetyStockVct1003Async();
-        return result.Items;
-    }
-
-    public Task<List<SafetyStockChange>> GetSafetyStockChangesAsync()
-    {
-        return Task.FromResult(new List<SafetyStockChange>());
-    }
-
-    public Task<List<SafetyStockChange>> GetSafetyStockChangesAsync(string site, string planningPoint)
-    {
-        return Task.FromResult(new List<SafetyStockChange>());
-    }
-
-    public async Task<SafetyStockSnapshotResult> GetSafetyStockVct1003Async()
-    {
-        // Take a consistent snapshot: pick the latest UPLOADED_FROM_SOURCE for VCT
-        // then return rows for planning point 1003 on that snapshot date.
-        var sql = @"
-WITH picked AS (
-    SELECT MAX(UPLOADED_FROM_SOURCE) AS snapshot_dt
-    FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
-    WHERE SITE = 'VCT'
-),
-data AS (
-    SELECT
-        SITE,
-        PLANNING_POINT,
-        PART_NUMBER,
-        MFG_SUPPLIER_CODE,
-        SAFETY_STOCK_NR_OF_PARTS,
-        UPLOADED_FROM_SOURCE
-    FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
-    WHERE SITE = 'VCT'
-      AND PLANNING_POINT = '1003'
-      AND UPLOADED_FROM_SOURCE = (SELECT snapshot_dt FROM picked)
-)
-SELECT *
-FROM data
-ORDER BY PART_NUMBER, MFG_SUPPLIER_CODE;";
-
-        var dt = await _snowflake.QueryAsync(sql);
-
-        DateTime? snapshotDate = null;
-        if (dt.Rows.Count > 0)
-            snapshotDate = dt.Rows[0].Field<DateTime?>("UPLOADED_FROM_SOURCE");
-
-        var items = new List<SafetyStockItem>();
-        foreach (DataRow row in dt.Rows)
+        // INVENTORY_COVERAGE_AS_MANUFACTURED
+        public Task<DataTable> GetInventoryCoverageAsync()
         {
-            items.Add(new SafetyStockItem
+            var sql = """
+                SELECT *
+                FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+            """;
+
+            return _snowflake.QueryAsync(sql);
+        }
+
+        public async Task<bool> TestConnectionAsync()
+        {
+            try
             {
-                PartNumber = row.Field<string>("PART_NUMBER") ?? string.Empty,
-                MfgSupplierCode = row.Field<string>("MFG_SUPPLIER_CODE") ?? string.Empty,
-                SafetyStockNrOfParts = Convert.ToSingle(row["SAFETY_STOCK_NR_OF_PARTS"] ?? 0f),
-            });
+                var result = await _snowflake.QueryAsync("SELECT 1");
+                return result != null && result.Rows.Count > 0;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
-        return new SafetyStockSnapshotResult
-        {
-            SnapshotDate = snapshotDate,
-            Items = items
-        };
+        // Interface implementations
+        public Task<List<SafetyStockItem>> GetSafetyStockDataAsync() => Task.FromResult(new List<SafetyStockItem>());
+        public Task<List<SafetyStockChange>> GetSafetyStockChangesAsync() => Task.FromResult(new List<SafetyStockChange>());
+        public Task<List<SafetyStockChange>> GetSafetyStockChangesAsync(string site, string planningPoint) => Task.FromResult(new List<SafetyStockChange>());
     }
-
 }
