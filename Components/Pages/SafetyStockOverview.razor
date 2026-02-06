@@ -1,72 +1,99 @@
 @page "/safety-stock"
 @layout MainLayout
-@inject ISafetyStockService SafetyStockService
 
 <MudText Typo="Typo.h3">Safety Stock Overview</MudText>
 
 <MudPaper Class="pa-4">
-	
-	@if (PartNumbers != null && PartNumbers.Count > 0)
-	{
-		<MudSelect T="string" Label="Select Part Number" Value="@SelectedPartNumber" ValueChanged="@((string v) => SelectedPartNumber = v)" Dense="true">
-			@foreach (var part in PartNumbers)
-			{
-				<MudSelectItem Value="@part">@part</MudSelectItem>
-			}
-		</MudSelect>
-	}
-	else
-	{
-		<MudText>Part numbers available.</MudText>
-	}
+
+    @if (!string.IsNullOrWhiteSpace(ErrorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-3">
+            @ErrorMessage
+        </MudAlert>
+    }
+
+    @if (PartNumbers != null && PartNumbers.Count > 0)
+    {
+        <MudSelect T="string"
+                   Label="Select Part Number"
+                   Value="@SelectedPartNumber"
+                   ValueChanged="OnPartNumberChanged"
+                   Dense="true">
+            @foreach (var part in PartNumbers)
+            {
+                <MudSelectItem T="string" Value="@part">@part</MudSelectItem>
+            }
+        </MudSelect>
+
+        <MudText Class="mt-2" Typo="Typo.caption">
+            Labels: @DateLabels.Count | Demand: @ActualDemandSeries.Count | Safety: @SafetyStockSeries.Count
+        </MudText>
+    }
+    else
+    {
+        <MudText>No part numbers available.</MudText>
+    }
 </MudPaper>
 
 @if (isLoading)
 {
-	<MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mt-4" />
 }
 else if (!string.IsNullOrEmpty(SelectedPartNumber))
 {
-	<MudPaper Class="pa-4 mt-4">
-		<MudText Typo="Typo.h6">Safety Stock vs. Actual Demand for @SelectedPartNumber</MudText>
-		  <MudChart ChartType="ChartType.Line" Height="400px"
-			  XAxisLabels="@ChartLabelsArray"
-			  ChartSeries="@ChartDatasets" />
-	</MudPaper>
+    <MudPaper Class="pa-4 mt-4">
+        <MudText Typo="Typo.h6">Safety Stock vs. Actual Demand for @SelectedPartNumber</MudText>
+
+        @if (DateLabels.Count == 0)
+        {
+            <MudText Class="mt-2">No demand/safety stock data returned for this part.</MudText>
+        }
+        else
+        {
+            <MudChart ChartType="ChartType.Line"
+                      Height="400px"
+                      XAxisLabels="@ChartLabelsArray"
+                      ChartSeries="@ChartDatasets" />
+        }
+    </MudPaper>
 }
 
 <MudPaper Class="pa-4 mt-4">
-	<MudText Typo="Typo.h6" Class="mb-3">Safety Stock in Shifts (Lead Time) Trend </MudText>
-	@if (isLoadingLeadTime)
-	{
-		<MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
-	}
-	else if (LeadTimeMonthLabels.Any())
-	{
-		<MudChart ChartType="ChartType.Bar" Height="400px"
-			  XAxisLabels="@LeadTimeMonthLabels.ToArray()"
-			  ChartSeries="@LeadTimeChartSeries" />
-	}
-	else
-	{
-		<MudText>No lead time data available</MudText>
-	}
+    <MudText Typo="Typo.h6" Class="mb-3">Safety Stock in Shifts (Lead Time) Trend</MudText>
+
+    @if (isLoadingLeadTime)
+    {
+        <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+    }
+    else if (LeadTimeMonthLabels.Any())
+    {
+        <MudChart ChartType="ChartType.Bar"
+                  Height="400px"
+                  XAxisLabels="@LeadTimeMonthLabels.ToArray()"
+                  ChartSeries="@LeadTimeChartSeries" />
+    }
+    else
+    {
+        <MudText>No lead time data available</MudText>
+    }
 </MudPaper>
 
 <MudPaper Class="pa-4 mt-4">
-	<MudText Typo="Typo.h6" Class="mb-3">Safety Stock in Quantity (Part number) Trend</MudText>
-	@if (isLoadingQuantity)
-	{
-		<MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
-	}
-	else if (QuantityMonthLabels.Any())
-	{
-		<MudChart ChartType="ChartType.Bar" Height="400px"
-			  XAxisLabels="@QuantityMonthLabels.ToArray()"
-			  ChartSeries="@QuantityChartSeries" />
-	}
-	else
-	{
-		<MudText>No quantity data available</MudText>
-	}
+    <MudText Typo="Typo.h6" Class="mb-3">Safety Stock in Quantity (Part number) Trend</MudText>
+
+    @if (isLoadingQuantity)
+    {
+        <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+    }
+    else if (QuantityMonthLabels.Any())
+    {
+        <MudChart ChartType="ChartType.Bar"
+                  Height="400px"
+                  XAxisLabels="@QuantityMonthLabels.ToArray()"
+                  ChartSeries="@QuantityChartSeries" />
+    }
+    else
+    {
+        <MudText>No quantity data available</MudText>
+    }
 </MudPaper>

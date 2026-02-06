@@ -3,7 +3,6 @@
 @using PartTracker.Shared.Services
 @using System.Data
 @inject AppDbContext DbContext
-@inject AutomationDbContext AutomationDb
 @inject SnowflakeService SnowflakeService
 
 <PageTitle>Safety Stock Simulation</PageTitle>
@@ -88,9 +87,28 @@
         simulationResults.Clear();
         errorMessage = "";
         
-        // Load prices from MySQL automation database
-        var priceMap = await AutomationDb.PartPrices
-            .ToDictionaryAsync(p => new { p.Site, p.PartNumber }, p => new { p.StandardPrice, p.Currency });
+        // Load prices from Snowflake PART_INFORMATION_AS_MANUFACTURED table
+        string priceSql = @"
+SELECT
+  SITE,
+  PART_NUMBER,
+  STANDARD_PRICE,
+  CURRENCY
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INFORMATION_AS_MANUFACTURED.PART_INFORMATION_AS_MANUFACTURED
+WHERE STANDARD_PRICE IS NOT NULL";
+        
+        DataTable priceTable = await SnowflakeService.QueryAsync(priceSql);
+        var priceMap = new Dictionary<(string Site, string PartNumber), (decimal StandardPrice, string Currency)>();
+        
+        foreach (DataRow priceRow in priceTable.Rows)
+        {
+            var site = priceRow["SITE"]?.ToString() ?? "";
+            var partNum = priceRow["PART_NUMBER"]?.ToString() ?? "";
+            var standardPrice = priceRow["STANDARD_PRICE"] != DBNull.Value ? Convert.ToDecimal(priceRow["STANDARD_PRICE"]) : 0m;
+            var currency = priceRow["CURRENCY"]?.ToString() ?? "";
+            
+            priceMap[(site, partNum)] = (standardPrice, currency);
+        }
         
         string sql = @"
 SELECT
@@ -124,15 +142,14 @@ WHERE 1=1";
                 var partNum = row["PART_NUMBER"]?.ToString() ?? "";
                 var currentStock = Convert.ToInt32(row["SAFETY_STOCK_NR_OF_PARTS"]);
                 
-                // Get price from MySQL automation database
-                var key = new { Site = (string?)site, PartNumber = partNum };
+                // Get price from Snowflake PART_INFORMATION_AS_MANUFACTURED table
                 decimal price = 0;
                 string currency = "";
                 
-                if (priceMap.TryGetValue(key, out var priceInfo))
+                if (priceMap.TryGetValue((site, partNum), out var priceInfo))
                 {
                     price = priceInfo.StandardPrice;
-                    currency = priceInfo.Currency ?? "";
+                    currency = priceInfo.Currency;
                 }
                 
                 var currentValue = currentStock * price;

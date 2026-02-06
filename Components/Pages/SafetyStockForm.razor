@@ -1,4 +1,141 @@
 @page "/safetystockform"
+@using Microsoft.EntityFrameworkCore
+@inject AutomationDbContext AutomationDb
 
-<h3>Safety Stock from form</h3>
-<!-- Add your form logic and UI here -->
+<h3>Safety Stock Form Submissions</h3>
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <p>Loading data...</p>
+}
+else if (safetyStockEntries == null || !safetyStockEntries.Any())
+{
+    <MudAlert Severity="Severity.Info">No safety stock form entries found.</MudAlert>
+}
+else
+{
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="4" md="3" lg="2">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body1" Color="Color.Primary">Total Safety Stock Changes</MudText>
+                    <MudText Typo="Typo.h4" Class="mt-2">@safetyStockEntries.Count</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Total submissions</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3" lg="2">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body1" Color="Color.Info">With Part Number</MudText>
+                    <MudText Typo="Typo.h4" Class="mt-2">@safetyStockEntries.Count(x => x.ByPnOrMfgCode == "PN only")</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">PN only</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="3" lg="2">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body1" Color="Color.Warning">With MFG Code</MudText>
+                    <MudText Typo="Typo.h4" Class="mt-2">@safetyStockEntries.Count(x => x.ByPnOrMfgCode == "MFG on all PNs")</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">MFG on all PNs</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <MudDataGrid Items="@safetyStockEntries" 
+                 Filterable="true" 
+                 QuickFilter="@_quickFilter"
+                 Hideable="true"
+                 Dense="true"
+                 Hover="true"
+                 RowsPerPage="25">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Safety Stock Form Entries</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" 
+                          Placeholder="Search" 
+                          Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Search" 
+                          IconSize="Size.Medium" 
+                          Class="mt-0">
+            </MudTextField>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.Id" Title="ID" />
+            <PropertyColumn Property="x => x.StartTime" Title="Start Time" Format="yyyy-MM-dd HH:mm" />
+            <PropertyColumn Property="x => x.CompletionTime" Title="Completion Time" Format="yyyy-MM-dd HH:mm" />
+            <PropertyColumn Property="x => x.Name" Title="Name" />
+            <PropertyColumn Property="x => x.Email" Title="Email" />
+            <PropertyColumn Property="x => x.ByPnOrMfgCode" Title="By PN/MFG" />
+            <PropertyColumn Property="x => x.PartNumber" Title="Part Number" />
+            <PropertyColumn Property="x => x.MfgCode" Title="MFG Code" />
+            <PropertyColumn Property="x => x.ShpCode" Title="SHP Code" />
+            <PropertyColumn Property="x => x.OldSafetyStockShifts" Title="Old SS (Shifts)" Format="N2" />
+            <PropertyColumn Property="x => x.NewSafetyStockShifts" Title="New SS (Shifts)" Format="N2" />
+            <PropertyColumn Property="x => x.OldSafetyStockPieces" Title="Old SS (Pieces)" Format="N2" />
+            <PropertyColumn Property="x => x.NewSafetyStockPieces" Title="New SS (Pieces)" Format="N2" />
+            <PropertyColumn Property="x => x.Comment" Title="Comment" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="SafetyStockFormEntry" />
+        </PagerContent>
+    </MudDataGrid>
+}
+
+@code {
+    private List<SafetyStockFormEntry> safetyStockEntries = new();
+    private bool isLoading = true;
+    private string _searchString = string.Empty;
+
+    private Func<SafetyStockFormEntry, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        if (x.PartNumber?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.Name?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.Email?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.MfgCode?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.ShpCode?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            safetyStockEntries = await AutomationDb.SafetyStockForms
+                .OrderByDescending(x => x.CompletionTime)
+                .ThenByDescending(x => x.StartTime)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading safety stock forms: {ex.Message}");
+            safetyStockEntries = new List<SafetyStockFormEntry>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

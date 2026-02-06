@@ -18,7 +18,7 @@
     </button>
 
     <button style="margin-left:8px;" @onclick="TestInventoryCoverageTable" disabled="@_loading">
-        Test INVENTORY_COVERAGE_AS_MANUFACTURED table
+        Test PART_CONSUMPTION_AS_MANUFACTURED table
     </button>
 </div>
 
@@ -178,9 +178,9 @@ where PART_NUMBER = '31493276'  AND SITE = 'VCT';
         try
         {
             _result = await Snowflake.QueryAsync(@"
-SELECT MFG_SUPPLIER_CODE 
+SELECT standard_price
 FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INFORMATION_AS_MANUFACTURED.PART_INFORMATION_AS_MANUFACTURED
-where PART_NUMBER = '31493276'  AND SITE = 'VCT';
+limit 6;
 ");
         }
         catch (Exception ex)
@@ -205,9 +205,14 @@ where PART_NUMBER = '31493276'  AND SITE = 'VCT';
         try
         {
             _result = await Snowflake.QueryAsync(@"
-SELECT PART_NUMBER 
-FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED 
-LIMIT 20;
+SELECT PART_CONSUMED_DATE, PART_NUMBER, PART_AMOUNT
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS
+     .PART_CONSUMPTION_AS_MANUFACTURED
+     .PART_CONSUMPTION_AS_MANUFACTURED
+WHERE PART_NUMBER = '31417637'
+ORDER BY PART_CONSUMED_DATE
+LIMIT 50;
+
 ");
         }
         catch (Exception ex)

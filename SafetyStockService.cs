@@ -25,17 +25,7 @@ namespace PartTracker
             return _snowflake.QueryAsync(sql);
         }
 
-        // INVENTORY_COVERAGE_AS_MANUFACTURED
-        public Task<DataTable> GetInventoryCoverageAsync()
-        {
-            var sql = """
-                SELECT *
-                FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
-            """;
-
-            return _snowflake.QueryAsync(sql);
-        }
-
+    
         public async Task<bool> TestConnectionAsync()
         {
             try

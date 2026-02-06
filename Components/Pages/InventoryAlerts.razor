@@ -1,195 +1,1453 @@
 @page "/inventory-alerts"
-@layout MainLayout
-@inject AppDbContext DbContext
-@using Microsoft.EntityFrameworkCore
+@using PartTracker.Shared.Services
+@using Microsoft.JSInterop
+@inject SnowflakeService SnowflakeService
+@inject IJSRuntime JSRuntime
 
-<MudText Typo="Typo.h3">Inventory Alerts</MudText>
+<h3>Inventory Alerts</h3>
 
 @if (isLoading)
 {
     <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-    <MudText>Loading alerts...</MudText>
+    <p>Loading inventory alerts...</p>
 }
 else
 {
-    <MudPaper Class="pa-4 mb-4">
-        <MudGrid>
-            <MudItem xs="12" md="3">
-                <MudCard>
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6">Critical Alerts</MudText>
-                        <MudText Typo="Typo.h4" Color="Color.Error">@criticalCount</MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudCard>
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6">Warning Alerts</MudText>
-                        <MudText Typo="Typo.h4" Color="Color.Warning">@warningCount</MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudCard>
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6">Info Alerts</MudText>
-                        <MudText Typo="Typo.h4" Color="Color.Info">@infoCount</MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-            <MudItem xs="12" md="3">
-                <MudCard>
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6">Total Alerts</MudText>
-                        <MudText Typo="Typo.h4" Color="Color.Primary">@totalCount</MudText>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="4" md="4" lg="4">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body1" Color="Color.Error">Parts Running Out (7 Days)</MudText>
+                    <MudText Typo="Typo.h4" Class="mt-2">@runout7Days</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Critical: Next week</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="4" lg="4">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body1" Color="Color.Warning">Parts Running Out (14 Days)</MudText>
+                    <MudText Typo="Typo.h4" Class="mt-2">@runout14Days</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Warning: Next 2 weeks</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" sm="4" md="4" lg="4">
+            <MudCard>
+                <MudCardContent>
+                    <MudText Typo="Typo.body1" Color="Color.Info">Parts Running Out (30 Days)</MudText>
+                    <MudText Typo="Typo.h4" Class="mt-2">@runout30Days</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Info: Next month</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
 
-    <MudPaper Class="pa-4">
-        <MudText Typo="Typo.h5" Class="mb-4">Active Alerts</MudText>
-        
-        <MudTable Items="@alerts" Hover="true" Breakpoint="Breakpoint.Sm" Dense="true">
-            <HeaderContent>
-                <MudTh>Severity</MudTh>
-                <MudTh>Part Number</MudTh>
-                <MudTh>Alert Type</MudTh>
-                <MudTh>Message</MudTh>
-                <MudTh>Current Stock</MudTh>
-                <MudTh>Safety Stock</MudTh>
-                <MudTh>Date</MudTh>
-            </HeaderContent>
-            <RowTemplate>
-                <MudTd DataLabel="Severity">
-                    @if (context.Severity == "Critical")
-                    {
-                        <MudChip T="string" Color="Color.Error" Size="Size.Small">@context.Severity</MudChip>
-                    }
-                    else if (context.Severity == "Warning")
-                    {
-                        <MudChip T="string" Color="Color.Warning" Size="Size.Small">@context.Severity</MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Color="Color.Info" Size="Size.Small">@context.Severity</MudChip>
-                    }
-                </MudTd>
-                <MudTd DataLabel="Part Number">@context.PartNumber</MudTd>
-                <MudTd DataLabel="Alert Type">@context.AlertType</MudTd>
-                <MudTd DataLabel="Message">@context.Message</MudTd>
-                <MudTd DataLabel="Current Stock">@context.CurrentStock</MudTd>
-                <MudTd DataLabel="Safety Stock">@context.SafetyStock</MudTd>
-                <MudTd DataLabel="Date">@context.AlertDate.ToString("yyyy-MM-dd HH:mm")</MudTd>
-            </RowTemplate>
-            <PagerContent>
-                <MudTablePager />
-            </PagerContent>
-        </MudTable>
-    </MudPaper>
+    <MudDataGrid T="PartInventoryItem" Items="@lowInventoryParts" Filterable="true" FilterMode="DataGridFilterMode.Simple" 
+                 QuickFilter="@_quickFilter" Hover="true" Dense="true" Striped="true" Class="mb-4">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Parts with Lowest Inventory</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchString" Placeholder="Search" Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.PlanningPoint" Title="Planning Point" />
+            <PropertyColumn Property="x => x.PartNumber" Title="Part Number" />
+            <PropertyColumn Property="x => x.AvailableInventoryInShifts" Title="Inventory (Shifts)" />
+            <PropertyColumn Property="x => x.AvailableInventoryRunOutDate" Title="Run Out Date" Format="yyyy-MM-dd" />
+            <PropertyColumn Property="x => x.AvailableInventoryRunOutShift" Title="Run Out Shift" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="PartInventoryItem" />
+        </PagerContent>
+    </MudDataGrid>
+
+    <MudText Typo="Typo.h5" Class="mt-4 mb-3">Resilience: On-Hand vs GIT Dependency</MudText>
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" lg="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">🚚 Coverage Split: On-Hand vs GIT</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <div style="position: relative; height: 400px;">
+                        <canvas id="gitCoverageStackedBarChart"></canvas>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" lg="6">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">⚠️ On-Hand Shifts vs GIT Dependency</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <div style="position: relative; height: 400px;">
+                        <canvas id="gitDependencyScatterChart"></canvas>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h5" Class="mt-4 mb-3">Volatility Analysis</MudText>
+    
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" lg="8">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">📊 Volatility by Planning Point (Day-to-Day Coverage Change - Last 90 Days)</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Median absolute daily shift change per planning point</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <div style="position: relative; height: 400px;">
+                        <canvas id="volatilityByPlanningPointChart"></canvas>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+        <MudItem xs="12" lg="4">
+            <MudCard>
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">📈 Volatility Trend Over Time</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Weekly median volatility (last 13 weeks)</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    <div style="position: relative; height: 400px;">
+                        <canvas id="volatilityTrendChart"></canvas>
+                    </div>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h5" Class="mt-4 mb-3">Chronic vs Acute Shortages</MudText>
+
+    <MudDataGrid T="ChronicRiskItem" Items="@chronicRiskList" Filterable="true" FilterMode="DataGridFilterMode.Simple" 
+                 QuickFilter="@_quickFilterChronic" Hover="true" Dense="true" Striped="true" Class="mb-4">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Chronic Risk List (Parts Below 10 Shifts on ≥50% of Days, Last 60 Days)</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchStringChronic" Placeholder="Search" Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.PlanningPoint" Title="Planning Point" />
+            <PropertyColumn Property="x => x.PartNumber" Title="Part Number" />
+            <PropertyColumn Property="x => x.DaysObserved" Title="Days Observed" />
+            <PropertyColumn Property="x => x.DaysLessThan10" Title="Days < 10 Shifts" />
+            <PropertyColumn Property="x => x.PctDaysLessThan10" Title="% Days < 10 Shifts" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="ChronicRiskItem" />
+        </PagerContent>
+    </MudDataGrid>
+
+    <MudDataGrid T="AcuteDropItem" Items="@acuteDrops" Filterable="true" FilterMode="DataGridFilterMode.Simple" 
+                 QuickFilter="@_quickFilterAcute" Hover="true" Dense="true" Striped="true">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Acute Drops (Largest 1-Day Declines, Last 30 Days)</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchStringAcute" Placeholder="Search" Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.PlanningPoint" Title="Planning Point" />
+            <PropertyColumn Property="x => x.PartNumber" Title="Part Number" />
+            <PropertyColumn Property="x => x.ProductionDay" Title="Production Day" Format="yyyy-MM-dd" />
+            <PropertyColumn Property="x => x.DeltaShifts" Title="Delta Shifts" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="AcuteDropItem" />
+        </PagerContent>
+    </MudDataGrid>
+
+    <MudText Typo="Typo.h5" Class="mt-4 mb-3">Site-Level Posture (VCT - Compare Planning Points)</MudText>
+
+    <MudDataGrid T="RiskOverstockItem" Items="@riskOverstockQuadrant" Filterable="true" FilterMode="DataGridFilterMode.Simple" 
+                 QuickFilter="@_quickFilterRiskOverstock" Hover="true" Dense="true" Striped="true">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Risk vs Overstock Quadrant by Planning Point</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchStringRiskOverstock" Placeholder="Search" Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.PlanningPoint" Title="Planning Point" />
+            <PropertyColumn Property="x => x.Parts" Title="Parts" />
+            <PropertyColumn Property="x => x.PctLowCover" Title="% Low Coverage (< 10 Shifts)" />
+            <PropertyColumn Property="x => x.PctOverstock" Title="% Overstock (> 3 Months)" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="RiskOverstockItem" />
+        </PagerContent>
+    </MudDataGrid>
+
+    <MudText Typo="Typo.h5" Class="mt-4 mb-3">Early-Warning Indicators</MudText>
+
+    <MudDataGrid T="WeeklyTrendItem" Items="@weeklyTrend" Filterable="true" FilterMode="DataGridFilterMode.Simple" 
+                 Hover="true" Dense="true" Striped="true" Class="mb-4">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Weekly Trend: % Parts Below 10 Shifts (Last 26 Weeks)</MudText>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.Week" Title="Week" Format="yyyy-MM-dd" />
+            <PropertyColumn Property="x => x.PartCount" Title="Part Count" />
+            <PropertyColumn Property="x => x.PartLowCount" Title="Parts < 10 Shifts" />
+            <PropertyColumn Property="x => x.PctLow" Title="% Low Coverage" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="WeeklyTrendItem" />
+        </PagerContent>
+    </MudDataGrid>
+
+    <MudDataGrid T="GitDependencyTrendItem" Items="@gitDependencyTrend" Filterable="true" FilterMode="DataGridFilterMode.Simple" 
+                 Hover="true" Dense="true" Striped="true">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Rising GIT Dependency Trend (Weekly Median Delta)</MudText>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.Week" Title="Week" Format="yyyy-MM-dd" />
+            <PropertyColumn Property="x => x.MedianGitDependencyShifts" Title="Median GIT Dependency (Shifts)" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="GitDependencyTrendItem" />
+        </PagerContent>
+    </MudDataGrid>
+
+    <MudText Typo="Typo.h5" Class="mt-4 mb-3">No-Demand & Zombie Inventory</MudText>
+
+    <MudDataGrid T="NoDemandItem" Items="@noDemandParts" Filterable="true" FilterMode="DataGridFilterMode.Simple" 
+                 QuickFilter="@_quickFilterNoDemand" Hover="true" Dense="true" Striped="true" Class="mb-4">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">No-Demand Parts with Inventory Coverage</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchStringNoDemand" Placeholder="Search" Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.PlanningPoint" Title="Planning Point" />
+            <PropertyColumn Property="x => x.PartNumber" Title="Part Number" />
+            <PropertyColumn Property="x => x.AvailableInventory" Title="Available Inventory" />
+            <PropertyColumn Property="x => x.AvailableInventoryInShifts" Title="Inventory (Shifts)" />
+            <PropertyColumn Property="x => x.RunOutComment" Title="Run Out Comment" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="NoDemandItem" />
+        </PagerContent>
+    </MudDataGrid>
+
+    <MudDataGrid T="OverstockItem" Items="@overstockParts" Filterable="true" FilterMode="DataGridFilterMode.Simple" 
+                 QuickFilter="@_quickFilterOverstock" Hover="true" Dense="true" Striped="true">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">>3 Months Inventory Concentration (Top Parts)</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchStringOverstock" Placeholder="Search" Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.PlanningPoint" Title="Planning Point" />
+            <PropertyColumn Property="x => x.PartNumber" Title="Part Number" />
+            <PropertyColumn Property="x => x.AvailableInventory" Title="Available Inventory" />
+            <PropertyColumn Property="x => x.AvailableInventoryInShifts" Title="Inventory (Shifts)" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="OverstockItem" />
+        </PagerContent>
+    </MudDataGrid>
+
+    <MudText Typo="Typo.h5" Class="mt-4 mb-3">Inventory Coverage vs Safety Stock Policy</MudText>
+
+    <MudDataGrid T="PolicyAdherenceItem" Items="@policyAdherence" Filterable="true" FilterMode="DataGridFilterMode.Simple" 
+                 QuickFilter="@_quickFilterPolicyAdherence" Hover="true" Dense="true" Striped="true" Class="mb-4">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Policy Adherence (On-Hand Shifts vs Effective Safety Stock)</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchStringPolicyAdherence" Placeholder="Search" Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.PlanningPoint" Title="Planning Point" />
+            <PropertyColumn Property="x => x.PartNumber" Title="Part Number" />
+            <PropertyColumn Property="x => x.MfgSupplierCode" Title="MFG Supplier Code" />
+            <PropertyColumn Property="x => x.OnHandShifts" Title="On-Hand (Shifts)" />
+            <PropertyColumn Property="x => x.EffectiveSsShifts" Title="Effective SS (Shifts)" />
+            <PropertyColumn Property="x => x.ShiftsVsPolicy" Title="Shifts vs Policy" />
+            <PropertyColumn Property="x => x.PolicyStatus" Title="Policy Status" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="PolicyAdherenceItem" />
+        </PagerContent>
+    </MudDataGrid>
+
+    <MudDataGrid T="PolicyScoreItem" Items="@policyScoreByPlanningPoint" Filterable="true" FilterMode="DataGridFilterMode.Simple" 
+                 QuickFilter="@_quickFilterPolicyScore" Hover="true" Dense="true" Striped="true">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6">Policy Adherence Score by Planning Point</MudText>
+            <MudSpacer />
+            <MudTextField @bind-Value="_searchStringPolicyScore" Placeholder="Search" Adornment="Adornment.Start" 
+                          AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.PlanningPoint" Title="Planning Point" />
+            <PropertyColumn Property="x => x.Parts" Title="Parts" />
+            <PropertyColumn Property="x => x.BelowPolicyParts" Title="Below Policy Parts" />
+            <PropertyColumn Property="x => x.PctBelowPolicy" Title="% Below Policy" />
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="PolicyScoreItem" />
+        </PagerContent>
+    </MudDataGrid>
 }
 
 @code {
     private bool isLoading = true;
-    private int criticalCount = 0;
-    private int warningCount = 0;
-    private int infoCount = 0;
-    private int totalCount = 0;
-    
-    private List<InventoryAlert> alerts = new();
+    private int runout7Days = 0;
+    private int runout14Days = 0;
+    private int runout30Days = 0;
+    private List<PartInventoryItem> lowInventoryParts = new();
+    private List<GitDependencyItem> gitDependencyParts = new();
+    private List<ChronicRiskItem> chronicRiskList = new();
+    private List<AcuteDropItem> acuteDrops = new();
+    private List<RiskOverstockItem> riskOverstockQuadrant = new();
+    private List<WeeklyTrendItem> weeklyTrend = new();
+    private List<GitDependencyTrendItem> gitDependencyTrend = new();
+    private List<NoDemandItem> noDemandParts = new();
+    private List<OverstockItem> overstockParts = new();
+    private List<PolicyAdherenceItem> policyAdherence = new();
+    private List<PolicyScoreItem> policyScoreByPlanningPoint = new();
+    private List<VolatilityByPlanningPointItem> volatilityByPlanningPoint = new();
+    private List<VolatilityTrendItem> volatilityTrend = new();
+    private string _searchString = "";
+    private string _searchStringGit = "";
+    private string _searchStringChronic = "";
+    private string _searchStringAcute = "";
+    private string _searchStringRiskOverstock = "";
+    private string _searchStringNoDemand = "";
+    private string _searchStringOverstock = "";
+    private string _searchStringPolicyAdherence = "";
+    private string _searchStringPolicyScore = "";
 
-    public class InventoryAlert
+    private Func<PartInventoryItem, bool> _quickFilter => x =>
     {
-        public string Severity { get; set; } = "";
-        public string PartNumber { get; set; } = "";
-        public string AlertType { get; set; } = "";
-        public string Message { get; set; } = "";
-        public int CurrentStock { get; set; }
-        public int SafetyStock { get; set; }
-        public DateTime AlertDate { get; set; }
-    }
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        if (x.PartNumber?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.PlanningPoint?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    };
+
+    private Func<GitDependencyItem, bool> _quickFilterGit => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchStringGit))
+            return true;
+
+        if (x.PartNumber?.Contains(_searchStringGit, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.PlanningPoint?.Contains(_searchStringGit, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    };
+
+    private Func<ChronicRiskItem, bool> _quickFilterChronic => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchStringChronic))
+            return true;
+
+        if (x.PartNumber?.Contains(_searchStringChronic, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.PlanningPoint?.Contains(_searchStringChronic, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    };
+
+    private Func<AcuteDropItem, bool> _quickFilterAcute => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchStringAcute))
+            return true;
+
+        if (x.PartNumber?.Contains(_searchStringAcute, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.PlanningPoint?.Contains(_searchStringAcute, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    };
+
+    private Func<RiskOverstockItem, bool> _quickFilterRiskOverstock => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchStringRiskOverstock))
+            return true;
+
+        if (x.PlanningPoint?.Contains(_searchStringRiskOverstock, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    };
+
+    private Func<NoDemandItem, bool> _quickFilterNoDemand => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchStringNoDemand))
+            return true;
+
+        if (x.PartNumber?.Contains(_searchStringNoDemand, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.PlanningPoint?.Contains(_searchStringNoDemand, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    };
+
+    private Func<OverstockItem, bool> _quickFilterOverstock => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchStringOverstock))
+            return true;
+
+        if (x.PartNumber?.Contains(_searchStringOverstock, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.PlanningPoint?.Contains(_searchStringOverstock, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    };
+
+    private Func<PolicyAdherenceItem, bool> _quickFilterPolicyAdherence => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchStringPolicyAdherence))
+            return true;
+
+        if (x.PartNumber?.Contains(_searchStringPolicyAdherence, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.PlanningPoint?.Contains(_searchStringPolicyAdherence, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        if (x.MfgSupplierCode?.Contains(_searchStringPolicyAdherence, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    };
+
+    private Func<PolicyScoreItem, bool> _quickFilterPolicyScore => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchStringPolicyScore))
+            return true;
+
+        if (x.PlanningPoint?.Contains(_searchStringPolicyScore, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+
+        return false;
+    };
+
+    private bool chartsRendered = false;
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        await LoadRunoutData();
+        await LoadLowInventoryParts();
+        await LoadGitDependencyParts();
+        await LoadChronicRiskList();
+        await LoadAcuteDrops();
+        await LoadRiskOverstockQuadrant();
+        await LoadWeeklyTrend();
+        await LoadGitDependencyTrend();
+        await LoadNoDemandParts();
+        await LoadOverstockParts();
+        await LoadPolicyAdherence();
+        await LoadPolicyScoreByPlanningPoint();
+        await LoadVolatilityByPlanningPoint();
+        await LoadVolatilityTrend();
+        
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!chartsRendered && !isLoading && gitDependencyParts.Any())
         {
-            await LoadAlerts();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading alerts: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
+            chartsRendered = true;
+            await RenderGitDependencyCharts();
+            await RenderVolatilityCharts();
         }
     }
 
-    private async Task LoadAlerts()
+    private async Task RenderGitDependencyCharts()
     {
         try
         {
-            // Get safety stock items from database
-            var safetyStockItems = await DbContext.SafetyStockItems
-                .ToListAsync();
-
-            // Generate alerts based on safety stock levels
-            foreach (var item in safetyStockItems)
-            {
-                var safetyStock = (int)item.SafetyStockNrOfParts;
-                
-                // For demonstration, we'll generate some sample alerts
-                // In a real scenario, you would compare against actual inventory levels
-                
-                // Generate alerts for items with high safety stock requirements
-                if (safetyStock > 100)
-                {
-                    alerts.Add(new InventoryAlert
-                    {
-                        Severity = "Warning",
-                        PartNumber = item.PartNumber ?? "Unknown",
-                        AlertType = "High Safety Stock Required",
-                        Message = $"Part requires high safety stock: {safetyStock} units",
-                        CurrentStock = 0, // Would come from actual inventory system
-                        SafetyStock = safetyStock,
-                        AlertDate = DateTime.Now
-                    });
-                }
-                
-                // Generate alerts for items with very high safety stock
-                if (safetyStock > 500)
-                {
-                    alerts.Add(new InventoryAlert
-                    {
-                        Severity = "Critical",
-                        PartNumber = item.PartNumber ?? "Unknown",
-                        AlertType = "Very High Safety Stock",
-                        Message = $"Part requires very high safety stock: {safetyStock} units",
-                        CurrentStock = 0,
-                        SafetyStock = safetyStock,
-                        AlertDate = DateTime.Now
-                    });
-                }
-            }
-
-            // Order alerts by severity and date
-            alerts = alerts
-                .OrderBy(a => a.Severity == "Critical" ? 0 : a.Severity == "Warning" ? 1 : 2)
-                .ThenByDescending(a => a.AlertDate)
-                .Take(50) // Limit to top 50 alerts
+            // Prepare data for stacked bar chart (top 20 parts by GIT dependency)
+            var topParts = gitDependencyParts
+                .OrderByDescending(x => x.GitDependencyShifts)
+                .Take(20)
                 .ToList();
 
-            // Calculate counts
-            criticalCount = alerts.Count(a => a.Severity == "Critical");
-            warningCount = alerts.Count(a => a.Severity == "Warning");
-            infoCount = alerts.Count(a => a.Severity == "Info");
-            totalCount = alerts.Count;
+            var labels = topParts.Select(x => $"{x.PartNumber.Substring(0, Math.Min(10, x.PartNumber.Length))}...").ToArray();
+            var onHandData = topParts.Select(x => (double)x.OnHandShifts).ToArray();
+            var gitData = topParts.Select(x => (double)x.GitDependencyShifts).ToArray();
+
+            await JSRuntime.InvokeVoidAsync("drawGitCoverageStackedBarChart", "gitCoverageStackedBarChart", labels, onHandData, gitData);
+
+            // Prepare data for scatter chart
+            var scatterData = gitDependencyParts
+                .Select(x => new { x = (double)x.OnHandShifts, y = (double)x.GitDependencyShifts })
+                .ToArray();
+
+            await JSRuntime.InvokeVoidAsync("drawGitDependencyScatterChart", "gitDependencyScatterChart", scatterData);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error generating alerts: {ex.Message}");
+            Console.WriteLine($"Error rendering GIT dependency charts: {ex.Message}");
         }
+    }
+
+    private async Task RenderVolatilityCharts()
+    {
+        try
+        {
+            if (volatilityByPlanningPoint.Any())
+            {
+                var ppLabels = volatilityByPlanningPoint
+                    .OrderByDescending(x => x.MedianAbsDailyShiftChange)
+                    .Select(x => x.PlanningPoint)
+                    .ToArray();
+                var medianData = volatilityByPlanningPoint
+                    .OrderByDescending(x => x.MedianAbsDailyShiftChange)
+                    .Select(x => (double)x.MedianAbsDailyShiftChange)
+                    .ToArray();
+                var avgData = volatilityByPlanningPoint
+                    .OrderByDescending(x => x.MedianAbsDailyShiftChange)
+                    .Select(x => (double)x.AvgAbsDailyShiftChange)
+                    .ToArray();
+
+                await JSRuntime.InvokeVoidAsync("drawVolatilityByPlanningPointChart", "volatilityByPlanningPointChart", ppLabels, medianData, avgData);
+            }
+
+            if (volatilityTrend.Any())
+            {
+                var weekLabels = volatilityTrend
+                    .OrderBy(x => x.Week)
+                    .Select(x => x.Week.ToString("yyyy-MM-dd"))
+                    .ToArray();
+                var trendData = volatilityTrend
+                    .OrderBy(x => x.Week)
+                    .Select(x => (double)x.MedianVolatility)
+                    .ToArray();
+
+                await JSRuntime.InvokeVoidAsync("drawVolatilityTrendChart", "volatilityTrendChart", weekLabels, trendData);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error rendering GIT dependency charts: {ex.Message}");
+        }
+    }
+
+    private async Task LoadRunoutData()
+    {
+        isLoading = true;
+        try
+        {
+            var query = @"
+WITH latest_day AS (
+  SELECT MAX(PRODUCTION_DAY) AS production_day
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+),
+base AS (
+  SELECT *
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED ic
+  JOIN latest_day d ON ic.PRODUCTION_DAY = d.production_day
+  WHERE ic.SITE = 'VCT'
+)
+SELECT
+  COUNT_IF(AVAILABLE_INVENTORY_RUN_OUT_DATE <= DATEADD(day, 7, CURRENT_DATE()))  AS runout_7d,
+  COUNT_IF(AVAILABLE_INVENTORY_RUN_OUT_DATE <= DATEADD(day,14, CURRENT_DATE()))  AS runout_14d,
+  COUNT_IF(AVAILABLE_INVENTORY_RUN_OUT_DATE <= DATEADD(day,30, CURRENT_DATE()))  AS runout_30d
+FROM base
+WHERE AVAILABLE_INVENTORY_RUN_OUT_DATE IS NOT NULL;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                var row = result.Rows[0];
+                runout7Days = Convert.ToInt32(row[0]);
+                runout14Days = Convert.ToInt32(row[1]);
+                runout30Days = Convert.ToInt32(row[2]);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading runout data: {ex.Message}");
+        }
+    }
+
+    private async Task LoadLowInventoryParts()
+    {
+        try
+        {
+            var query = @"
+WITH latest_day AS (
+  SELECT MAX(PRODUCTION_DAY) AS production_day
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+),
+base AS (
+  SELECT *
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED ic
+  JOIN latest_day d ON ic.PRODUCTION_DAY = d.production_day
+  WHERE ic.SITE = 'VCT'
+)
+SELECT
+  PLANNING_POINT,
+  PART_NUMBER,
+  AVAILABLE_INVENTORY_IN_SHIFTS,
+  AVAILABLE_INVENTORY_RUN_OUT_DATE,
+  AVAILABLE_INVENTORY_RUN_OUT_SHIFT
+FROM base
+WHERE AVAILABLE_INVENTORY_IN_SHIFTS IS NOT NULL
+ORDER BY AVAILABLE_INVENTORY_IN_SHIFTS ASC
+LIMIT 50;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                lowInventoryParts = new List<PartInventoryItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    lowInventoryParts.Add(new PartInventoryItem
+                    {
+                        PlanningPoint = row[0]?.ToString() ?? "",
+                        PartNumber = row[1]?.ToString() ?? "",
+                        AvailableInventoryInShifts = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
+                        AvailableInventoryRunOutDate = row[3] != DBNull.Value ? Convert.ToDateTime(row[3]) : null,
+                        AvailableInventoryRunOutShift = row[4] != DBNull.Value ? Convert.ToDecimal(row[4]) : null
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading low inventory parts: {ex.Message}");
+        }
+    }
+
+    private async Task LoadGitDependencyParts()
+    {
+        try
+        {
+            var query = @"
+WITH latest_day AS (
+  SELECT MAX(PRODUCTION_DAY) AS production_day
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+),
+base AS (
+  SELECT *
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED ic
+  JOIN latest_day d ON ic.PRODUCTION_DAY = d.production_day
+  WHERE ic.SITE = 'VCT'
+)
+SELECT
+  PLANNING_POINT,
+  PART_NUMBER,
+  AVAILABLE_INVENTORY_IN_SHIFTS AS onhand_shifts,
+  AVAILABLE_AND_GIT_INVENTORY_IN_SHIFTS AS onhand_plus_git_shifts,
+  (AVAILABLE_AND_GIT_INVENTORY_IN_SHIFTS - AVAILABLE_INVENTORY_IN_SHIFTS) AS git_dependency_shifts
+FROM base
+WHERE AVAILABLE_INVENTORY_IN_SHIFTS IS NOT NULL
+  AND AVAILABLE_AND_GIT_INVENTORY_IN_SHIFTS IS NOT NULL
+ORDER BY git_dependency_shifts DESC
+LIMIT 200;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                gitDependencyParts = new List<GitDependencyItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    gitDependencyParts.Add(new GitDependencyItem
+                    {
+                        PlanningPoint = row[0]?.ToString() ?? "",
+                        PartNumber = row[1]?.ToString() ?? "",
+                        OnHandShifts = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
+                        OnHandPlusGitShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0,
+                        GitDependencyShifts = row[4] != DBNull.Value ? Convert.ToDecimal(row[4]) : 0
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading GIT dependency parts: {ex.Message}");
+        }
+    }
+
+    private async Task LoadAcuteDrops()
+    {
+        try
+        {
+            var query = @"
+WITH hist AS (
+  SELECT
+    PLANNING_POINT,
+    PART_NUMBER,
+    PRODUCTION_DAY,
+    AVAILABLE_INVENTORY_IN_SHIFTS
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+    AND PRODUCTION_DAY >= DATEADD(day, -30, CURRENT_DATE())
+    AND AVAILABLE_INVENTORY_IN_SHIFTS IS NOT NULL
+),
+deltas AS (
+  SELECT
+    *,
+    AVAILABLE_INVENTORY_IN_SHIFTS
+      - LAG(AVAILABLE_INVENTORY_IN_SHIFTS) OVER (PARTITION BY PLANNING_POINT, PART_NUMBER ORDER BY PRODUCTION_DAY) AS delta_shifts
+  FROM hist
+)
+SELECT
+  PLANNING_POINT,
+  PART_NUMBER,
+  PRODUCTION_DAY,
+  delta_shifts
+FROM deltas
+WHERE delta_shifts IS NOT NULL
+ORDER BY delta_shifts ASC
+LIMIT 100;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                acuteDrops = new List<AcuteDropItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    acuteDrops.Add(new AcuteDropItem
+                    {
+                        PlanningPoint = row[0]?.ToString() ?? "",
+                        PartNumber = row[1]?.ToString() ?? "",
+                        ProductionDay = row[2] != DBNull.Value ? Convert.ToDateTime(row[2]) : DateTime.MinValue,
+                        DeltaShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading acute drops data: {ex.Message}");
+        }
+    }
+
+    private async Task LoadChronicRiskList()
+    {
+        try
+        {
+            var query = @"
+WITH hist AS (
+  SELECT
+    PLANNING_POINT,
+    PART_NUMBER,
+    PRODUCTION_DAY,
+    AVAILABLE_INVENTORY_IN_SHIFTS
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+    AND PRODUCTION_DAY >= DATEADD(day, -60, CURRENT_DATE())
+    AND AVAILABLE_INVENTORY_IN_SHIFTS IS NOT NULL
+),
+agg AS (
+  SELECT
+    PLANNING_POINT,
+    PART_NUMBER,
+    COUNT(*) AS days_observed,
+    COUNT_IF(AVAILABLE_INVENTORY_IN_SHIFTS < 10) AS days_lt_10
+  FROM hist
+  GROUP BY PLANNING_POINT, PART_NUMBER
+)
+SELECT
+  PLANNING_POINT,
+  PART_NUMBER,
+  days_observed,
+  days_lt_10,
+  ROUND(100 * days_lt_10 / NULLIF(days_observed,0), 2) AS pct_days_lt_10
+FROM agg
+WHERE days_observed >= 30
+  AND (days_lt_10 / NULLIF(days_observed,0)) >= 0.5
+ORDER BY pct_days_lt_10 DESC, days_lt_10 DESC
+LIMIT 200;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                chronicRiskList = new List<ChronicRiskItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    chronicRiskList.Add(new ChronicRiskItem
+                    {
+                        PlanningPoint = row[0]?.ToString() ?? "",
+                        PartNumber = row[1]?.ToString() ?? "",
+                        DaysObserved = row[2] != DBNull.Value ? Convert.ToInt32(row[2]) : 0,
+                        DaysLessThan10 = row[3] != DBNull.Value ? Convert.ToInt32(row[3]) : 0,
+                        PctDaysLessThan10 = row[4] != DBNull.Value ? Convert.ToDecimal(row[4]) : 0
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading chronic risk list data: {ex.Message}");
+        }
+    }
+
+    private async Task LoadRiskOverstockQuadrant()
+    {
+        try
+        {
+            var query = @"
+WITH latest_day AS (
+  SELECT MAX(PRODUCTION_DAY) AS production_day
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+),
+base AS (
+  SELECT *
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED ic
+  JOIN latest_day d ON ic.PRODUCTION_DAY = d.production_day
+  WHERE ic.SITE = 'VCT'
+),
+pp AS (
+  SELECT
+    PLANNING_POINT,
+    COUNT(*) AS parts,
+    ROUND(100 * COUNT_IF(AVAILABLE_INVENTORY_IN_SHIFTS < 10) / NULLIF(COUNT(*),0), 2) AS pct_low_cover,
+    ROUND(100 * COUNT_IF(AVAILABLE_INVENTORY_RUN_OUT_COMMENT = '>3 months') / NULLIF(COUNT(*),0), 2) AS pct_overstock
+  FROM base
+  GROUP BY PLANNING_POINT
+)
+SELECT * FROM pp
+ORDER BY pct_low_cover DESC;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                riskOverstockQuadrant = new List<RiskOverstockItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    riskOverstockQuadrant.Add(new RiskOverstockItem
+                    {
+                        PlanningPoint = row[0]?.ToString() ?? "",
+                        Parts = row[1] != DBNull.Value ? Convert.ToInt32(row[1]) : 0,
+                        PctLowCover = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
+                        PctOverstock = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading risk vs overstock quadrant data: {ex.Message}");
+        }
+    }
+
+    private async Task LoadGitDependencyTrend()
+    {
+        try
+        {
+            var query = @"
+WITH hist AS (
+  SELECT
+    DATE_TRUNC('week', PRODUCTION_DAY) AS week,
+    (AVAILABLE_AND_GIT_INVENTORY_IN_SHIFTS - AVAILABLE_INVENTORY_IN_SHIFTS) AS git_dependency_shifts
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+    AND PRODUCTION_DAY >= DATEADD(week, -26, CURRENT_DATE())
+    AND AVAILABLE_INVENTORY_IN_SHIFTS IS NOT NULL
+    AND AVAILABLE_AND_GIT_INVENTORY_IN_SHIFTS IS NOT NULL
+)
+SELECT
+  week,
+  PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY git_dependency_shifts) AS median_git_dependency_shifts
+FROM hist
+GROUP BY week
+ORDER BY week;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                gitDependencyTrend = new List<GitDependencyTrendItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    gitDependencyTrend.Add(new GitDependencyTrendItem
+                    {
+                        Week = row[0] != DBNull.Value ? Convert.ToDateTime(row[0]) : DateTime.MinValue,
+                        MedianGitDependencyShifts = row[1] != DBNull.Value ? Convert.ToDecimal(row[1]) : 0
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading GIT dependency trend data: {ex.Message}");
+        }
+    }
+
+    private async Task LoadWeeklyTrend()
+    {
+        try
+        {
+            var query = @"
+WITH hist AS (
+  SELECT
+    DATE_TRUNC('week', PRODUCTION_DAY) AS week,
+    PLANNING_POINT,
+    PART_NUMBER,
+    AVAILABLE_INVENTORY_IN_SHIFTS
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+    AND PRODUCTION_DAY >= DATEADD(week, -26, CURRENT_DATE())
+    AND AVAILABLE_INVENTORY_IN_SHIFTS IS NOT NULL
+),
+weekly AS (
+  SELECT
+    week,
+    COUNT(DISTINCT PLANNING_POINT || '|' || PART_NUMBER) AS part_pp_count,
+    COUNT(DISTINCT CASE WHEN AVAILABLE_INVENTORY_IN_SHIFTS < 10 THEN PLANNING_POINT || '|' || PART_NUMBER END) AS part_pp_low
+  FROM hist
+  GROUP BY week
+)
+SELECT
+  week,
+  part_pp_count,
+  part_pp_low,
+  ROUND(100 * part_pp_low / NULLIF(part_pp_count,0), 2) AS pct_low
+FROM weekly
+ORDER BY week;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                weeklyTrend = new List<WeeklyTrendItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    weeklyTrend.Add(new WeeklyTrendItem
+                    {
+                        Week = row[0] != DBNull.Value ? Convert.ToDateTime(row[0]) : DateTime.MinValue,
+                        PartCount = row[1] != DBNull.Value ? Convert.ToInt32(row[1]) : 0,
+                        PartLowCount = row[2] != DBNull.Value ? Convert.ToInt32(row[2]) : 0,
+                        PctLow = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading weekly trend data: {ex.Message}");
+        }
+    }
+
+    private async Task LoadOverstockParts()
+    {
+        try
+        {
+            var query = @"
+WITH latest_day AS (
+  SELECT MAX(PRODUCTION_DAY) AS production_day
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+),
+base AS (
+  SELECT *
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED ic
+  JOIN latest_day d ON ic.PRODUCTION_DAY = d.production_day
+  WHERE ic.SITE = 'VCT'
+)
+SELECT
+  PLANNING_POINT,
+  PART_NUMBER,
+  AVAILABLE_INVENTORY,
+  AVAILABLE_INVENTORY_IN_SHIFTS
+FROM base
+WHERE AVAILABLE_INVENTORY_RUN_OUT_COMMENT = '>3 months'
+ORDER BY AVAILABLE_INVENTORY_IN_SHIFTS DESC
+LIMIT 200;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                overstockParts = new List<OverstockItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    overstockParts.Add(new OverstockItem
+                    {
+                        PlanningPoint = row[0]?.ToString() ?? "",
+                        PartNumber = row[1]?.ToString() ?? "",
+                        AvailableInventory = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
+                        AvailableInventoryInShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading overstock parts data: {ex.Message}");
+        }
+    }
+
+    private async Task LoadNoDemandParts()
+    {
+        try
+        {
+            var query = @"
+WITH latest_day AS (
+  SELECT MAX(PRODUCTION_DAY) AS production_day
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+),
+base AS (
+  SELECT *
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED ic
+  JOIN latest_day d ON ic.PRODUCTION_DAY = d.production_day
+  WHERE ic.SITE = 'VCT'
+)
+SELECT
+  PLANNING_POINT,
+  PART_NUMBER,
+  AVAILABLE_INVENTORY,
+  AVAILABLE_INVENTORY_IN_SHIFTS,
+  AVAILABLE_INVENTORY_RUN_OUT_COMMENT
+FROM base
+WHERE AVAILABLE_INVENTORY_RUN_OUT_COMMENT = 'no demand'
+  AND COALESCE(AVAILABLE_INVENTORY, 0) > 0
+ORDER BY AVAILABLE_INVENTORY DESC
+LIMIT 200;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                noDemandParts = new List<NoDemandItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    noDemandParts.Add(new NoDemandItem
+                    {
+                        PlanningPoint = row[0]?.ToString() ?? "",
+                        PartNumber = row[1]?.ToString() ?? "",
+                        AvailableInventory = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
+                        AvailableInventoryInShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0,
+                        RunOutComment = row[4]?.ToString() ?? ""
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading no-demand parts data: {ex.Message}");
+        }
+    }
+
+    private async Task LoadPolicyScoreByPlanningPoint()
+    {
+        try
+        {
+            var query = @"
+WITH latest_cov_day AS (
+  SELECT MAX(PRODUCTION_DAY) AS production_day
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+),
+cov AS (
+  SELECT *
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED ic
+  JOIN latest_cov_day d ON ic.PRODUCTION_DAY = d.production_day
+  WHERE ic.SITE = 'VCT'
+),
+ss AS (
+  SELECT
+    SITE, PLANNING_POINT, PART_NUMBER,
+    COALESCE(FLS_YARD_LEADTIME_SHIFTS_CALC, SAFETY_STOCK_LEAD_TIME) AS effective_ss_shifts
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+),
+joined AS (
+  SELECT
+    cov.PLANNING_POINT,
+    cov.PART_NUMBER,
+    cov.AVAILABLE_INVENTORY_IN_SHIFTS AS onhand_shifts,
+    ss.effective_ss_shifts
+  FROM cov
+  JOIN ss
+    ON cov.SITE = ss.SITE
+   AND cov.PLANNING_POINT = ss.PLANNING_POINT
+   AND cov.PART_NUMBER = ss.PART_NUMBER
+  WHERE cov.AVAILABLE_INVENTORY_IN_SHIFTS IS NOT NULL
+    AND ss.effective_ss_shifts IS NOT NULL
+)
+SELECT
+  PLANNING_POINT,
+  COUNT(*) AS parts,
+  COUNT_IF(onhand_shifts < effective_ss_shifts) AS below_policy_parts,
+  ROUND(100 * below_policy_parts / NULLIF(parts,0), 2) AS pct_below_policy
+FROM joined
+GROUP BY PLANNING_POINT
+ORDER BY pct_below_policy DESC;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                policyScoreByPlanningPoint = new List<PolicyScoreItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    policyScoreByPlanningPoint.Add(new PolicyScoreItem
+                    {
+                        PlanningPoint = row[0]?.ToString() ?? "",
+                        Parts = row[1] != DBNull.Value ? Convert.ToInt32(row[1]) : 0,
+                        BelowPolicyParts = row[2] != DBNull.Value ? Convert.ToInt32(row[2]) : 0,
+                        PctBelowPolicy = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading policy score by planning point data: {ex.Message}");
+        }
+    }
+
+    private async Task LoadVolatilityByPlanningPoint()
+    {
+        try
+        {
+            var query = @"
+WITH hist AS (
+  SELECT
+    PLANNING_POINT,
+    PART_NUMBER,
+    PRODUCTION_DAY,
+    AVAILABLE_INVENTORY_IN_SHIFTS
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+    AND PRODUCTION_DAY >= DATEADD(day, -90, CURRENT_DATE())
+    AND AVAILABLE_INVENTORY_IN_SHIFTS IS NOT NULL
+),
+deltas AS (
+  SELECT
+    PLANNING_POINT,
+    PART_NUMBER,
+    PRODUCTION_DAY,
+    AVAILABLE_INVENTORY_IN_SHIFTS - LAG(AVAILABLE_INVENTORY_IN_SHIFTS) 
+      OVER (PARTITION BY PLANNING_POINT, PART_NUMBER ORDER BY PRODUCTION_DAY) AS delta_shifts
+  FROM hist
+)
+SELECT
+  PLANNING_POINT,
+  COUNT(*) AS observations,
+  AVG(ABS(delta_shifts)) AS avg_abs_daily_shift_change,
+  PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ABS(delta_shifts)) AS median_abs_daily_shift_change
+FROM deltas
+WHERE delta_shifts IS NOT NULL
+GROUP BY PLANNING_POINT
+ORDER BY median_abs_daily_shift_change DESC;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                volatilityByPlanningPoint = new List<VolatilityByPlanningPointItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    volatilityByPlanningPoint.Add(new VolatilityByPlanningPointItem
+                    {
+                        PlanningPoint = row[0]?.ToString() ?? "",
+                        Observations = row[1] != DBNull.Value ? Convert.ToInt32(row[1]) : 0,
+                        AvgAbsDailyShiftChange = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
+                        MedianAbsDailyShiftChange = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading volatility by planning point data: {ex.Message}");
+        }
+    }
+
+    private async Task LoadVolatilityTrend()
+    {
+        try
+        {
+            var query = @"
+WITH hist AS (
+  SELECT
+    PLANNING_POINT,
+    PART_NUMBER,
+    PRODUCTION_DAY,
+    AVAILABLE_INVENTORY_IN_SHIFTS
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+    AND PRODUCTION_DAY >= DATEADD(week, -13, CURRENT_DATE())
+    AND AVAILABLE_INVENTORY_IN_SHIFTS IS NOT NULL
+),
+deltas AS (
+  SELECT
+    DATE_TRUNC('week', PRODUCTION_DAY) AS week,
+    PLANNING_POINT,
+    PART_NUMBER,
+    AVAILABLE_INVENTORY_IN_SHIFTS - LAG(AVAILABLE_INVENTORY_IN_SHIFTS) 
+      OVER (PARTITION BY PLANNING_POINT, PART_NUMBER ORDER BY PRODUCTION_DAY) AS delta_shifts
+  FROM hist
+)
+SELECT
+  week,
+  PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ABS(delta_shifts)) AS median_volatility
+FROM deltas
+WHERE delta_shifts IS NOT NULL
+GROUP BY week
+ORDER BY week;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                volatilityTrend = new List<VolatilityTrendItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    volatilityTrend.Add(new VolatilityTrendItem
+                    {
+                        Week = row[0] != DBNull.Value ? Convert.ToDateTime(row[0]) : DateTime.MinValue,
+                        MedianVolatility = row[1] != DBNull.Value ? Convert.ToDecimal(row[1]) : 0
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading volatility trend data: {ex.Message}");
+        }
+    }
+
+    private async Task LoadPolicyAdherence()
+    {
+        try
+        {
+            var query = @"
+WITH latest_cov_day AS (
+  SELECT MAX(PRODUCTION_DAY) AS production_day
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+),
+cov AS (
+  SELECT *
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED ic
+  JOIN latest_cov_day d ON ic.PRODUCTION_DAY = d.production_day
+  WHERE ic.SITE = 'VCT'
+),
+ss AS (
+  SELECT
+    SITE,
+    PLANNING_POINT,
+    PART_NUMBER,
+    MFG_SUPPLIER_CODE,
+    COALESCE(FLS_YARD_LEADTIME_SHIFTS_CALC, SAFETY_STOCK_LEAD_TIME) AS effective_ss_shifts,
+    SAFETY_STOCK_NR_OF_PARTS AS ss_parts
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
+  WHERE SITE = 'VCT'
+)
+SELECT
+  cov.PLANNING_POINT,
+  cov.PART_NUMBER,
+  ss.MFG_SUPPLIER_CODE,
+  cov.AVAILABLE_INVENTORY_IN_SHIFTS AS onhand_shifts,
+  ss.effective_ss_shifts,
+  (cov.AVAILABLE_INVENTORY_IN_SHIFTS - ss.effective_ss_shifts) AS shifts_vs_policy,
+  CASE
+    WHEN cov.AVAILABLE_INVENTORY_IN_SHIFTS < ss.effective_ss_shifts THEN 'BELOW_POLICY'
+    ELSE 'OK'
+  END AS policy_status
+FROM cov
+JOIN ss
+  ON cov.SITE = ss.SITE
+ AND cov.PLANNING_POINT = ss.PLANNING_POINT
+ AND cov.PART_NUMBER = ss.PART_NUMBER
+WHERE cov.AVAILABLE_INVENTORY_IN_SHIFTS IS NOT NULL
+  AND ss.effective_ss_shifts IS NOT NULL
+ORDER BY shifts_vs_policy ASC
+LIMIT 200;
+";
+
+            var result = await SnowflakeService.QueryAsync(query);
+            
+            if (result != null && result.Rows.Count > 0)
+            {
+                policyAdherence = new List<PolicyAdherenceItem>();
+                foreach (System.Data.DataRow row in result.Rows)
+                {
+                    policyAdherence.Add(new PolicyAdherenceItem
+                    {
+                        PlanningPoint = row[0]?.ToString() ?? "",
+                        PartNumber = row[1]?.ToString() ?? "",
+                        MfgSupplierCode = row[2]?.ToString() ?? "",
+                        OnHandShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0,
+                        EffectiveSsShifts = row[4] != DBNull.Value ? Convert.ToDecimal(row[4]) : 0,
+                        ShiftsVsPolicy = row[5] != DBNull.Value ? Convert.ToDecimal(row[5]) : 0,
+                        PolicyStatus = row[6]?.ToString() ?? ""
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading policy adherence data: {ex.Message}");
+        }
+    }
+
+    public class PartInventoryItem
+    {
+        public string PlanningPoint { get; set; } = "";
+        public string PartNumber { get; set; } = "";
+        public decimal AvailableInventoryInShifts { get; set; }
+        public DateTime? AvailableInventoryRunOutDate { get; set; }
+        public decimal? AvailableInventoryRunOutShift { get; set; }
+    }
+
+    public class GitDependencyItem
+    {
+        public string PlanningPoint { get; set; } = "";
+        public string PartNumber { get; set; } = "";
+        public decimal OnHandShifts { get; set; }
+        public decimal OnHandPlusGitShifts { get; set; }
+        public decimal GitDependencyShifts { get; set; }
+    }
+
+    public class ChronicRiskItem
+    {
+        public string PlanningPoint { get; set; } = "";
+        public string PartNumber { get; set; } = "";
+        public int DaysObserved { get; set; }
+        public int DaysLessThan10 { get; set; }
+        public decimal PctDaysLessThan10 { get; set; }
+    }
+
+    public class AcuteDropItem
+    {
+        public string PlanningPoint { get; set; } = "";
+        public string PartNumber { get; set; } = "";
+        public DateTime ProductionDay { get; set; }
+        public decimal DeltaShifts { get; set; }
+    }
+
+    public class RiskOverstockItem
+    {
+        public string PlanningPoint { get; set; } = "";
+        public int Parts { get; set; }
+        public decimal PctLowCover { get; set; }
+        public decimal PctOverstock { get; set; }
+    }
+
+    public class WeeklyTrendItem
+    {
+        public DateTime Week { get; set; }
+        public int PartCount { get; set; }
+        public int PartLowCount { get; set; }
+        public decimal PctLow { get; set; }
+    }
+
+    public class GitDependencyTrendItem
+    {
+        public DateTime Week { get; set; }
+        public decimal MedianGitDependencyShifts { get; set; }
+    }
+
+    public class NoDemandItem
+    {
+        public string PlanningPoint { get; set; } = "";
+        public string PartNumber { get; set; } = "";
+        public decimal AvailableInventory { get; set; }
+        public decimal AvailableInventoryInShifts { get; set; }
+        public string RunOutComment { get; set; } = "";
+    }
+
+    public class OverstockItem
+    {
+        public string PlanningPoint { get; set; } = "";
+        public string PartNumber { get; set; } = "";
+        public decimal AvailableInventory { get; set; }
+        public decimal AvailableInventoryInShifts { get; set; }
+    }
+
+    public class PolicyAdherenceItem
+    {
+        public string PlanningPoint { get; set; } = "";
+        public string PartNumber { get; set; } = "";
+        public string MfgSupplierCode { get; set; } = "";
+        public decimal OnHandShifts { get; set; }
+        public decimal EffectiveSsShifts { get; set; }
+        public decimal ShiftsVsPolicy { get; set; }
+        public string PolicyStatus { get; set; } = "";
+    }
+
+    public class PolicyScoreItem
+    {
+        public string PlanningPoint { get; set; } = "";
+        public int Parts { get; set; }
+        public int BelowPolicyParts { get; set; }
+        public decimal PctBelowPolicy { get; set; }
+    }
+
+    public class VolatilityByPlanningPointItem
+    {
+        public string PlanningPoint { get; set; } = "";
+        public int Observations { get; set; }
+        public decimal AvgAbsDailyShiftChange { get; set; }
+        public decimal MedianAbsDailyShiftChange { get; set; }
+    }
+
+    public class VolatilityTrendItem
+    {
+        public DateTime Week { get; set; }
+        public decimal MedianVolatility { get; set; }
     }
 }

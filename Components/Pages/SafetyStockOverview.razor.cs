@@ -1,7 +1,13 @@
-    // ...usings...
+// SafetyStockOverview.razor.cs
+// NOTE: This is the code-behind for your Blazor component.
+// It loads:
+// 1) Demand vs Safety Stock (forward-filled) for a selected part number
+// 2) Aggregate Lead Time trend
+// 3) Aggregate Quantity trend
+
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Configuration;
-using Snowflake.Data.Client;
+using PartTracker.Shared.Services;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -11,57 +17,64 @@ namespace PartTracker.Components.Pages
 {
     public partial class SafetyStockOverview : ComponentBase
     {
+        [Inject] public SnowflakeService Snowflake { get; set; } = default!;
+
+        // ---------- UI State ----------
+        private bool isLoading = true;
+        private bool isLoadingLeadTime = false;
+        private bool isLoadingQuantity = false;
+
+        public string? ErrorMessage { get; set; }
+
+        // ---------- Part picker ----------
+        public List<string> PartNumbers { get; set; } = new();
+        public string SelectedPartNumber { get; set; } = string.Empty;
+
+        // ---------- Demand vs Safety Stock chart ----------
+        public List<string> DateLabels { get; set; } = new();
+        public List<double> ActualDemandSeries { get; set; } = new();
+        public List<double> SafetyStockSeries { get; set; } = new();
+
         public string[] ChartLabelsArray => DateLabels.ToArray();
-        public List<MudBlazor.ChartSeries> ChartDatasets => new List<MudBlazor.ChartSeries>
+
+        public List<MudBlazor.ChartSeries> ChartDatasets => new()
         {
             new MudBlazor.ChartSeries { Name = "Actual Demand", Data = ActualDemandSeries.ToArray() },
-            new MudBlazor.ChartSeries { Name = "Safety Stock", Data = SafetyStockSeries.ToArray() }
+            new MudBlazor.ChartSeries { Name = "Safety Stock (Parts)", Data = SafetyStockSeries.ToArray() }
         };
-        [Inject] IConfiguration Configuration { get; set; }
 
-        public List<string> PartNumbers { get; set; } = new();
-        // Use property with backing field in .razor
-        // private string SelectedPartNumber; // REMOVED, use property only
-        private bool isLoading = true;
-        private List<DateTime> Dates = new();
-        private List<int> ActualDemand = new();
-        private List<double> SafetyStock = new();
-
-        // For charting
-        public List<string> DateLabels { get; set; } = new();
-        public List<double> SafetyStockSeries { get; set; } = new();
-        public List<double> ActualDemandSeries { get; set; } = new();
-
-        // Lead Time Chart Data
-        private bool isLoadingLeadTime = false;
+        // ---------- Lead Time trend chart ----------
         public List<string> LeadTimeMonthLabels { get; set; } = new();
         public List<double> AvgLeadTimeData { get; set; } = new();
         public List<double> MedianLeadTimeData { get; set; } = new();
-        public List<MudBlazor.ChartSeries> LeadTimeChartSeries => new List<MudBlazor.ChartSeries>
+
+        public List<MudBlazor.ChartSeries> LeadTimeChartSeries => new()
         {
             new MudBlazor.ChartSeries { Name = "Average Lead Time (Shifts)", Data = AvgLeadTimeData.ToArray() },
             new MudBlazor.ChartSeries { Name = "Median Lead Time (Shifts)", Data = MedianLeadTimeData.ToArray() }
         };
 
-        // Quantity Chart Data
-        private bool isLoadingQuantity = false;
+        // ---------- Quantity trend chart ----------
         public List<string> QuantityMonthLabels { get; set; } = new();
         public List<double> TotalQuantityData { get; set; } = new();
         public List<double> AvgQuantityData { get; set; } = new();
         public List<double> MedianQuantityData { get; set; } = new();
-        public List<MudBlazor.ChartSeries> QuantityChartSeries => new List<MudBlazor.ChartSeries>
+
+        public List<MudBlazor.ChartSeries> QuantityChartSeries => new()
         {
             new MudBlazor.ChartSeries { Name = "Total SS Parts", Data = TotalQuantityData.ToArray() },
             new MudBlazor.ChartSeries { Name = "Average SS Parts", Data = AvgQuantityData.ToArray() },
             new MudBlazor.ChartSeries { Name = "Median SS Parts", Data = MedianQuantityData.ToArray() }
         };
 
-        // Removed ChartDatasets, not needed for MudChart Data/XAxisLabels
-
+        // ---------- Lifecycle ----------
         protected override async Task OnInitializedAsync()
         {
             isLoading = true;
+            ErrorMessage = null;
+
             await LoadPartNumbersAsync();
+
             if (PartNumbers.Count > 0)
             {
                 SelectedPartNumber = PartNumbers[0];
@@ -69,167 +82,181 @@ namespace PartTracker.Components.Pages
             }
 
             isLoading = false;
+            await InvokeAsync(StateHasChanged);
 
-            // Load aggregate charts
+            // Load aggregate charts (fire-and-forget is OK here)
             _ = LoadLeadTimeTrendAsync();
             _ = LoadQuantityTrendAsync();
         }
 
-        private async Task OnPartNumberChanged(string partNumber)
+        // Call this from your .razor on dropdown change (ValueChanged)
+        public async Task OnPartNumberChanged(string? value)
         {
-            // SelectedPartNumber is set by the property setter
+            var partNumber = value?.Trim() ?? string.Empty;
+            SelectedPartNumber = partNumber;
+
+            if (string.IsNullOrWhiteSpace(partNumber))
+                return;
+
             isLoading = true;
+            ErrorMessage = null;
+            await InvokeAsync(StateHasChanged);
+
             await LoadDataForPartAsync(partNumber);
 
             isLoading = false;
+            await InvokeAsync(StateHasChanged);
         }
 
-        private string GetSnowflakeConnectionString()
-        {
-            // Try to get from ConnectionStrings or build from Snowflake section
-            var connStr = Configuration.GetConnectionString("SnowflakeConnection2");
-            if (!string.IsNullOrEmpty(connStr))
-                return connStr;
-
-            // Build from Snowflake section
-            var account = Configuration["Snowflake:Account"];
-            var user = Configuration["Snowflake:User"];
-            var password = Configuration["Snowflake:Password"];
-            var warehouse = Configuration["Snowflake:Warehouse"];
-            var database = Configuration["Snowflake:Database"];
-            var schema = Configuration["Snowflake:Schema"];
-            var role = Configuration["Snowflake:Role"];
-            return $"account={account};user={user};password={password};warehouse={warehouse};database={database};schema={schema};role={role}";
-        }
-
+        // ---------- Load Part Numbers ----------
         private async Task LoadPartNumbersAsync()
         {
             PartNumbers.Clear();
+            ErrorMessage = null;
+
             try
             {
-                using var conn = new SnowflakeDbConnection();
-                conn.ConnectionString = GetSnowflakeConnectionString();
-                await conn.OpenAsync();
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = @"SELECT DISTINCT PART_NUMBER FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_CONSUMPTION_AS_MANUFACTURED.PART_CONSUMPTION_AS_MANUFACTURED ORDER BY PART_NUMBER LIMIT 1000";
-                using var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
+                var result = await Snowflake.QueryAsync(@"
+                    SELECT DISTINCT PART_NUMBER
+                    FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_CONSUMPTION_AS_MANUFACTURED.PART_CONSUMPTION_AS_MANUFACTURED
+                    WHERE PART_NUMBER IS NOT NULL
+                    ORDER BY PART_NUMBER
+                    LIMIT 1000
+                ");
+
+                foreach (DataRow row in result.Rows)
                 {
-                    var part = reader.GetString(0);
+                    var part = row[0]?.ToString() ?? "";
                     if (!string.IsNullOrWhiteSpace(part))
-                        PartNumbers.Add(part);
+                        PartNumbers.Add(part.Trim());
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                // Handle error (log, show message, etc.)
+                ErrorMessage = "Failed to load part numbers.";
+                // throw; // uncomment while debugging if you want hard failures
             }
         }
+
+        // ---------- Demand vs Safety Stock (forward-filled) ----------
+        // Uses ALL THREE tables:
+        // - part_scope from PART_SUPPLIER_INFORMATION_AS_MANUFACTURED
+        // - demand from PART_CONSUMPTION_AS_MANUFACTURED
+        // - safety stock history from SAFETY_STOCK_SETTINGS_AS_MANUFACTURED_HISTORICAL
         private async Task LoadDataForPartAsync(string partNumber)
         {
-            Dates.Clear();
-            ActualDemand.Clear();
-            SafetyStock.Clear();
             DateLabels.Clear();
-            SafetyStockSeries.Clear();
             ActualDemandSeries.Clear();
+            SafetyStockSeries.Clear();
+            ErrorMessage = null;
+
+            if (string.IsNullOrWhiteSpace(partNumber))
+                return;
+
             try
             {
-                using var conn = new SnowflakeDbConnection();
-                conn.ConnectionString = GetSnowflakeConnectionString();
-                await conn.OpenAsync();
+                var result = await Snowflake.QueryAsync($@"
+WITH part_scope AS (
+  SELECT SITE, PLANNING_POINT, PART_NUMBER, MFG_SUPPLIER_CODE
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_SUPPLIER_INFORMATION_AS_MANUFACTURED.PART_SUPPLIER_INFORMATION_AS_MANUFACTURED
+  WHERE PART_NUMBER = '{partNumber.Trim()}'
+),
+demand AS (
+  SELECT
+    c.PART_CONSUMED_DATE AS DT,
+    SUM(c.PART_AMOUNT)::FLOAT AS DEMAND
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_CONSUMPTION_AS_MANUFACTURED.PART_CONSUMPTION_AS_MANUFACTURED c
+  JOIN part_scope p
+    ON c.SITE = p.SITE
+   AND c.PLANNING_POINT = p.PLANNING_POINT
+   AND c.PART_NUMBER = p.PART_NUMBER
+  GROUP BY 1
+),
+ss_daily AS (
+  SELECT
+    h.UPLOADED_FROM_SOURCE AS DT,
+    h.SAFETY_STOCK_NR_OF_PARTS::FLOAT AS SS_PARTS,
+    ROW_NUMBER() OVER (
+      PARTITION BY h.UPLOADED_FROM_SOURCE, h.SITE, h.PLANNING_POINT, h.PART_NUMBER, h.MFG_SUPPLIER_CODE
+      ORDER BY h.UPLOADED_FROM_SOURCE DESC
+    ) AS RN
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED_HISTORICAL h
+  JOIN part_scope p
+    ON h.SITE = p.SITE
+   AND h.PLANNING_POINT = p.PLANNING_POINT
+   AND h.PART_NUMBER = p.PART_NUMBER
+   AND h.MFG_SUPPLIER_CODE = p.MFG_SUPPLIER_CODE
+),
+ss AS (
+  SELECT DT, SS_PARTS
+  FROM ss_daily
+  WHERE RN = 1
+),
+bounds AS (
+  SELECT
+    LEAST(
+      COALESCE((SELECT MIN(DT) FROM demand), '2999-12-31'::DATE),
+      COALESCE((SELECT MIN(DT) FROM ss),     '2999-12-31'::DATE)
+    ) AS MIN_DT,
+    GREATEST(
+      COALESCE((SELECT MAX(DT) FROM demand), '1900-01-01'::DATE),
+      COALESCE((SELECT MAX(DT) FROM ss),     '1900-01-01'::DATE)
+    ) AS MAX_DT
+),
+spine AS (
+  SELECT DATEADD(day, seq4(), b.MIN_DT) AS DT, b.MIN_DT, b.MAX_DT
+  FROM bounds b,
+       TABLE(GENERATOR(ROWCOUNT => 10000))
+  WHERE DATEADD(day, seq4(), b.MIN_DT) <= b.MAX_DT
+)
+SELECT
+  s.DT,
+  COALESCE(d.DEMAND, 0) AS DEMAND,
+  LAST_VALUE(ss.SS_PARTS IGNORE NULLS) OVER (ORDER BY s.DT) AS SAFETY_STOCK_PARTS
+FROM spine s
+LEFT JOIN demand d ON d.DT = s.DT
+LEFT JOIN ss     ON ss.DT = s.DT
+ORDER BY s.DT;
+");
 
-                // Get demand (time series)
-                var demandDict = new Dictionary<DateTime, int>();
-                using (var cmd = conn.CreateCommand())
+                foreach (DataRow row in result.Rows)
                 {
-                    cmd.CommandText = $@"
-                        SELECT PART_CONSUMED_DATE, SUM(PART_AMOUNT) AS TOTAL_CONSUMED
-                        FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_CONSUMPTION_AS_MANUFACTURED.PART_CONSUMPTION_AS_MANUFACTURED
-                        WHERE PART_NUMBER = @partNumber
-                        GROUP BY PART_CONSUMED_DATE
-                        ORDER BY PART_CONSUMED_DATE
-                    ";
-                    var param = cmd.CreateParameter();
-                    param.ParameterName = "@partNumber";
-                    param.Value = partNumber;
-                    cmd.Parameters.Add(param);
+                    var dt = Convert.ToDateTime(row[0]);
+                    var demand = Convert.ToDouble(row[1]);
+                    var ssParts = Convert.ToDouble(row[2]);
 
-                    using var reader = await cmd.ExecuteReaderAsync();
-                    while (await reader.ReadAsync())
-                    {
-                        var date = reader.GetDateTime(0);
-                        var demand = Convert.ToInt32(reader.GetValue(1));
-                        demandDict[date] = demand;
-                    }
-                }
-
-                // Get safety stock per day (historical)
-                var safetyDict = new Dictionary<DateTime, double>();
-                using (var cmd = conn.CreateCommand())
-                {
-                    cmd.CommandText = $@"
-                        SELECT UPLOADED_FROM_SOURCE, SAFETY_STOCK_NR_OF_PARTS
-                        FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED_HISTORICAL
-                        WHERE PART_NUMBER = @partNumber
-                        ORDER BY UPLOADED_FROM_SOURCE
-                    ";
-                    var param = cmd.CreateParameter();
-                    param.ParameterName = "@partNumber";
-                    param.Value = partNumber;
-                    cmd.Parameters.Add(param);
-
-                    using var reader = await cmd.ExecuteReaderAsync();
-                    while (await reader.ReadAsync())
-                    {
-                        var date = reader.GetDateTime(0);
-                        var stock = reader.IsDBNull(1) ? 0 : reader.GetDouble(1);
-                        safetyDict[date] = stock;
-                    }
-                }
-
-                // Merge dates from both series
-                var allDates = new SortedSet<DateTime>(demandDict.Keys);
-                foreach (var d in safetyDict.Keys) allDates.Add(d);
-                if (allDates.Count == 0) return;
-
-                // Forward-fill safety stock for each date
-                double lastStock = 0;
-                foreach (var date in allDates)
-                {
-                    int demand = demandDict.TryGetValue(date, out var d) ? d : 0;
-                    double stock = lastStock;
-                    if (safetyDict.TryGetValue(date, out var s))
-                        stock = s;
-                    lastStock = stock;
-
-                    Dates.Add(date);
-                    DateLabels.Add(date.ToString("yyyy-MM-dd"));
-                    ActualDemand.Add(demand);
+                    DateLabels.Add(dt.ToString("yyyy-MM-dd"));
                     ActualDemandSeries.Add(demand);
-                    SafetyStock.Add(stock);
-                    SafetyStockSeries.Add(stock);
+                    SafetyStockSeries.Add(ssParts);
                 }
+
+                Console.WriteLine($"Loaded {DateLabels.Count} rows for part {partNumber}");
             }
             catch (Exception ex)
             {
-                // Handle error (log, show message, etc.)
+                ErrorMessage = "Failed to load demand vs safety stock data.";
+                Console.WriteLine("LoadDataForPartAsync FAILED:");
+                Console.WriteLine(ex.ToString());
+                throw; // keep throwing while you debug
+            }
+            finally
+            {
+                await InvokeAsync(StateHasChanged);
             }
         }
+
+        // ---------- Aggregate: Lead Time Trend ----------
         private async Task LoadLeadTimeTrendAsync()
         {
             isLoadingLeadTime = true;
             LeadTimeMonthLabels.Clear();
             AvgLeadTimeData.Clear();
             MedianLeadTimeData.Clear();
+            ErrorMessage = null;
 
             try
             {
-                using var conn = new SnowflakeDbConnection();
-                conn.ConnectionString = GetSnowflakeConnectionString();
-                await conn.OpenAsync();
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = @"
+                var result = await Snowflake.QueryAsync(@"
 WITH filtered_parts AS (
   SELECT
       SITE,
@@ -269,14 +296,14 @@ SELECT
   MEDIAN(EFFECTIVE_SS_SHIFTS) AS MEDIAN_EFFECTIVE_SS_SHIFTS
 FROM monthly_snapshot
 GROUP BY 1
-ORDER BY 1";
+ORDER BY 1;
+");
 
-                using var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
+                foreach (DataRow row in result.Rows)
                 {
-                    var month = reader.GetDateTime(0);
-                    var avg = reader.IsDBNull(2) ? 0 : Convert.ToDouble(reader.GetValue(2));
-                    var median = reader.IsDBNull(3) ? 0 : Convert.ToDouble(reader.GetValue(3));
+                    var month = Convert.ToDateTime(row[0]);
+                    var avg = Convert.ToDouble(row[2]);
+                    var median = Convert.ToDouble(row[3]);
 
                     LeadTimeMonthLabels.Add(month.ToString("MMM yyyy"));
                     AvgLeadTimeData.Add(avg);
@@ -285,15 +312,18 @@ ORDER BY 1";
             }
             catch (Exception ex)
             {
-                // Handle error
+                Console.WriteLine("LoadLeadTimeTrendAsync error:");
+                Console.WriteLine(ex.ToString());
+                ErrorMessage = $"Failed to load lead time trend: {ex.Message}";
             }
             finally
             {
                 isLoadingLeadTime = false;
-                StateHasChanged();
+                await InvokeAsync(StateHasChanged);
             }
         }
 
+        // ---------- Aggregate: Quantity Trend ----------
         private async Task LoadQuantityTrendAsync()
         {
             isLoadingQuantity = true;
@@ -301,14 +331,11 @@ ORDER BY 1";
             TotalQuantityData.Clear();
             AvgQuantityData.Clear();
             MedianQuantityData.Clear();
+            ErrorMessage = null;
 
             try
             {
-                using var conn = new SnowflakeDbConnection();
-                conn.ConnectionString = GetSnowflakeConnectionString();
-                await conn.OpenAsync();
-                using var cmd = conn.CreateCommand();
-                cmd.CommandText = @"
+                var result = await Snowflake.QueryAsync(@"
 WITH filtered_parts AS (
   SELECT
       SITE,
@@ -349,15 +376,15 @@ SELECT
   MEDIAN(SS_PARTS) AS MEDIAN_SS_PARTS
 FROM monthly_snapshot
 GROUP BY 1
-ORDER BY 1";
+ORDER BY 1;
+");
 
-                using var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
+                foreach (DataRow row in result.Rows)
                 {
-                    var month = reader.GetDateTime(0);
-                    var total = reader.IsDBNull(2) ? 0 : Convert.ToDouble(reader.GetValue(2));
-                    var avg = reader.IsDBNull(3) ? 0 : Convert.ToDouble(reader.GetValue(3));
-                    var median = reader.IsDBNull(4) ? 0 : Convert.ToDouble(reader.GetValue(4));
+                    var month = Convert.ToDateTime(row[0]);
+                    var total = Convert.ToDouble(row[2]);
+                    var avg = Convert.ToDouble(row[3]);
+                    var median = Convert.ToDouble(row[4]);
 
                     QuantityMonthLabels.Add(month.ToString("MMM yyyy"));
                     TotalQuantityData.Add(total);
@@ -367,30 +394,15 @@ ORDER BY 1";
             }
             catch (Exception ex)
             {
-                // Handle error
+                Console.WriteLine("LoadQuantityTrendAsync error:");
+                Console.WriteLine(ex.ToString());
+                ErrorMessage = $"Failed to load quantity trend: {ex.Message}";
             }
             finally
             {
                 isLoadingQuantity = false;
-                StateHasChanged();
+                await InvokeAsync(StateHasChanged);
             }
         }
-
-        private string selectedPartNumber;
-        public string SelectedPartNumber
-        {
-            get => selectedPartNumber;
-            set
-            {
-                if (selectedPartNumber != value)
-                {
-                    selectedPartNumber = value;
-                    _ = OnPartNumberChanged(value);
-                }
-            }
-        }
-
     }
 }
-
-

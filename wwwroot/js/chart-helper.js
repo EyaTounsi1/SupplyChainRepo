@@ -457,4 +457,250 @@ window.drawPremiumCostChart = (canvasId, labels, costData2025, costData2026) => 
     });
 };
 
+// Stacked bar chart for GIT coverage split
+window.drawGitCoverageStackedBarChart = (canvasId, labels, onHandData, gitData) => {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    if (window[canvasId + 'Chart']) window[canvasId + 'Chart'].destroy();
 
+    window[canvasId + 'Chart'] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'On-Hand Coverage',
+                    data: onHandData,
+                    backgroundColor: '#88C0D0',
+                    borderColor: '#5E81AC',
+                    borderWidth: 1
+                },
+                {
+                    label: 'GIT Dependency',
+                    data: gitData,
+                    backgroundColor: '#EBCB8B',
+                    borderColor: '#D08770',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { boxWidth: 15, padding: 10 }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `${context.dataset.label}: ${context.raw.toFixed(1)} shifts`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    grid: { display: false },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                },
+                y: {
+                    stacked: true,
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Coverage (Shifts)'
+                    }
+                }
+            }
+        }
+    });
+};
+
+// Scatter chart for on-hand shifts vs GIT dependency
+window.drawGitDependencyScatterChart = (canvasId, scatterData) => {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    if (window[canvasId + 'Chart']) window[canvasId + 'Chart'].destroy();
+
+    // Determine risk zones for coloring
+    const dataWithColors = scatterData.map(point => {
+        let color;
+        if (point.x < 10 && point.y > 20) {
+            color = '#BF616A'; // High risk: low on-hand, high GIT dependency
+        } else if (point.x < 10) {
+            color = '#D08770'; // Medium risk: low on-hand
+        } else if (point.y > 20) {
+            color = '#EBCB8B'; // Medium risk: high GIT dependency
+        } else {
+            color = '#A3BE8C'; // Low risk
+        }
+        return {
+            x: point.x,
+            y: point.y,
+            backgroundColor: color
+        };
+    });
+
+    window[canvasId + 'Chart'] = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Parts',
+                data: dataWithColors,
+                backgroundColor: dataWithColors.map(d => d.backgroundColor),
+                borderColor: '#2E3440',
+                borderWidth: 1,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => [
+                            `On-Hand: ${context.raw.x.toFixed(1)} shifts`,
+                            `GIT Dependency: ${context.raw.y.toFixed(1)} shifts`
+                        ]
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'On-Hand Coverage (Shifts)'
+                    },
+                    beginAtZero: true
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'GIT Dependency (Shifts)'
+                    },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+};
+
+// Volatility by Planning Point chart (ranked bar chart)
+window.drawVolatilityByPlanningPointChart = (canvasId, labels, medianData, avgData) => {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    if (window[canvasId + 'Chart']) window[canvasId + 'Chart'].destroy();
+
+    window[canvasId + 'Chart'] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Median Daily Change',
+                    data: medianData,
+                    backgroundColor: '#D08770',
+                    borderColor: '#BF616A',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Avg Daily Change',
+                    data: avgData,
+                    backgroundColor: '#EBCB8B',
+                    borderColor: '#D08770',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { boxWidth: 15, padding: 10 }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `${context.dataset.label}: ${context.raw.toFixed(2)} shifts/day`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Absolute Daily Shift Change'
+                    }
+                },
+                y: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+};
+
+// Volatility Trend chart (line chart over time)
+window.drawVolatilityTrendChart = (canvasId, weekLabels, trendData) => {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    if (window[canvasId + 'Chart']) window[canvasId + 'Chart'].destroy();
+
+    window[canvasId + 'Chart'] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: weekLabels,
+            datasets: [{
+                label: 'Median Volatility',
+                data: trendData,
+                backgroundColor: 'rgba(191, 97, 106, 0.2)',
+                borderColor: '#BF616A',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: '#BF616A',
+                pointBorderColor: '#FFFFFF',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `Volatility: ${context.raw.toFixed(2)} shifts`
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Median Volatility (Shifts)'
+                    }
+                }
+            }
+        }
+    });
+};

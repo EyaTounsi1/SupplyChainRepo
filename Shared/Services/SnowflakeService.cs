@@ -27,7 +27,6 @@ namespace PartTracker.Shared.Services
             var warehouse = cfg["Warehouse"];
             var role = cfg["Role"];
             var database = cfg["Database"];
-            var schema = cfg["Schema"];
             var keyPath = cfg["PrivateKeyPath"];
             var passphrase = cfg["PrivateKeyPassphrase"];
 
@@ -75,7 +74,7 @@ namespace PartTracker.Shared.Services
             await conn.OpenAsync();
 
             // ✅ Make session context deterministic
-            await SetSessionContextAsync(conn, role, warehouse, database, schema);
+            await SetSessionContextAsync(conn, role, warehouse, database, null);
 
             using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;

@@ -10,6 +10,7 @@ public class AutomationDbContext : DbContext
     public DbSet<SpeedUpRequest> SpeedUpRequests { get; set; }
     public DbSet<Premium2025> Premiums2025 { get; set; }
     public DbSet<PartPrice> PartPrices { get; set; }
+    public DbSet<SafetyStockFormEntry> SafetyStockForms { get; set; }
 
     public AutomationDbContext(DbContextOptions<AutomationDbContext> options) : base(options) { }
 
@@ -33,5 +34,8 @@ public class AutomationDbContext : DbContext
         modelBuilder.Entity<PartPrice>()
             .ToTable("Part_Price")
             .HasKey(p => p.Id);
+        modelBuilder.Entity<SafetyStockFormEntry>()
+            .ToTable("safetystockform")
+            .HasKey(s => s.Id);
     }
 }
