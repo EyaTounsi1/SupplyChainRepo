@@ -327,10 +327,39 @@ namespace PartTracker.Components.Pages
     try
     {
         Console.WriteLine("=== Starting LoadPremiumCostTrends ===");
+        var startDate2024 = new DateTime(2024, 1, 1);
+        var endDate2024   = new DateTime(2024, 12, 31, 23, 59, 59);
         var startDate2025 = new DateTime(2025, 1, 1);
         var endDate2025   = new DateTime(2025, 12, 31, 23, 59, 59);
         var startDate2026 = new DateTime(2026, 1, 1);
         var endDate2026   = new DateTime(2026, 12, 31, 23, 59, 59);
+
+        // --- Fetch 2024 SEK data (Premiums2024) ---
+        var records2024 = await AutomationDbContext.Premiums2024
+            .Where(p => p.Date.HasValue
+                     && p.Date.Value >= startDate2024
+                     && p.Date.Value <= endDate2024)
+            .Where(p => p.TotalCostsSek.HasValue)
+            .Select(p => new { p.Date, p.TotalCostsSek })
+            .ToListAsync();
+
+        Console.WriteLine($"Records from 2024 (Premiums2024): {records2024.Count}");
+
+        var data2024 = records2024
+            .GroupBy(p => new { p.Date!.Value.Year, p.Date!.Value.Month })
+            .Select(g => new
+            {
+                Year  = g.Key.Year,
+                Month = g.Key.Month,
+                TotalCost = g.Sum(x => x.TotalCostsSek ?? 0m)
+            })
+            .ToList();
+
+        Console.WriteLine($"Grouped 2024 data: {data2024.Count} months");
+        foreach (var item in data2024)
+        {
+            Console.WriteLine($"  {item.Year}-{item.Month:D2}: {item.TotalCost:N2} SEK");
+        }
 
         // --- Fetch 2025 SEK data (Premiums2025) ---
         var records2025 = await AutomationDbContext.Premiums2025
@@ -408,16 +437,25 @@ namespace PartTracker.Components.Pages
             return match?.TotalCost ?? 0m;
         }).ToList();
 
-        // 2026 data for Jan-Dec 2026
+        // 2026 data: rolling comparison - for passed months use 2026, for future use 2024
+        var currentMonth = DateTime.Now.Month;
         premiumCostData2026 = months2026.Select(d =>
         {
-            var match = data2026.FirstOrDefault(x => x.Year == d.Year && x.Month == d.Month);
-            return match?.TotalCost ?? 0m;
+            var match2026 = data2026.FirstOrDefault(x => x.Year == d.Year && x.Month == d.Month);
+            var match2024 = data2024.FirstOrDefault(x => x.Year == 2024 && x.Month == d.Month);
+            if (d.Month < currentMonth)
+            {
+                return match2026?.TotalCost ?? 0m;
+            }
+            else
+            {
+                return match2024?.TotalCost ?? 0m;
+            }
         }).ToList();
 
         Console.WriteLine($"Loaded {premiumCostLabels.Count} premium cost timeline points (Jan - Dec)");
         Console.WriteLine($"2025 data count: {premiumCostData2025.Count}, Sum: {premiumCostData2025.Sum():N2}");
-        Console.WriteLine($"2026 data count: {premiumCostData2026.Count}, Sum: {premiumCostData2026.Sum():N2}");
+        Console.WriteLine($"2026/2024 rolling data count: {premiumCostData2026.Count}, Sum: {premiumCostData2026.Sum():N2}");
         Console.WriteLine($"premiumCostLabels.Any(): {premiumCostLabels.Any()}");
     }
     catch (Exception ex)
