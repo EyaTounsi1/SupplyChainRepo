@@ -32,8 +32,7 @@ public class AutomationDbContext : DbContext
             .ToTable("premiums2025")
             .HasKey(p => p.Id);
         modelBuilder.Entity<PartPrice>()
-            .ToTable("Part_Price")
-            .HasKey(p => p.Id);
+            .ToTable("Part_Price");
         modelBuilder.Entity<SafetyStockFormEntry>()
             .ToTable("safetystockform")
             .HasKey(s => s.Id);

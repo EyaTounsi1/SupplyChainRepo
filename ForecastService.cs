@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using PartTracker.Models;
+using PartTracker.Shared.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Data;
 
 namespace PartTracker;
 
@@ -9,18 +11,20 @@ public class ForecastService : IForecastService
 {
     private readonly AppDbContext _db;
     private readonly AutomationDbContext _automationDb;
+    private readonly SnowflakeService _snowflakeService;
 
-    public ForecastService(AppDbContext db, AutomationDbContext automationDb)
+    public ForecastService(AppDbContext db, AutomationDbContext automationDb, SnowflakeService snowflakeService)
     {
         _db = db;
         _automationDb = automationDb;
+        _snowflakeService = snowflakeService;
     }
 
     public async Task<List<ForecastItem>> GetForecastDataAsync()
     {
         // Load prices from MySQL automation database
         var priceMap = await _automationDb.PartPrices
-            .ToDictionaryAsync(p => new { p.Site, p.PartNumber }, p => p.StandardPrice);
+            .ToDictionaryAsync(p => p.PartNumber, p => p.StandardPrice);
 
         // Replace this SQL with your actual MySQL forecast script
         var sql = @"
@@ -495,17 +499,42 @@ ORDER BY  dt.total_capital_m_sek DESC,
 
         ";
 
-        var items = await _db.Set<ForecastItem>()
-            .FromSqlRaw(sql)
-            .ToListAsync();
+        // Execute query using SnowflakeService
+        var dataTable = await _snowflakeService.QueryAsync(sql);
+        
+        // Convert DataTable to List<ForecastItem>
+        var items = new List<ForecastItem>();
+        foreach (DataRow row in dataTable.Rows)
+        {
+            items.Add(new ForecastItem
+            {
+                Site = row["SITE"]?.ToString(),
+                Part_Number = row["PART_NUMBER"]?.ToString(),
+                Date = row["DATE"] != DBNull.Value ? Convert.ToDateTime(row["DATE"]) : DateTime.MinValue,
+                Git_Balance = row["GIT_BALANCE"] != DBNull.Value ? Convert.ToDecimal(row["GIT_BALANCE"]) : 0,
+                Wip_Balance = row["WIP_BALANCE"] != DBNull.Value ? Convert.ToDecimal(row["WIP_BALANCE"]) : 0,
+                Price = row["PRICE"] != DBNull.Value ? Convert.ToDecimal(row["PRICE"]) : 0,
+                Git_Value_Sek = row["GIT_VALUE_SEK"] != DBNull.Value ? Convert.ToDecimal(row["GIT_VALUE_SEK"]) : 0,
+                Wip_Value_Sek = row["WIP_VALUE_SEK"] != DBNull.Value ? Convert.ToDecimal(row["WIP_VALUE_SEK"]) : 0,
+                Git_Value_M_Sek = row["GIT_VALUE_M_SEK"] != DBNull.Value ? Convert.ToDecimal(row["GIT_VALUE_M_SEK"]) : 0,
+                Wip_Value_M_Sek = row["WIP_VALUE_M_SEK"] != DBNull.Value ? Convert.ToDecimal(row["WIP_VALUE_M_SEK"]) : 0,
+                Total_Capital_M_Sek = row["TOTAL_CAPITAL_M_SEK"] != DBNull.Value ? Convert.ToDecimal(row["TOTAL_CAPITAL_M_SEK"]) : 0,
+                Mfg_Supplier_Code = row["MFG_SUPPLIER_CODE"]?.ToString(),
+                Safety_Stock_Nr_Of_Parts = row["SAFETY_STOCK_NR_OF_PARTS"] != DBNull.Value ? Convert.ToDecimal(row["SAFETY_STOCK_NR_OF_PARTS"]) : null,
+                Safety_Stock_Lead_Time = row["SAFETY_STOCK_LEAD_TIME"] != DBNull.Value ? Convert.ToDecimal(row["SAFETY_STOCK_LEAD_TIME"]) : null,
+                Wip_Minus_Ss = row["WIP_MINUS_SS"] != DBNull.Value ? Convert.ToDecimal(row["WIP_MINUS_SS"]) : null,
+                Days_Until_Stockout = row["DAYS_UNTIL_STOCKOUT"] != DBNull.Value ? Convert.ToDecimal(row["DAYS_UNTIL_STOCKOUT"]) : null,
+                Capital_At_Risk_Sek = row["CAPITAL_AT_RISK_SEK"] != DBNull.Value ? Convert.ToDecimal(row["CAPITAL_AT_RISK_SEK"]) : null,
+                Ss_Deviation_Flag = row["SS_DEVIATION_FLAG"]?.ToString()
+            });
+        }
 
         // Post-process: Update prices from MySQL automation database
         foreach (var item in items)
         {
-            if (!string.IsNullOrEmpty(item.Site) && !string.IsNullOrEmpty(item.Part_Number))
+            if (!string.IsNullOrEmpty(item.Part_Number))
             {
-                var key = new { Site = (string?)item.Site, PartNumber = item.Part_Number };
-                if (priceMap.TryGetValue(key, out var mysqlPrice) && mysqlPrice > 0)
+                if (priceMap.TryGetValue(item.Part_Number, out var mysqlPrice) && mysqlPrice > 0)
                 {
                     item.Price = mysqlPrice;
                     
