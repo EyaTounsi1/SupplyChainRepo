@@ -41,8 +41,8 @@ WITH starting_wip_events AS (
         pis.AVAILABLE_INVENTORY AS quantity,
         0 AS git_impact,
         pis.AVAILABLE_INVENTORY AS wip_impact,
-        0 AS wip_value_m_sek,  -- Will be calculated from MySQL prices after query
-        NULL as price  -- Will be populated from MySQL Part_Price table
+        (pis.AVAILABLE_INVENTORY * pis.STANDARD_PRICE) / 1000000.0 AS wip_value_m_sek,
+        pis.STANDARD_PRICE AS price
     FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INVENTORY_IN_STOCK_AS_MANUFACTURED.PART_INVENTORY_IN_STOCK_AS_MANUFACTURED pis
     --- charleston site data is as of previous day
       WHERE pis.PRODUCTION_DAY =
@@ -275,7 +275,6 @@ all_events_filtered AS (
 
 -- ============================================================================
 -- STEP 6: ADD PRICES (only for events that don't have them yet)
--- Note: Prices will be populated from MySQL Part_Price table after query execution
 -- ============================================================================
 events_with_prices AS (
     SELECT
@@ -286,9 +285,13 @@ events_with_prices AS (
         e.quantity,
         e.git_impact,
         e.wip_impact,
-        -- Use price from event if present (Starting Balance), otherwise will be filled from MySQL
-        COALESCE(e.price, 0) AS price
+        -- Use price from event if present (Starting Balance), otherwise from part info
+        COALESCE(e.price, pi.STANDARD_PRICE, 0) AS price
     FROM all_events_filtered  e
+    LEFT JOIN MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INFORMATION_AS_MANUFACTURED.PART_INFORMATION_AS_MANUFACTURED pi
+        ON e.part_number = pi.PART_NUMBER
+        AND e.site = pi.SITE
+        AND e.price IS NULL
 ),
 
 -- ============================================================================
