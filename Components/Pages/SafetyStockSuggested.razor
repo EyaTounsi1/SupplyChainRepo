@@ -1,0 +1,254 @@
+@page "/safety-stock/suggested"
+@using Microsoft.EntityFrameworkCore
+@using PartTracker.Shared.Services
+@using System.Data
+@inject AppDbContext DbContext
+@inject SnowflakeService SnowflakeService
+
+<PageTitle>Suggested vs Actual Safety Stock</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Suggested vs Actual Safety Stock</MudText>
+
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Comparison Overview</MudText>
+
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="partNumber" Label="Part Number" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="mfgCode" Label="MFG Supplier Code" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadData" FullWidth="true" Class="mt-2">
+                    Load Data
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-4">@errorMessage</MudAlert>
+    }
+
+    @if (comparisonResults.Any())
+    {
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-3">Safety Stock Comparison</MudText>
+
+            <MudTable Items="@comparisonResults" Hover="true" Striped="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Site</MudTh>
+                    <MudTh>Planning Point</MudTh>
+                    <MudTh>Part Number</MudTh>
+                    <MudTh>MFG Code</MudTh>
+                    <MudTh>Actual Parts</MudTh>
+                    <MudTh>Suggested Parts</MudTh>
+                    <MudTh>Parts Difference</MudTh>
+                    <MudTh>Actual Lead Time</MudTh>
+                    <MudTh>Suggested Lead Time</MudTh>
+                    <MudTh>Lead Time Difference</MudTh>
+                    <MudTh>Reason</MudTh>
+                    <MudTh>Comments</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Site">@context.Site</MudTd>
+                    <MudTd DataLabel="Planning Point">@context.PlanningPoint</MudTd>
+                    <MudTd DataLabel="Part Number">@context.PartNumber</MudTd>
+                    <MudTd DataLabel="MFG Code">@context.MfgCode</MudTd>
+                    <MudTd DataLabel="Actual Parts">@context.ActualParts.ToString("N0")</MudTd>
+                    <MudTd DataLabel="Suggested Parts">@context.SuggestedParts.ToString("N0")</MudTd>
+                    <MudTd DataLabel="Parts Difference">
+                        <MudChip T="string" Color="@(context.PartsDifference > 0 ? Color.Warning : context.PartsDifference < 0 ? Color.Error : Color.Success)" Size="Size.Small">
+                            @context.PartsDifference.ToString("N0")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Actual Lead Time">@context.ActualLeadTime.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Suggested Lead Time">@context.SuggestedLeadTime.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Lead Time Difference">
+                        <MudChip T="string" Color="@(context.LeadTimeDifference > 0 ? Color.Warning : context.LeadTimeDifference < 0 ? Color.Error : Color.Success)" Size="Size.Small">
+                            @context.LeadTimeDifference.ToString("N2")
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Reason">
+                        <MudSelect T="string"
+                                   Value="@context.Reason"
+                                   ValueChanged="(value) => UpdateReason(context, value)"
+                                   Dense="true"
+                                   Class="min-width-200">
+                            <MudSelectItem T="string" Value="@("")">Select Reason</MudSelectItem>
+                            <MudSelectItem T="string" Value="Supplier / lead time constraints">Supplier / lead time constraints</MudSelectItem>
+                            <MudSelectItem T="string" Value="Demand change (ramp-up / ramp-down / seasonality)">Demand change (ramp-up / ramp-down / seasonality)</MudSelectItem>
+                            <MudSelectItem T="string" Value="Supply risk / shortages">Supply risk / shortages</MudSelectItem>
+                            <MudSelectItem T="string" Value="Transport or delivery instability">Transport or delivery instability</MudSelectItem>
+                            <MudSelectItem T="string" Value="MOQ / packaging constraints">MOQ / packaging constraints</MudSelectItem>
+                            <MudSelectItem T="string" Value="Space or storage limitations">Space or storage limitations</MudSelectItem>
+                            <MudSelectItem T="string" Value="Financial / inventory value target">Financial / inventory value target</MudSelectItem>
+                            <MudSelectItem T="string" Value="Obsolescence / end-of-life risk">Obsolescence / end-of-life risk</MudSelectItem>
+                            <MudSelectItem T="string" Value="Master data incorrect">Master data incorrect</MudSelectItem>
+                            <MudSelectItem T="string" Value="Dual sourcing / APC split">Dual sourcing / APC split</MudSelectItem>
+                            <MudSelectItem T="string" Value="Managed by upstream stock">Managed by upstream stock</MudSelectItem>
+                            <MudSelectItem T="string" Value="New part / engineering change">New part / engineering change</MudSelectItem>
+                            <MudSelectItem T="string" Value="Manual planner decision">Manual planner decision</MudSelectItem>
+                            <MudSelectItem T="string" Value="Other">Other</MudSelectItem>
+                        </MudSelect>
+                    </MudTd>
+                    <MudTd DataLabel="Comments">
+                        <MudTextField T="string"
+                                      Value="@context.Comments"
+                                      ValueChanged="(value) => UpdateComments(context, value)"
+                                      Variant="Variant.Outlined"
+                                      Dense="true"
+                                      Class="min-width-200" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    private string partNumber = "";
+    private string mfgCode = "";
+    private List<SafetyStockComparisonResult> comparisonResults = new();
+    private string errorMessage = "";
+
+    private async Task LoadData()
+    {
+        comparisonResults.Clear();
+        errorMessage = "";
+
+        try
+        {
+            // Query actual safety stock from SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
+            string actualSql = @"
+SELECT
+  SITE,
+  PLANNING_POINT,
+  PART_NUMBER,
+  MFG_SUPPLIER_CODE,
+  SAFETY_STOCK_NR_OF_PARTS,
+  SAFETY_STOCK_LEAD_TIME
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
+WHERE SITE = 'VCT'";
+
+            if (!string.IsNullOrWhiteSpace(partNumber))
+            {
+                actualSql += $" AND PART_NUMBER = '{partNumber}'";
+            }
+            if (!string.IsNullOrWhiteSpace(mfgCode))
+            {
+                actualSql += $" AND MFG_SUPPLIER_CODE = '{mfgCode}'";
+            }
+
+            DataTable actualTable = await SnowflakeService.QueryAsync(actualSql);
+
+            // Query suggested safety stock from INVENTORY_MATRIX
+            string suggestedSql = @"
+SELECT
+  FACTORY,
+  PLANNING_POINT,
+  PART_NUMBER,
+  SUPPLIER_MFG_CODE,
+  SSS_NUMBER_OF_PARTS,
+  SSS_SHIFTS
+FROM MANUFACTURING_BUSINESS_DATA_PRODUCTS.INVENTORY_BY_PURPOSE.INVENTORY_MATRIX
+WHERE FACTORY = 'VCT'";
+
+            if (!string.IsNullOrWhiteSpace(partNumber))
+            {
+                suggestedSql += $" AND PART_NUMBER = '{partNumber}'";
+            }
+            if (!string.IsNullOrWhiteSpace(mfgCode))
+            {
+                suggestedSql += $" AND SUPPLIER_MFG_CODE = '{mfgCode}'";
+            }
+
+            DataTable suggestedTable = await SnowflakeService.QueryAsync(suggestedSql);
+
+            // Create dictionaries for quick lookup
+            var actualDict = new Dictionary<string, (float Parts, float LeadTime)>();
+            foreach (DataRow row in actualTable.Rows)
+            {
+                var key = $"{row["SITE"]}|{row["PLANNING_POINT"]}|{row["PART_NUMBER"]}|{row["MFG_SUPPLIER_CODE"]}";
+                var parts = row["SAFETY_STOCK_NR_OF_PARTS"] != DBNull.Value ? Convert.ToSingle(row["SAFETY_STOCK_NR_OF_PARTS"]) : 0f;
+                var leadTime = row["SAFETY_STOCK_LEAD_TIME"] != DBNull.Value ? Convert.ToSingle(row["SAFETY_STOCK_LEAD_TIME"]) : 0f;
+                actualDict[key] = (parts, leadTime);
+            }
+
+            var suggestedDict = new Dictionary<string, (float Parts, float LeadTime)>();
+            foreach (DataRow row in suggestedTable.Rows)
+            {
+                var key = $"{row["FACTORY"]}|{row["PLANNING_POINT"]}|{row["PART_NUMBER"]}|{row["SUPPLIER_MFG_CODE"]}";
+                var parts = row["SSS_NUMBER_OF_PARTS"] != DBNull.Value ? Convert.ToSingle(row["SSS_NUMBER_OF_PARTS"]) : 0f;
+                var leadTime = row["SSS_SHIFTS"] != DBNull.Value ? Convert.ToSingle(row["SSS_SHIFTS"]) : 0f;
+                suggestedDict[key] = (parts, leadTime);
+            }
+
+            // Combine the data
+            var allKeys = new HashSet<string>();
+            allKeys.UnionWith(actualDict.Keys);
+            allKeys.UnionWith(suggestedDict.Keys);
+
+            foreach (var key in allKeys)
+            {
+                var parts = key.Split('|');
+                var site = parts[0];
+                var planningPoint = parts[1];
+                var partNum = parts[2];
+                var mfgSupplierCode = parts[3];
+
+                actualDict.TryGetValue(key, out var actual);
+                suggestedDict.TryGetValue(key, out var suggested);
+
+                comparisonResults.Add(new SafetyStockComparisonResult
+                {
+                    Site = site,
+                    PlanningPoint = planningPoint,
+                    PartNumber = partNum,
+                    MfgCode = mfgSupplierCode,
+                    ActualParts = actual.Parts,
+                    SuggestedParts = suggested.Parts,
+                    PartsDifference = suggested.Parts - actual.Parts,
+                    ActualLeadTime = actual.LeadTime,
+                    SuggestedLeadTime = suggested.LeadTime,
+                    LeadTimeDifference = suggested.LeadTime - actual.LeadTime,
+                    Reason = "",
+                    Comments = ""
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading data: {ex.Message}";
+        }
+    }
+
+    private void UpdateReason(SafetyStockComparisonResult item, string? value)
+    {
+        item.Reason = value ?? "";
+    }
+
+    private void UpdateComments(SafetyStockComparisonResult item, string? value)
+    {
+        item.Comments = value ?? "";
+    }
+
+    public class SafetyStockComparisonResult
+    {
+        public string Site { get; set; } = "";
+        public string PlanningPoint { get; set; } = "";
+        public string PartNumber { get; set; } = "";
+        public string MfgCode { get; set; } = "";
+        public float ActualParts { get; set; }
+        public float SuggestedParts { get; set; }
+        public float PartsDifference { get; set; }
+        public float ActualLeadTime { get; set; }
+        public float SuggestedLeadTime { get; set; }
+        public float LeadTimeDifference { get; set; }
+        public string Reason { get; set; } = "";
+        public string Comments { get; set; } = "";
+    }
+}

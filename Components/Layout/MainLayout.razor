@@ -1,7 +1,7 @@
 ﻿@inherits LayoutComponentBase
 @using MudBlazor
 
-<MudThemeProvider IsDarkMode="false" />
+<MudThemeProvider Theme="MyTheme" IsDarkMode="false" />
 <MudSnackbarProvider />
 <MudDialogProvider />
 <MudPopoverProvider />
@@ -16,6 +16,7 @@
             
             <MudNavGroup Title="Safety Stock" Icon="@Icons.Material.Filled.Inventory" Expanded="true">
                 <MudNavLink Href="/safety-stock">Overview</MudNavLink>
+                <MudNavLink Href="/safety-stock/suggested">Suggested vs Actual</MudNavLink>
                 <MudNavLink Href="/safetystockform">Safety Stock from form</MudNavLink>
                 <MudNavLink Href="/safety-stock/simulation">Simulation</MudNavLink>
                 <MudNavLink Href="/safety-stock/history">Historical Variation</MudNavLink>
@@ -45,6 +46,14 @@
 
 @code {
     private bool drawerOpen = true;
+
+    private MudTheme MyTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#00008B"  // Dark blue
+        }
+    };
 
     private void ToggleDrawer()
     {
