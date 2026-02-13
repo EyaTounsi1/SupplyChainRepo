@@ -79,20 +79,20 @@
                                    Dense="true"
                                    Class="min-width-200">
                             <MudSelectItem T="string" Value="@("")">Select Reason</MudSelectItem>
-                            <MudSelectItem T="string" Value="Supplier / lead time constraints">Supplier / lead time constraints</MudSelectItem>
-                            <MudSelectItem T="string" Value="Demand change (ramp-up / ramp-down / seasonality)">Demand change (ramp-up / ramp-down / seasonality)</MudSelectItem>
-                            <MudSelectItem T="string" Value="Supply risk / shortages">Supply risk / shortages</MudSelectItem>
-                            <MudSelectItem T="string" Value="Transport or delivery instability">Transport or delivery instability</MudSelectItem>
-                            <MudSelectItem T="string" Value="MOQ / packaging constraints">MOQ / packaging constraints</MudSelectItem>
-                            <MudSelectItem T="string" Value="Space or storage limitations">Space or storage limitations</MudSelectItem>
-                            <MudSelectItem T="string" Value="Financial / inventory value target">Financial / inventory value target</MudSelectItem>
-                            <MudSelectItem T="string" Value="Obsolescence / end-of-life risk">Obsolescence / end-of-life risk</MudSelectItem>
-                            <MudSelectItem T="string" Value="Master data incorrect">Master data incorrect</MudSelectItem>
-                            <MudSelectItem T="string" Value="Dual sourcing / APC split">Dual sourcing / APC split</MudSelectItem>
-                            <MudSelectItem T="string" Value="Managed by upstream stock">Managed by upstream stock</MudSelectItem>
-                            <MudSelectItem T="string" Value="New part / engineering change">New part / engineering change</MudSelectItem>
-                            <MudSelectItem T="string" Value="Manual planner decision">Manual planner decision</MudSelectItem>
-                            <MudSelectItem T="string" Value="Other">Other</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Supplier / lead time constraints")">Supplier / lead time constraints</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Demand change (ramp-up / ramp-down / seasonality)")">Demand change (ramp-up / ramp-down / seasonality)</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Supply risk / shortages")">Supply risk / shortages</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Transport or delivery instability")">Transport or delivery instability</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("MOQ / packaging constraints")">MOQ / packaging constraints</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Space or storage limitations")">Space or storage limitations</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Financial / inventory value target")">Financial / inventory value target</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Obsolescence / end-of-life risk")">Obsolescence / end-of-life risk</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Master data incorrect")">Master data incorrect</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Dual sourcing / APC split")">Dual sourcing / APC split</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Managed by upstream stock")">Managed by upstream stock</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("New part / engineering change")">New part / engineering change</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Manual planner decision")">Manual planner decision</MudSelectItem>
+                            <MudSelectItem T="string" Value="@("Other")">Other</MudSelectItem>
                         </MudSelect>
                     </MudTd>
                     <MudTd DataLabel="Comments">
@@ -100,7 +100,6 @@
                                       Value="@context.Comments"
                                       ValueChanged="(value) => UpdateComments(context, value)"
                                       Variant="Variant.Outlined"
-                                      Dense="true"
                                       Class="min-width-200" />
                     </MudTd>
                 </RowTemplate>
