@@ -13,6 +13,11 @@
     <MudPaper Class="pa-4 mb-4">
         <MudText Typo="Typo.h6" Class="mb-3">Simulation Parameters</MudText>
         
+        <MudRadioGroup @bind-Value="simulationMode" Class="mb-3">
+            <MudRadio T="string" Option="@("Parts")">Simulate by Number of Parts</MudRadio>
+            <MudRadio T="string" Option="@("LeadTime")">Simulate by Lead Time</MudRadio>
+        </MudRadioGroup>
+        
         <MudGrid>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="partNumber" Label="Part Number" Variant="Variant.Outlined" />
@@ -21,7 +26,14 @@
                 <MudTextField @bind-Value="mfgCode" Label="MFG Supplier Code" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudNumericField @bind-Value="newSafetyStock" Label="New Safety Stock (Nr of Parts)" Variant="Variant.Outlined" />
+                @if (simulationMode == "Parts")
+                {
+                    <MudNumericField @bind-Value="newSafetyStockParts" Label="New Safety Stock (Nr of Parts)" Variant="Variant.Outlined" />
+                }
+                else
+                {
+                    <MudNumericField @bind-Value="newSafetyStockLeadTime" Label="New Safety Stock Lead Time" Variant="Variant.Outlined" />
+                }
             </MudItem>
             <MudItem xs="12">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RunSimulation" FullWidth="true" Class="mt-2">
@@ -47,11 +59,20 @@
                     <MudTh>Planning Point</MudTh>
                     <MudTh>Part Number</MudTh>
                     <MudTh>MFG Code</MudTh>
-                    <MudTh>Current Safety Stock</MudTh>
-                    <MudTh>Standard Price</MudTh>
-                    <MudTh>Currency</MudTh>
-                    <MudTh>Current Value</MudTh>
-                    <MudTh>New Value</MudTh>
+                    @if (simulationMode == "Parts")
+                    {
+                        <MudTh>Current Safety Stock</MudTh>
+                        <MudTh>Standard Price</MudTh>
+                        <MudTh>Currency</MudTh>
+                        <MudTh>Current Value</MudTh>
+                        <MudTh>New Value</MudTh>
+                    }
+                    else
+                    {
+                        <MudTh>Current Safety Stock Lead Time</MudTh>
+                        <MudTh>Current Cost</MudTh>
+                        <MudTh>New Cost</MudTh>
+                    }
                     <MudTh>Savings</MudTh>
                 </HeaderContent>
                 <RowTemplate>
@@ -59,11 +80,20 @@
                     <MudTd DataLabel="Planning Point">@context.PlanningPoint</MudTd>
                     <MudTd DataLabel="Part Number">@context.PartNumber</MudTd>
                     <MudTd DataLabel="MFG Code">@context.MfgCode</MudTd>
-                    <MudTd DataLabel="Current Safety Stock">@context.CurrentSafetyStock</MudTd>
-                    <MudTd DataLabel="Standard Price">@context.StandardPrice.ToString("N2")</MudTd>
-                    <MudTd DataLabel="Currency">@context.Currency</MudTd>
-                    <MudTd DataLabel="Current Value">@context.CurrentValue.ToString("N2")</MudTd>
-                    <MudTd DataLabel="New Value">@context.NewValue.ToString("N2")</MudTd>
+                    @if (simulationMode == "Parts")
+                    {
+                        <MudTd DataLabel="Current Safety Stock">@context.CurrentSafetyStock</MudTd>
+                        <MudTd DataLabel="Standard Price">@context.StandardPrice.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Currency">@context.Currency</MudTd>
+                        <MudTd DataLabel="Current Value">@context.CurrentValue.ToString("N2")</MudTd>
+                        <MudTd DataLabel="New Value">@context.NewValue.ToString("N2")</MudTd>
+                    }
+                    else
+                    {
+                        <MudTd DataLabel="Current Safety Stock Lead Time">@context.CurrentSafetyStockLeadTime</MudTd>
+                        <MudTd DataLabel="Current Cost">@context.CurrentCost.ToString("N2")</MudTd>
+                        <MudTd DataLabel="New Cost">@context.NewCost.ToString("N2")</MudTd>
+                    }
                     <MudTd DataLabel="Savings">
                         <MudChip T="string" Color="@(context.Savings > 0 ? Color.Success : Color.Error)" Size="Size.Small">
                             @context.Savings.ToString("N2")
@@ -78,7 +108,9 @@
 @code {
     private string partNumber = "";
     private string mfgCode = "";
-    private int newSafetyStock = 0;
+    private string simulationMode = "Parts";
+    private int newSafetyStockParts = 0;
+    private decimal newSafetyStockLeadTime = 0;
     private List<SafetyStockSimulationResult> simulationResults = new();
     private string errorMessage = "";
 
@@ -87,8 +119,13 @@
         simulationResults.Clear();
         errorMessage = "";
         
-        // Load prices from Snowflake PART_INFORMATION_AS_MANUFACTURED table
-        string priceSql = @"
+        Dictionary<(string Site, string PartNumber), (decimal StandardPrice, string Currency)>? priceMap = null;
+        Dictionary<(string Site, string PartNumber), (decimal TiedUpCapital, decimal LeadTime)>? costMap = null;
+        
+        if (simulationMode == "Parts")
+        {
+            // Load prices from Snowflake PART_INFORMATION_AS_MANUFACTURED table
+            string priceSql = @"
 SELECT
   SITE,
   PART_NUMBER,
@@ -96,18 +133,44 @@ SELECT
   CURRENCY
 FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INFORMATION_AS_MANUFACTURED.PART_INFORMATION_AS_MANUFACTURED
 WHERE STANDARD_PRICE IS NOT NULL";
-        
-        DataTable priceTable = await SnowflakeService.QueryAsync(priceSql);
-        var priceMap = new Dictionary<(string Site, string PartNumber), (decimal StandardPrice, string Currency)>();
-        
-        foreach (DataRow priceRow in priceTable.Rows)
-        {
-            var site = priceRow["SITE"]?.ToString() ?? "";
-            var partNum = priceRow["PART_NUMBER"]?.ToString() ?? "";
-            var standardPrice = priceRow["STANDARD_PRICE"] != DBNull.Value ? Convert.ToDecimal(priceRow["STANDARD_PRICE"]) : 0m;
-            var currency = priceRow["CURRENCY"]?.ToString() ?? "";
             
-            priceMap[(site, partNum)] = (standardPrice, currency);
+            DataTable priceTable = await SnowflakeService.QueryAsync(priceSql);
+            priceMap = new Dictionary<(string Site, string PartNumber), (decimal StandardPrice, string Currency)>();
+            
+            foreach (DataRow priceRow in priceTable.Rows)
+            {
+                var site = priceRow["SITE"]?.ToString() ?? "";
+                var partNum = priceRow["PART_NUMBER"]?.ToString() ?? "";
+                var standardPrice = priceRow["STANDARD_PRICE"] != DBNull.Value ? Convert.ToDecimal(priceRow["STANDARD_PRICE"]) : 0m;
+                var currency = priceRow["CURRENCY"]?.ToString() ?? "";
+                
+                priceMap[(site, partNum)] = (standardPrice, currency);
+            }
+        }
+        else
+        {
+            // Load cost data from Snowflake GIT_CALL_ORDER table
+            string costSql = @"
+SELECT
+  SITE,
+  PART_NUMBER,
+  TIED_UP_CAPITAL,
+  LEAD_TIME
+FROM MANUFACTURING_BUSINESS_DATA_PRODUCTS.INVENTORY_BY_PURPOSE.GIT_CALL_ORDER
+WHERE TIED_UP_CAPITAL IS NOT NULL AND LEAD_TIME IS NOT NULL";
+            
+            DataTable costTable = await SnowflakeService.QueryAsync(costSql);
+            costMap = new Dictionary<(string Site, string PartNumber), (decimal TiedUpCapital, decimal LeadTime)>();
+            
+            foreach (DataRow costRow in costTable.Rows)
+            {
+                var site = costRow["SITE"]?.ToString() ?? "";
+                var partNum = costRow["PART_NUMBER"]?.ToString() ?? "";
+                var tiedUpCapital = costRow["TIED_UP_CAPITAL"] != DBNull.Value ? Convert.ToDecimal(costRow["TIED_UP_CAPITAL"]) : 0m;
+                var leadTime = costRow["LEAD_TIME"] != DBNull.Value ? Convert.ToDecimal(costRow["LEAD_TIME"]) : 0m;
+                
+                costMap[(site, partNum)] = (tiedUpCapital, leadTime);
+            }
         }
         
         string sql = @"
@@ -115,8 +178,20 @@ SELECT
   ss.SITE,
   ss.PLANNING_POINT,
   ss.PART_NUMBER,
-  ss.MFG_SUPPLIER_CODE,
-  ss.SAFETY_STOCK_NR_OF_PARTS,
+  ss.MFG_SUPPLIER_CODE,";
+        
+        if (simulationMode == "Parts")
+        {
+            sql += @"
+  ss.SAFETY_STOCK_LEAD_TIME,";
+        }
+        else
+        {
+            sql += @"
+  ss.SAFETY_STOCK_LEAD_TIME,";
+        }
+        
+        sql += @"
   ss.UPLOADED_FROM_SOURCE AS SS_UPLOADED_FROM_SOURCE
 FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED ss
 WHERE 1=1 AND ss.SITE = 'VCT'";
@@ -140,35 +215,70 @@ WHERE 1=1 AND ss.SITE = 'VCT'";
             {
                 var site = row["SITE"]?.ToString() ?? "";
                 var partNum = row["PART_NUMBER"]?.ToString() ?? "";
-                var currentStock = Convert.ToInt32(row["SAFETY_STOCK_NR_OF_PARTS"]);
                 
-                // Get price from Snowflake PART_INFORMATION_AS_MANUFACTURED table
-                decimal price = 0;
-                string currency = "";
-                
-                if (priceMap.TryGetValue((site, partNum), out var priceInfo))
+                if (simulationMode == "Parts")
                 {
-                    price = priceInfo.StandardPrice;
-                    currency = priceInfo.Currency;
+                    var currentStock = Convert.ToInt32(row["SAFETY_STOCK_LEAD_TIME"]);
+                    
+                    // Get price from Snowflake PART_INFORMATION_AS_MANUFACTURED table
+                    decimal price = 0;
+                    string currency = "";
+                    
+                    if (priceMap!.TryGetValue((site, partNum), out var priceInfo))
+                    {
+                        price = priceInfo.StandardPrice;
+                        currency = priceInfo.Currency;
+                    }
+                    
+                    var currentValue = currentStock * price;
+                    var newValue = newSafetyStockParts * price;
+                    var savings = currentValue - newValue;
+                    
+                    simulationResults.Add(new SafetyStockSimulationResult
+                    {
+                        Site = site,
+                        PlanningPoint = row["PLANNING_POINT"]?.ToString() ?? "",
+                        PartNumber = partNum,
+                        MfgCode = row["MFG_SUPPLIER_CODE"]?.ToString() ?? "",
+                        CurrentSafetyStock = currentStock,
+                        StandardPrice = price,
+                        Currency = currency,
+                        CurrentValue = currentValue,
+                        NewValue = newValue,
+                        Savings = savings
+                    });
                 }
-                
-                var currentValue = currentStock * price;
-                var newValue = newSafetyStock * price;
-                var savings = currentValue - newValue;
-                
-                simulationResults.Add(new SafetyStockSimulationResult
+                else
                 {
-                    Site = site,
-                    PlanningPoint = row["PLANNING_POINT"]?.ToString() ?? "",
-                    PartNumber = partNum,
-                    MfgCode = row["MFG_SUPPLIER_CODE"]?.ToString() ?? "",
-                    CurrentSafetyStock = currentStock,
-                    StandardPrice = price,
-                    Currency = currency,
-                    CurrentValue = currentValue,
-                    NewValue = newValue,
-                    Savings = savings
-                });
+                    var currentLeadTime = row["SAFETY_STOCK_LEAD_TIME"] != DBNull.Value ? Convert.ToDecimal(row["SAFETY_STOCK_LEAD_TIME"]) : 0m;
+                    
+                    // Get cost data from GIT_CALL_ORDER table
+                    decimal tiedUpCapital = 0;
+                    decimal leadTime = 0;
+                    
+                    if (costMap!.TryGetValue((site, partNum), out var costInfo))
+                    {
+                        tiedUpCapital = costInfo.TiedUpCapital;
+                        leadTime = costInfo.LeadTime;
+                    }
+                    
+                    // Cost per shift = TIED_UP_CAPITAL / (LEAD_TIME * 3)
+                    var currentCost = leadTime != 0 ? tiedUpCapital / (leadTime * 3) : 0;
+                    var newCost = newSafetyStockLeadTime != 0 ? tiedUpCapital / (newSafetyStockLeadTime * 3) : 0;
+                    var savings = currentCost - newCost;
+                    
+                    simulationResults.Add(new SafetyStockSimulationResult
+                    {
+                        Site = site,
+                        PlanningPoint = row["PLANNING_POINT"]?.ToString() ?? "",
+                        PartNumber = partNum,
+                        MfgCode = row["MFG_SUPPLIER_CODE"]?.ToString() ?? "",
+                        CurrentSafetyStockLeadTime = currentLeadTime,
+                        CurrentCost = currentCost,
+                        NewCost = newCost,
+                        Savings = savings
+                    });
+                }
             }
         }
         catch (Exception ex)
@@ -183,11 +293,17 @@ WHERE 1=1 AND ss.SITE = 'VCT'";
         public string PlanningPoint { get; set; } = "";
         public string PartNumber { get; set; } = "";
         public string MfgCode { get; set; } = "";
+        // For Parts mode
         public int CurrentSafetyStock { get; set; }
         public decimal StandardPrice { get; set; }
         public string Currency { get; set; } = "";
         public decimal CurrentValue { get; set; }
         public decimal NewValue { get; set; }
+        // For Lead Time mode
+        public decimal CurrentSafetyStockLeadTime { get; set; }
+        public decimal CurrentCost { get; set; }
+        public decimal NewCost { get; set; }
+        // Common
         public decimal Savings { get; set; }
     }
 }

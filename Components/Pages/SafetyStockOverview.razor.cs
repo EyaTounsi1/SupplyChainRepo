@@ -40,7 +40,7 @@ namespace PartTracker.Components.Pages
         public List<MudBlazor.ChartSeries> ChartDatasets => new()
         {
             new MudBlazor.ChartSeries { Name = "Actual Demand", Data = ActualDemandSeries.ToArray() },
-            new MudBlazor.ChartSeries { Name = "Safety Stock (Parts)", Data = SafetyStockSeries.ToArray() }
+            new MudBlazor.ChartSeries { Name = "Safety Stock (Shifts)", Data = SafetyStockSeries.ToArray() }
         };
 
         // ---------- Lead Time trend chart ----------
