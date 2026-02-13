@@ -140,7 +140,7 @@ namespace PartTracker.Components.Pages
                     SELECT DISTINCT PART_NUMBER
                     FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_CONSUMPTION_AS_MANUFACTURED.PART_CONSUMPTION_AS_MANUFACTURED
                     WHERE PART_NUMBER IS NOT NULL
-                    ORDER BY PART_NUMBER
+                    ORDER BY PART_NUMBER DESC
                     LIMIT 1000
                 ");
 

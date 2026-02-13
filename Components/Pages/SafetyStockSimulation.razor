@@ -205,7 +205,7 @@ WHERE 1=1 AND ss.SITE = 'VCT'";
             sql += $" AND ss.MFG_SUPPLIER_CODE = '{mfgCode}'";
         }
 
-        sql += " ORDER BY ss.UPLOADED_FROM_SOURCE DESC";
+        sql += " ORDER BY ss.PART_NUMBER DESC";
 
         try
         {
