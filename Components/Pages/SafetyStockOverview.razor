@@ -25,6 +25,18 @@
             }
         </MudSelect>
 
+        <MudSelect T="string"
+                   Label="Time Period Filter"
+                   Value="@SelectedTimeFilter"
+                   ValueChanged="OnTimeFilterChanged"
+                   Dense="true"
+                   Class="mt-3">
+            <MudSelectItem T="string" Value="All">All Time</MudSelectItem>
+            <MudSelectItem T="string" Value="2024">2024</MudSelectItem>
+            <MudSelectItem T="string" Value="2025">2025</MudSelectItem>
+            <MudSelectItem T="string" Value="LastQuarter">Last Quarter</MudSelectItem>
+        </MudSelect>
+
         <MudText Class="mt-2" Typo="Typo.caption">
             Labels: @DateLabels.Count | Demand: @ActualDemandSeries.Count | Safety: @SafetyStockSeries.Count
         </MudText>

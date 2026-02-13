@@ -29,6 +29,7 @@ namespace PartTracker.Components.Pages
         // ---------- Part picker ----------
         public List<string> PartNumbers { get; set; } = new();
         public string SelectedPartNumber { get; set; } = string.Empty;
+        public string SelectedTimeFilter { get; set; } = "All";
 
         // ---------- Demand vs Safety Stock chart ----------
         public List<string> DateLabels { get; set; } = new();
@@ -103,6 +104,25 @@ namespace PartTracker.Components.Pages
             await InvokeAsync(StateHasChanged);
 
             await LoadDataForPartAsync(partNumber);
+
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        // Call this from your .razor on time filter change (ValueChanged)
+        public async Task OnTimeFilterChanged(string? value)
+        {
+            var timeFilter = value?.Trim() ?? "All";
+            SelectedTimeFilter = timeFilter;
+
+            if (string.IsNullOrWhiteSpace(SelectedPartNumber))
+                return;
+
+            isLoading = true;
+            ErrorMessage = null;
+            await InvokeAsync(StateHasChanged);
+
+            await LoadDataForPartAsync(SelectedPartNumber);
 
             isLoading = false;
             await InvokeAsync(StateHasChanged);
@@ -203,11 +223,27 @@ bounds AS (
       COALESCE((SELECT MAX(DT) FROM ss),     '1900-01-01'::DATE)
     ) AS MAX_DT
 ),
+filtered_bounds AS (
+  SELECT
+    CASE 
+      WHEN '{SelectedTimeFilter}' = '2024' THEN GREATEST(MIN_DT, '2024-01-01'::DATE)
+      WHEN '{SelectedTimeFilter}' = '2025' THEN GREATEST(MIN_DT, '2025-01-01'::DATE)
+      WHEN '{SelectedTimeFilter}' = 'LastQuarter' THEN GREATEST(MIN_DT, DATEADD(month, -3, CURRENT_DATE()))
+      ELSE MIN_DT
+    END AS FILTERED_MIN_DT,
+    CASE 
+      WHEN '{SelectedTimeFilter}' = '2024' THEN LEAST(MAX_DT, '2024-12-31'::DATE)
+      WHEN '{SelectedTimeFilter}' = '2025' THEN LEAST(MAX_DT, '2025-12-31'::DATE)
+      WHEN '{SelectedTimeFilter}' = 'LastQuarter' THEN LEAST(MAX_DT, CURRENT_DATE())
+      ELSE MAX_DT
+    END AS FILTERED_MAX_DT
+  FROM bounds
+),
 spine AS (
-  SELECT DATEADD(day, seq4(), b.MIN_DT) AS DT, b.MIN_DT, b.MAX_DT
-  FROM bounds b,
+  SELECT DATEADD(day, seq4(), fb.FILTERED_MIN_DT) AS DT, fb.FILTERED_MIN_DT, fb.FILTERED_MAX_DT
+  FROM filtered_bounds fb,
        TABLE(GENERATOR(ROWCOUNT => 10000))
-  WHERE DATEADD(day, seq4(), b.MIN_DT) <= b.MAX_DT
+  WHERE DATEADD(day, seq4(), fb.FILTERED_MIN_DT) <= fb.FILTERED_MAX_DT
 )
 SELECT
   s.DT,
