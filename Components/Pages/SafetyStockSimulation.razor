@@ -281,6 +281,9 @@ WHERE 1=1 AND ss.SITE = 'VCT'";
                 var site = row["SITE"]?.ToString() ?? "";
                 var partNum = row["PART_NUMBER"]?.ToString() ?? "";
                 
+                decimal annualSavings = 0;
+                decimal savings = 0;
+                
                 if (simulationMode == "Parts")
                 {
                     var currentStock = Convert.ToInt32(row["SAFETY_STOCK_LEAD_TIME"]);
@@ -298,8 +301,8 @@ WHERE 1=1 AND ss.SITE = 'VCT'";
                     
                     var currentValue = currentStock * price;
                     var newValue = newSafetyStockParts * price;
-                    var annualSavings = currentValue - newValue;
-                    var savings = annualSavings * GetTimeMultiplier();
+                    annualSavings = currentValue - newValue;
+                    savings = annualSavings * GetTimeMultiplier();
                     
                     simulationResults.Add(new SafetyStockSimulationResult
                     {
@@ -318,24 +321,27 @@ WHERE 1=1 AND ss.SITE = 'VCT'";
                 }
                 else
                 {
-                    var currentLeadTime = row["SAFETY_STOCK_LEAD_TIME"] != DBNull.Value ? Convert.ToDecimal(row["SAFETY_STOCK_LEAD_TIME"]) : 0m;
-                    
+                    var currentStock = Convert.ToInt32(row["SAFETY_STOCK_LEAD_TIME"]);
+
                     // Get cost data from GIT_CALL_ORDER table
                     decimal tiedUpCapital = 0;
                     decimal leadTime = 0;
-                    
+
                     var costKey = $"{site}|{partNum}";
                     if (costMap!.TryGetValue(costKey, out var costInfo))
                     {
                         tiedUpCapital = costInfo.TiedUpCapital;
                         leadTime = costInfo.LeadTime;
                     }
-                    
-                    // Cost per shift = TIED_UP_CAPITAL / (LEAD_TIME * 3)
-                    var currentCost = leadTime != 0 ? tiedUpCapital / (leadTime * 3) : 0;
-                    var newCost = newSafetyStockLeadTime != 0 ? tiedUpCapital / (newSafetyStockLeadTime * 3) : 0;
-                    var annualSavings = currentCost - newCost;
-                    var savings = annualSavings * GetTimeMultiplier();
+
+                    // Calculate carrying cost per unit per year
+                    // Assuming leadTime is in weeks, convert to annual
+                    var carryingCostPerUnitPerYear = leadTime > 0 ? tiedUpCapital / leadTime * 52 : 0;
+
+                    var currentAnnualCost = currentStock * carryingCostPerUnitPerYear;
+                    var newAnnualCost = newSafetyStockLeadTime * carryingCostPerUnitPerYear;
+                    annualSavings = currentAnnualCost - newAnnualCost;
+                    savings = annualSavings * GetTimeMultiplier();
                     
                     simulationResults.Add(new SafetyStockSimulationResult
                     {
@@ -343,9 +349,9 @@ WHERE 1=1 AND ss.SITE = 'VCT'";
                         PlanningPoint = row["PLANNING_POINT"]?.ToString() ?? "",
                         PartNumber = partNum,
                         MfgCode = row["MFG_SUPPLIER_CODE"]?.ToString() ?? "",
-                        CurrentSafetyStockLeadTime = currentLeadTime,
-                        CurrentCost = currentCost,
-                        NewCost = newCost,
+                        CurrentSafetyStockLeadTime = currentStock,
+                        CurrentCost = currentAnnualCost,
+                        NewCost = newAnnualCost,
                         AnnualSavings = annualSavings,
                         Savings = savings
                     });
