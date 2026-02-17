@@ -1,6 +1,8 @@
 @page "/snowflake-test1"
 @using System.Data
+@using MudBlazor
 @inject PartTracker.Shared.Services.SnowflakeService Snowflake
+@inject PartTracker.Models.AutomationDbContext AutomationDb
 
 <h3>Snowflake Connection Test</h3>
 
@@ -20,6 +22,17 @@
     <button style="margin-left:8px;" @onclick="TestInventoryCoverageTable" disabled="@_loading">
         Test PART_CONSUMPTION_AS_MANUFACTURED table
     </button>
+</div>
+
+<div style="margin-top:20px; padding:10px; border:1px solid #ccc;">
+    <h4>Update Part Price in Automation DB</h4>
+    <MudTextField @bind-Value="_partNumber" Label="Part Number" Variant="Variant.Outlined" Class="min-width-200" />
+    <MudTextField @bind-Value="_standardPrice" Label="Standard Price" Variant="Variant.Outlined" Class="min-width-200" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="UpdatePartPrice" Disabled="@_updating">Update Price</MudButton>
+    @if (_updateMessage != null)
+    {
+        <p style="color:@(_updateSuccess ? "green" : "red");">@_updateMessage</p>
+    }
 </div>
 
 @if (_loading)
@@ -109,6 +122,12 @@
 
     private bool _showContext;
     private bool _showSample;
+
+    private string _partNumber = "";
+    private decimal _standardPrice;
+    private bool _updating;
+    private string? _updateMessage;
+    private bool _updateSuccess;
 
     private async Task RunTest()
     {
@@ -227,6 +246,46 @@ LIMIT 10;
         finally
         {
             _loading = false;
+        }
+    }
+
+    private async Task UpdatePartPrice()
+    {
+        _updating = true;
+        _updateMessage = null;
+        _updateSuccess = false;
+
+        try
+        {
+            if (string.IsNullOrWhiteSpace(_partNumber))
+            {
+                _updateMessage = "Part number is required.";
+                return;
+            }
+
+            var partPrice = await AutomationDb.PartPrices.FindAsync(_partNumber);
+            if (partPrice == null)
+            {
+                partPrice = new PartTracker.Models.PartPrice { PartNumber = _partNumber, StandardPrice = _standardPrice };
+                AutomationDb.PartPrices.Add(partPrice);
+            }
+            else
+            {
+                partPrice.StandardPrice = _standardPrice;
+                AutomationDb.PartPrices.Update(partPrice);
+            }
+
+            await AutomationDb.SaveChangesAsync();
+            _updateMessage = "Part price updated successfully.";
+            _updateSuccess = true;
+        }
+        catch (Exception ex)
+        {
+            _updateMessage = $"Error updating part price: {ex.Message}";
+        }
+        finally
+        {
+            _updating = false;
         }
     }
 }

@@ -12,6 +12,7 @@ public class AutomationDbContext : DbContext
     public DbSet<Premium2024> Premiums2024 { get; set; }
     public DbSet<PartPrice> PartPrices { get; set; }
     public DbSet<SafetyStockFormEntry> SafetyStockForms { get; set; }
+    public DbSet<TestCrudSafety> TestCrudSafeties { get; set; }
 
     public AutomationDbContext(DbContextOptions<AutomationDbContext> options) : base(options) { }
 
@@ -40,5 +41,8 @@ public class AutomationDbContext : DbContext
         modelBuilder.Entity<SafetyStockFormEntry>()
             .ToTable("safetystockform")
             .HasKey(s => s.Id);
+        modelBuilder.Entity<TestCrudSafety>()
+            .ToTable("TestCrudSafety")
+            .HasKey(t => t.Id);
     }
 }

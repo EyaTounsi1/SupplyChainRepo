@@ -1,0 +1,271 @@
+@page "/safety-stock/update"
+@using System.Data
+@using MudBlazor
+@inject PartTracker.Shared.Services.SnowflakeService Snowflake
+@inject PartTracker.Models.AutomationDbContext AutomationDb
+
+<h3>Safety Stock Update</h3>
+
+<div style="margin-bottom:20px;">
+    <MudRadioGroup @bind-SelectedOption="_selectedMode" T="string">
+        <MudRadio T="string" Option="@("By PN only")">By PN only</MudRadio>
+        <MudRadio T="string" Option="@("By MFG on all PNs")">By MFG on all PNs</MudRadio>
+    </MudRadioGroup>
+</div>
+
+<div style="margin-top:20px; padding:10px; border:1px solid #ccc;">
+    <h4>Add TestCrudSafety Entry</h4>
+    <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudDatePicker @bind-Date="_testCrud.StartTime" Label="Date" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_cdsid" Label="CDSID" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_testCrud.PartNumber" Label="Part Number" Variant="Variant.Outlined" For="@(() => _testCrud.PartNumber)" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_testCrud.MfgCode" Label="MFG Code" Variant="Variant.Outlined" For="@(() => _testCrud.MfgCode)" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="_testCrud.ShpCode" Label="SHP Code" Variant="Variant.Outlined" For="@(() => _testCrud.ShpCode)" />
+            </MudItem>
+            @if (_selectedMode == "By PN only")
+            {
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_testCrud.OldSafetyStockShifts" Label="Old Safety Stock Shifts" Variant="Variant.Outlined" For="@(() => _testCrud.OldSafetyStockShifts)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_testCrud.NewSafetyStockShifts" Label="New Safety Stock Shifts" Variant="Variant.Outlined" For="@(() => _testCrud.NewSafetyStockShifts)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_testCrud.OldSafetyStockPieces" Label="Old Safety Stock Pieces" Variant="Variant.Outlined" For="@(() => _testCrud.OldSafetyStockPieces)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_testCrud.NewSafetyStockPieces" Label="New Safety Stock Pieces" Variant="Variant.Outlined" For="@(() => _testCrud.NewSafetyStockPieces)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_testCrud.OldPouOffsetsShifts" Label="Old POU Offsets Shifts" Variant="Variant.Outlined" For="@(() => _testCrud.OldPouOffsetsShifts)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_testCrud.NewPouOffsetsShifts" Label="New POU Offsets Shifts" Variant="Variant.Outlined" For="@(() => _testCrud.NewPouOffsetsShifts)" />
+                </MudItem>
+            }
+            @if (_selectedMode == "By MFG on all PNs")
+            {
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_testCrud.OldSafetyStockPerShift" Label="Old Safety Stock Per Shift" Variant="Variant.Outlined" For="@(() => _testCrud.OldSafetyStockPerShift)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_testCrud.OldSafetyStockPerPiece" Label="Old Safety Stock Per Piece" Variant="Variant.Outlined" For="@(() => _testCrud.OldSafetyStockPerPiece)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_testCrud.NewSafetyStockPerShift" Label="New Safety Stock Per Shift" Variant="Variant.Outlined" For="@(() => _testCrud.NewSafetyStockPerShift)" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudNumericField @bind-Value="_testCrud.NewSafetyStockPerPiece" Label="New Safety Stock Per Piece" Variant="Variant.Outlined" For="@(() => _testCrud.NewSafetyStockPerPiece)" />
+                </MudItem>
+            }
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_testCrud.Comment" Label="Comment" Variant="Variant.Outlined" Lines="3" For="@(() => _testCrud.Comment)" />
+            </MudItem>
+        </MudGrid>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="SaveTestCrudSafety" Disabled="@_addingTestCrud">@(_editingEntry == null ? "Add Entry" : "Update Entry")</MudButton>
+    @if (_testCrudMessage != null)
+    {
+        <p style="color:@(_testCrudSuccess ? "green" : "red");">@_testCrudMessage</p>
+    }
+</div>
+
+<div style="margin-top:40px;">
+    <h4>TestCrudSafety Table Entries</h4>
+    <MudTable Items="_entries" Dense="true" Hover="true">
+        <HeaderContent>
+            <MudTh>Id</MudTh>
+            <MudTh>Start Time</MudTh>
+            <MudTh>Completion Time</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>By PN or MFG Code</MudTh>
+            <MudTh>Part Number</MudTh>
+            <MudTh>MFG Code</MudTh>
+            <MudTh>SHP Code</MudTh>
+            <MudTh>Old Safety Stock Shifts</MudTh>
+            <MudTh>New Safety Stock Shifts</MudTh>
+            <MudTh>Old Safety Stock Pieces</MudTh>
+            <MudTh>New Safety Stock Pieces</MudTh>
+            <MudTh>Old POU Offsets Shifts</MudTh>
+            <MudTh>New POU Offsets Shifts</MudTh>
+            <MudTh>Comment</MudTh>
+            <MudTh>MFG Code1</MudTh>
+            <MudTh>SHP Code1</MudTh>
+            <MudTh>Old Safety Stock Per Shift</MudTh>
+            <MudTh>Old Safety Stock Per Piece</MudTh>
+            <MudTh>New Safety Stock Per Shift</MudTh>
+            <MudTh>New Safety Stock Per Piece</MudTh>
+            <MudTh>Comment1</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Id</MudTd>
+            <MudTd>@context.StartTime</MudTd>
+            <MudTd>@context.CompletionTime</MudTd>
+            <MudTd>@context.Name</MudTd>
+            <MudTd>@context.ByPnOrMfgCode</MudTd>
+            <MudTd>@context.PartNumber</MudTd>
+            <MudTd>@context.MfgCode</MudTd>
+            <MudTd>@context.ShpCode</MudTd>
+            <MudTd>@context.OldSafetyStockShifts</MudTd>
+            <MudTd>@context.NewSafetyStockShifts</MudTd>
+            <MudTd>@context.OldSafetyStockPieces</MudTd>
+            <MudTd>@context.NewSafetyStockPieces</MudTd>
+            <MudTd>@context.OldPouOffsetsShifts</MudTd>
+            <MudTd>@context.NewPouOffsetsShifts</MudTd>
+            <MudTd>@context.Comment</MudTd>
+            <MudTd>@context.MfgCode1</MudTd>
+            <MudTd>@context.ShpCode1</MudTd>
+            <MudTd>@context.OldSafetyStockPerShift</MudTd>
+            <MudTd>@context.OldSafetyStockPerPiece</MudTd>
+            <MudTd>@context.NewSafetyStockPerShift</MudTd>
+            <MudTd>@context.NewSafetyStockPerPiece</MudTd>
+            <MudTd>@context.Comment1</MudTd>
+            <MudTd><MudButton Size="Size.Small" Variant="Variant.Outlined" @onclick="() => EditEntry(context)">Edit</MudButton></MudTd>
+        </RowTemplate>
+    </MudTable>
+</div>
+
+@code {
+    private TestCrudSafety _testCrud = new();
+    private bool _addingTestCrud;
+    private string? _testCrudMessage;
+    private bool _testCrudSuccess;
+    private string _cdsid = "";
+    private string _selectedMode = "By MFG on all PNs";
+    private List<TestCrudSafety> _entries = new();
+    private TestCrudSafety? _editingEntry = null;
+
+    private readonly Dictionary<string, (string Name, string Email)> _cdsidMappings = new()
+    {
+        { "JCHRISTOFFERSON", ("Johan Christofferson", "johan.christofferson@volvocars.com") },
+        { "EMARJAMÄKI", ("Evelina Marjamäki", "evelina.marjamaki@volvocars.com") },
+        { "TFÄRDIGH", ("Therese Färdigh", "therese.fardigh@volvocars.com") },
+        { "NZEWAR", ("Nergis Zewar", "nergis.zewar@volvocars.com") },
+        { "ETOUNSI", ("Eya Tounsi", "eya.tounsi@volvocars.com") },
+        { "LPETTERSSON", ("Linda Pettersson", "linda.pettersson@volvocars.com") },
+        { "MRIMME", ("Martin Rimme", "martin.rimme@volvocars.com") },
+        { "MJOHANSSON", ("Markus Johansson", "markus.johansson@volvocars.com") },
+        { "GGRÄSBERG", ("Gustav Gräsberg", "gustav.grasberg@volvocars.com") },
+        { "JJOHANNESSON", ("Jan-Eric Johannesson", "jan-eric.johannesson@volvocars.com") },
+        { "TLINDSTRÖM", ("Tomas Lindström", "tomas.lindstrom@volvocars.com") },
+        { "JDAHLMAN", ("Jonas Dahlman", "jonas.dahlman@volvocars.com") },
+        { "JSKOTT", ("Jacob Skott", "jacob.skott@volvocars.com") },
+        { "APIETILÄ", ("Andreas Pietilä", "andreas.pietila@volvocars.com") },
+        { "JHÅKANSSON", ("Joakim Håkansson", "joakim.hakansson@volvocars.com") },
+        { "SVETELI", ("Sara Veteli", "sara.veteli@volvocars.com") },
+        { "AFRIBERGTHORSSON", ("Ann-Sofie Friberg Thorsson", "ann-sofie.fribergthorsson@volvocars.com") },
+        { "JNEJMAN", ("Jörgen Nejman", "jorgen.nejman@volvocars.com") },
+        { "MMEIRA", ("Mikael Meira", "mikael.meira@volvocars.com") },
+        { "MJÖRNRYD", ("Mika Jörnryd", "mika.jornryd@volvocars.com") },
+        { "LLÜBECK", ("Linda Lübeck", "linda.lubeck@volvocars.com") },
+        { "LKARLSSON", ("Lina Karlsson", "lina.karlsson@volvocars.com") }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _entries = await AutomationDb.TestCrudSafeties.ToListAsync();
+    }
+
+    private void EditEntry(TestCrudSafety entry)
+    {
+        _editingEntry = entry;
+        _testCrud = new TestCrudSafety
+        {
+            Id = entry.Id,
+            StartTime = entry.StartTime,
+            CompletionTime = entry.CompletionTime,
+            Name = entry.Name,
+            Email = entry.Email,
+            Language = entry.Language,
+            ByPnOrMfgCode = entry.ByPnOrMfgCode,
+            PartNumber = entry.PartNumber,
+            MfgCode = entry.MfgCode,
+            ShpCode = entry.ShpCode,
+            OldSafetyStockShifts = entry.OldSafetyStockShifts,
+            NewSafetyStockShifts = entry.NewSafetyStockShifts,
+            OldSafetyStockPieces = entry.OldSafetyStockPieces,
+            NewSafetyStockPieces = entry.NewSafetyStockPieces,
+            OldPouOffsetsShifts = entry.OldPouOffsetsShifts,
+            NewPouOffsetsShifts = entry.NewPouOffsetsShifts,
+            Comment = entry.Comment,
+            MfgCode1 = entry.MfgCode1,
+            ShpCode1 = entry.ShpCode1,
+            OldSafetyStockPerShift = entry.OldSafetyStockPerShift,
+            OldSafetyStockPerPiece = entry.OldSafetyStockPerPiece,
+            NewSafetyStockPerShift = entry.NewSafetyStockPerShift,
+            NewSafetyStockPerPiece = entry.NewSafetyStockPerPiece,
+            Comment1 = entry.Comment1
+        };
+        _selectedMode = entry.ByPnOrMfgCode ?? "By MFG on all PNs";
+        _cdsid = ""; // CDSID not stored, so leave empty
+    }
+
+    private async Task SaveTestCrudSafety()
+    {
+        _addingTestCrud = true;
+        _testCrudMessage = null;
+        _testCrudSuccess = false;
+
+        try
+        {
+            _testCrud.ByPnOrMfgCode = _selectedMode; // Set the mode
+
+            if (_editingEntry == null)
+            {
+                // Adding new entry
+                _testCrud.CompletionTime = _testCrud.StartTime; // Set completion time to same as start time
+                _testCrud.Language = ""; // Set language to empty string
+
+                // For "By MFG on all PNs", ensure Part Number is empty
+                if (_selectedMode == "By MFG on all PNs")
+                {
+                    _testCrud.PartNumber = "";
+                }
+
+                // Set Name and Email based on CDSID
+                if (_cdsidMappings.TryGetValue(_cdsid.ToUpper(), out var userInfo))
+                {
+                    _testCrud.Name = userInfo.Name;
+                    _testCrud.Email = userInfo.Email;
+                }
+                else
+                {
+                    _testCrud.Name = "";
+                    _testCrud.Email = "";
+                }
+
+                AutomationDb.TestCrudSafeties.Add(_testCrud);
+            }
+            else
+            {
+                // Updating existing entry
+                AutomationDb.Entry(_editingEntry).CurrentValues.SetValues(_testCrud);
+            }
+
+            await AutomationDb.SaveChangesAsync();
+            _entries = await AutomationDb.TestCrudSafeties.ToListAsync();
+            _testCrudMessage = _editingEntry == null ? "Safety Stock Added Successfully" : "Safety Stock Updated Successfully";
+            _testCrudSuccess = true;
+            _testCrud = new TestCrudSafety(); // Reset form
+            _cdsid = ""; // Reset CDSID
+            _editingEntry = null; // Reset edit mode
+        }
+        catch (Exception ex)
+        {
+            _testCrudMessage = $"Error saving entry: {ex.Message}";
+        }
+        finally
+        {
+            _addingTestCrud = false;
+        }
+    }
+}
