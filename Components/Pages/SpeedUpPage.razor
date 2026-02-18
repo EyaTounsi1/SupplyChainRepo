@@ -1,70 +1,41 @@
-@page "/aftermarket-collection"
+@page "/speedup"
 @rendermode InteractiveServer
 @layout MainLayout
-@inject AppDbContext DbContext
-@inject IJSRuntime JSRuntime
 @inject PartTracker.Models.AutomationDbContext AutomationDb
 
-<MudText Typo="Typo.h3">Aftermarket Collection</MudText>
-
-@if (isLoading)
-{
-    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-    <MudText>Loading data...</MudText>
-}
-else
-{
-    <MudPaper Class="pa-4">
-        <MudText Typo="Typo.h4">Today's Bookings</MudText>
-        <MudText Typo="Typo.h5" Color="Color.Primary">@todaysBookingsCount bookings made today</MudText>
-        <MudText Typo="Typo.h5" Color="Color.Secondary">@totalBookingsCount total bookings made so far</MudText>
-        <MudText Typo="Typo.h5" Color="Color.Info">Today's Cost: @todaysCost.ToString("C")</MudText>
-        <MudText Typo="Typo.h5" Color="Color.Warning">Total Cost: @totalCost.ToString("C")</MudText>
-        <MudText Typo="Typo.h5" Color="Color.Success">Total Aftermarket Collection since Dec 1: @totalAftermarketCollection</MudText>
-    </MudPaper>
-
-    <MudPaper Class="pa-4 mt-4">
-        <MudText Typo="Typo.h4">Cost Histogram (Past 7 Days)</MudText>
-        <canvas id="costHistogram" width="400" height="200"></canvas>
-    </MudPaper>
-}
+<MudText Typo="Typo.h3">Speed Up</MudText>
 
 <div style="margin-top:40px; padding:10px; border:1px solid #ccc;">
-    <h4>Add Aftermarket Collection Entry</h4>
+    <h4>Add Speed Up Entry</h4>
     <MudGrid>
         <MudItem xs="12" sm="6">
-            <MudDatePicker @bind-Date="_collection.StartTime" Label="Date" Variant="Variant.Outlined" />
+            <MudDatePicker @bind-Date="_speedup.StartTime" Label="Date" Variant="Variant.Outlined" />
         </MudItem>
         <MudItem xs="12" sm="6">
             <MudTextField @bind-Value="_cdsid" Label="CDSID" Variant="Variant.Outlined" />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <MudTextField @bind-Value="_collection.PN" Label="PN" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_speedup.TONumber1" Label="TO Number" Variant="Variant.Outlined" />
         </MudItem>
         <MudItem xs="12" sm="6">
-            <MudNumericField @bind-Value="_collection.Quantity" Label="Quantity" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_speedup.PartNumber" Label="Part Number" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_speedup.MFGCode1" Label="MFG Code" Variant="Variant.Outlined" />
         </MudItem>
         <MudItem xs="12">
-            <MudSelect @bind-Value="_collection.Reasons1" Label="Reasons" Variant="Variant.Outlined">
+            <MudSelect @bind-Value="_speedup.Reasons2" Label="Reasons" Variant="Variant.Outlined">
                 @foreach (var reason in _reasons)
                 {
                     <MudSelectItem Value="@reason">@reason</MudSelectItem>
                 }
             </MudSelect>
         </MudItem>
-        <MudItem xs="12" sm="6">
-            <MudSelect @bind-Value="_collection.CollectedBy" Label="Collected By" Variant="Variant.Outlined">
-                @foreach (var option in _collectedByOptions)
-                {
-                    <MudSelectItem Value="@option">@option</MudSelectItem>
-                }
-            </MudSelect>
-        </MudItem>
         <MudItem xs="12">
-            <MudTextField @bind-Value="_collection.Comment1" Label="Comment" Variant="Variant.Outlined" Lines="2" />
+            <MudTextField @bind-Value="_speedup.Comment2" Label="Comment" Variant="Variant.Outlined" Lines="2" />
         </MudItem>
     </MudGrid>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="SaveCollection" Disabled="@_adding">@(_editingEntry == null ? "Add Entry" : "Update Entry")</MudButton>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="SaveSpeedUp" Disabled="@_adding">@(_editingEntry == null ? "Add Entry" : "Update Entry")</MudButton>
     @if (_message != null)
     {
         <p style="color:@(_success ? "green" : "red");">@_message</p>
@@ -72,52 +43,38 @@ else
 </div>
 
 <div style="margin-top:40px;">
-    <h4>Aftermarket Collection Entries</h4>
+    <h4>Speed Up Entries</h4>
     <MudTable Items="_entries" Elevation="0" Hover="true" Striped="true">
         <HeaderContent>
             <MudTh>Id</MudTh>
             <MudTh>Date</MudTh>
-            <MudTh>PN</MudTh>
-            <MudTh>Quantity</MudTh>
+            <MudTh>TO Number</MudTh>
+            <MudTh>Part Number</MudTh>
+            <MudTh>MFG Code</MudTh>
             <MudTh>Reasons</MudTh>
-            <MudTh>Collected By</MudTh>
             <MudTh>Comment</MudTh>
             <MudTh>Actions</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>@context.Id</MudTd>
             <MudTd>@context.StartTime?.ToString("yyyy-MM-dd")</MudTd>
-            <MudTd>@context.PN</MudTd>
-            <MudTd>@context.Quantity</MudTd>
-            <MudTd>@context.Reasons1</MudTd>
-            <MudTd>@context.CollectedBy</MudTd>
-            <MudTd>@context.Comment1</MudTd>
+            <MudTd>@context.TONumber1</MudTd>
+            <MudTd>@context.PartNumber</MudTd>
+            <MudTd>@context.MFGCode1</MudTd>
+            <MudTd>@context.Reasons2</MudTd>
+            <MudTd>@context.Comment2</MudTd>
             <MudTd><MudButton Size="Size.Small" Variant="Variant.Outlined" @onclick="() => EditEntry(context)">Edit</MudButton></MudTd>
         </RowTemplate>
     </MudTable>
 </div>
 
 @code {
-    private int todaysBookingsCount = 0;
-    private int totalBookingsCount = 0;
-    private decimal todaysCost = 0;
-    private decimal totalCost = 0;
-    private int totalAftermarketCollection = 0;
-    private bool isLoading = true;
-    private List<string> chartLabels = new();
-    private List<decimal> chartData = new();
-    private List<ChangeLogEntry>? _items;
-    private string[] allowedAftermarket = {
-        "Aftermarket Collection"
-    };
-    private int daysBack = 25;
-    private PartTracker.Models.AftermarketCollectionModel _collection = new();
+    private PartTracker.Models.SpeedUpModel _speedup = new();
     private bool _adding;
     private string? _message;
     private bool _success;
-    private List<PartTracker.Models.AftermarketCollectionModel> _entries = new();
-    private PartTracker.Models.AftermarketCollectionModel? _editingEntry = null;
-
+    private List<PartTracker.Models.SpeedUpModel> _entries = new();
+    private PartTracker.Models.SpeedUpModel? _editingEntry = null;
     private string _cdsid = "";
 
     private readonly Dictionary<string, (string Name, string Email)> _cdsidMappings = new()
@@ -144,6 +101,12 @@ else
         { "MJÖRNRYD", ("Mika Jörnryd", "mika.jornryd@volvocars.com") },
         { "LLUBECK", ("Linda Lübeck", "linda.lubeck@volvocars.com") },
         { "LKARLSSON", ("Lina Karlsson", "lina.karlsson@volvocars.com") }
+    };
+
+    private readonly List<string> _collectedByOptions = new()
+    {
+        "Premium",
+        "Self pickup"
     };
 
     private readonly List<string> _reasons = new()
@@ -217,52 +180,22 @@ else
         "Supplier-E-motor"
     };
 
-    private readonly List<string> _collectedByOptions = new()
-    {
-        "Premium",
-        "Self pickup"
-    };
-
-
     protected override async Task OnInitializedAsync()
     {
-        _items = await DbContext.ChangeLogEntries.ToListAsync();
-        _entries = await AutomationDb.AftermarketCollections.ToListAsync();
-        
-        todaysBookingsCount = _items.Where(e => 
-            e.CompletionTime > DateTime.Now.Date.AddDays(-daysBack) && 
-            allowedAftermarket.Contains(e.PremiumBooking)).Count();
-        totalBookingsCount = _items.Where(e => 
-            allowedAftermarket.Contains(e.PremiumBooking)).Count();
-
-        todaysCost = _items.Where(e => 
-            e.CompletionTime > DateTime.Now.Date.AddDays(-daysBack) && 
-            allowedAftermarket.Contains(e.PremiumBooking)).Sum(e => e.Cost ?? 0);
-        totalCost = _items.Where(e => 
-            allowedAftermarket.Contains(e.PremiumBooking)).Sum(e => e.Cost ?? 0);
-
-        // Count parts in transit with LevNr == "BP2TW" since December 1, 2025
-        var december1 = new DateTime(2025, 12, 1);
-        totalAftermarketCollection = await DbContext.PartsInTransit
-            .Where(p => p.LevNr == "BP2TW" && p.AvsDat >= december1)
-            .CountAsync();
-
-        isLoading = false;
-
-
+        _entries = await AutomationDb.SpeedUps.ToListAsync();
     }
 
-    private void EditEntry(PartTracker.Models.AftermarketCollectionModel entry)
+    private void EditEntry(PartTracker.Models.SpeedUpModel entry)
     {
         _editingEntry = entry;
-        _collection = new PartTracker.Models.AftermarketCollectionModel
+        _speedup = new PartTracker.Models.SpeedUpModel
         {
             Id = entry.Id,
-            PN = entry.PN,
-            Quantity = entry.Quantity,
-            Reasons1 = entry.Reasons1,
-            CollectedBy = entry.CollectedBy,
-            Comment1 = entry.Comment1,
+            TONumber1 = entry.TONumber1,
+            PartNumber = entry.PartNumber,
+            MFGCode1 = entry.MFGCode1,
+            Reasons2 = entry.Reasons2,
+            Comment2 = entry.Comment2,
             StartTime = entry.StartTime,
             CompletionTime = entry.CompletionTime,
             Email = entry.Email,
@@ -271,7 +204,7 @@ else
         _cdsid = ""; // CDSID not stored, so leave empty
     }
 
-    private async Task SaveCollection()
+    private async Task SaveSpeedUp()
     {
         _adding = true;
         _message = null;
@@ -280,34 +213,34 @@ else
         // Set Name and Email based on CDSID
         if (_cdsidMappings.TryGetValue(_cdsid.ToUpper(), out var userInfo))
         {
-            _collection.Name = userInfo.Name;
-            _collection.Email = userInfo.Email;
+            _speedup.Name = userInfo.Name;
+            _speedup.Email = userInfo.Email;
         }
         else
         {
-            _collection.Name = null;
-            _collection.Email = null;
+            _speedup.Name = null;
+            _speedup.Email = null;
         }
 
         // Set CompletionTime to StartTime
-        _collection.CompletionTime = _collection.StartTime;
+        _speedup.CompletionTime = _speedup.StartTime;
 
         try
         {
             if (_editingEntry == null)
             {
-                AutomationDb.AftermarketCollections.Add(_collection);
+                AutomationDb.SpeedUps.Add(_speedup);
             }
             else
             {
-                AutomationDb.Entry(_editingEntry).CurrentValues.SetValues(_collection);
+                AutomationDb.Entry(_editingEntry).CurrentValues.SetValues(_speedup);
             }
 
             await AutomationDb.SaveChangesAsync();
-            _entries = await AutomationDb.AftermarketCollections.ToListAsync();
+            _entries = await AutomationDb.SpeedUps.ToListAsync();
             _message = _editingEntry == null ? "Entry added successfully" : "Entry updated successfully";
             _success = true;
-            _collection = new PartTracker.Models.AftermarketCollectionModel();
+            _speedup = new PartTracker.Models.SpeedUpModel();
             _editingEntry = null;
             _cdsid = ""; // Reset CDSID
         }
@@ -320,5 +253,4 @@ else
             _adding = false;
         }
     }
-  
 }

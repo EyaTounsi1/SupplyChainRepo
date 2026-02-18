@@ -25,8 +25,11 @@
             
             <MudNavLink Href="/inventory-alerts" Icon="@Icons.Material.Filled.NotificationImportant">Inventory Alerts</MudNavLink>
             <MudNavLink Href="/aftermarket-collection">Aftermarket Collection</MudNavLink>
-            <MudNavLink Href="/premium-bookings">Premium Bookings</MudNavLink>
-            <MudNavLink Href="/speed-ups">Speed-ups</MudNavLink>
+            <MudNavGroup Title="Premium Bookings" Icon="@Icons.Material.Filled.Book" Expanded="true">
+                <MudNavLink Href="/premium-bookings">Overview</MudNavLink>
+                <MudNavLink Href="/premium-booking-update">Premium Booking Update</MudNavLink>
+            </MudNavGroup>
+            <MudNavLink Href="/speedup">Speed Up</MudNavLink>
             <MudNavLink Href="/forecast-digital-twin">Forecast & Digital Twin</MudNavLink>
         </MudNavMenu>
     </MudDrawer>

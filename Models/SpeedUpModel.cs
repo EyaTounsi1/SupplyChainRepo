@@ -2,25 +2,28 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace PartTracker.Models;
 
-[Table("aftermarketcollection")]
-public class AftermarketCollectionModel
+[Table("speedup")]
+public class SpeedUpModel
 {
     public int Id { get; set; } // Assuming auto-increment primary key
 
-    [Column("PN")]
-    public string? PN { get; set; }
+    [Column("TONumber1")]
+    public string? TONumber1 { get; set; }
 
-    [Column("Quantity")]
-    public int? Quantity { get; set; }
+    [Column("PartNumber")]
+    public string? PartNumber { get; set; }
 
-    [Column("Reasons1")]
-    public string? Reasons1 { get; set; }
+    [Column("MFGCode1")]
+    public string? MFGCode1 { get; set; }
+
+    [Column("Reasons2")]
+    public string? Reasons2 { get; set; }
+
+    [Column("Comment2")]
+    public string? Comment2 { get; set; }
 
     [Column("CollectedBy")]
     public string? CollectedBy { get; set; }
-
-    [Column("Comment1")]
-    public string? Comment1 { get; set; }
 
     [Column("StartTime")]
     public DateTime? StartTime { get; set; }

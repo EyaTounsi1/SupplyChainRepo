@@ -14,6 +14,8 @@ public class AutomationDbContext : DbContext
     public DbSet<SafetyStockFormEntry> SafetyStockForms { get; set; }
     public DbSet<TestCrudSafety> TestCrudSafeties { get; set; }
     public DbSet<AftermarketCollectionModel> AftermarketCollections { get; set; }
+    public DbSet<SpeedUpModel> SpeedUps { get; set; }
+    public DbSet<PremiumBookingUpdate> PremiumBookingUpdates { get; set; }
 
     public AutomationDbContext(DbContextOptions<AutomationDbContext> options) : base(options) { }
 
@@ -48,5 +50,8 @@ public class AutomationDbContext : DbContext
         modelBuilder.Entity<AftermarketCollectionModel>()
             .ToTable("aftermarketcollection")
             .HasKey(a => a.Id);
+        modelBuilder.Entity<PremiumBookingUpdate>()
+            .ToTable("premiumbookingupdate")
+            .HasKey(p => p.Id);
     }
 }
