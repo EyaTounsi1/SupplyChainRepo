@@ -6,6 +6,33 @@
 
 <h3>Safety Stock Update</h3>
 
+@if (_currentSafetyStock.Any())
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Current Safety Stock from Snowflake (VCT Site)</MudText>
+        <MudTable Items="@_currentSafetyStock" Dense="true" Hover="true">
+            <HeaderContent>
+                <MudTh>Site</MudTh>
+                <MudTh>Planning Point</MudTh>
+                <MudTh>Part Number</MudTh>
+                <MudTh>MFG Supplier Code</MudTh>
+                <MudTh>Safety Stock Nr of Parts</MudTh>
+                <MudTh>Safety Stock Lead Time</MudTh>
+                <MudTh>Uploaded From Source</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>@context.Site</MudTd>
+                <MudTd>@context.PlanningPoint</MudTd>
+                <MudTd>@context.PartNumber</MudTd>
+                <MudTd>@context.MfgSupplierCode</MudTd>
+                <MudTd>@context.SafetyStockNrOfParts</MudTd>
+                <MudTd>@context.SafetyStockLeadTime</MudTd>
+                <MudTd>@context.UploadedFromSource</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
 <div style="margin-bottom:20px;">
     <MudRadioGroup @bind-SelectedOption="_selectedMode" T="string">
         <MudRadio T="string" Option="@("By PN only")">By PN only</MudRadio>
@@ -143,6 +170,7 @@
     private string _selectedMode = "By MFG on all PNs";
     private List<TestCrudSafety> _entries = new();
     private TestCrudSafety? _editingEntry = null;
+    private List<SafetyStockItem> _currentSafetyStock = new();
 
     private readonly Dictionary<string, (string Name, string Email)> _cdsidMappings = new()
     {
@@ -172,7 +200,50 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadCurrentSafetyStock();
         _entries = await AutomationDb.TestCrudSafeties.ToListAsync();
+    }
+
+    private async Task LoadCurrentSafetyStock()
+    {
+        try
+        {
+            string sql = @"
+SELECT
+  ss.SITE,
+  ss.PLANNING_POINT,
+  ss.PART_NUMBER,
+  ss.MFG_SUPPLIER_CODE,
+  ss.SAFETY_STOCK_NR_OF_PARTS,
+  ss.SAFETY_STOCK_LEAD_TIME,
+  ss.UPLOADED_FROM_SOURCE AS SS_UPLOADED_FROM_SOURCE
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED ss
+WHERE ss.SITE = 'VCT'
+ORDER BY ss.PART_NUMBER DESC
+LIMIT 100"; // Limit for performance
+
+            DataTable dt = await Snowflake.QueryAsync(sql);
+            _currentSafetyStock = new List<SafetyStockItem>();
+
+            foreach (DataRow row in dt.Rows)
+            {
+                _currentSafetyStock.Add(new SafetyStockItem
+                {
+                    Site = row["SITE"]?.ToString() ?? "",
+                    PlanningPoint = row["PLANNING_POINT"]?.ToString() ?? "",
+                    PartNumber = row["PART_NUMBER"]?.ToString() ?? "",
+                    MfgSupplierCode = row["MFG_SUPPLIER_CODE"]?.ToString() ?? "",
+                    SafetyStockNrOfParts = row["SAFETY_STOCK_NR_OF_PARTS"] != DBNull.Value ? Convert.ToInt32(row["SAFETY_STOCK_NR_OF_PARTS"]) : 0,
+                    SafetyStockLeadTime = row["SAFETY_STOCK_LEAD_TIME"] != DBNull.Value ? Convert.ToInt32(row["SAFETY_STOCK_LEAD_TIME"]) : 0,
+                    UploadedFromSource = row["SS_UPLOADED_FROM_SOURCE"]?.ToString() ?? ""
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle error, perhaps show a message
+            Console.WriteLine($"Error loading current safety stock: {ex.Message}");
+        }
     }
 
     private void EditEntry(TestCrudSafety entry)

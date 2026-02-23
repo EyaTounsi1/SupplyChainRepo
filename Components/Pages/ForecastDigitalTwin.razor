@@ -4,6 +4,20 @@
 
 <MudText Typo="Typo.h3">Forecast & Digital Twin</MudText>
 
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Forecast Parameters</MudText>
+    <MudSelect T="int"
+               Label="Time Frame (Months)"
+               @bind-Value="selectedMonths"
+               @bind-Value:after="LoadForecastData"
+               Dense="true"
+               Class="mb-3">
+        <MudSelectItem T="int" Value="3">3 Months</MudSelectItem>
+        <MudSelectItem T="int" Value="6">6 Months</MudSelectItem>
+        <MudSelectItem T="int" Value="12">12 Months</MudSelectItem>
+    </MudSelect>
+</MudPaper>
+
 @if (isLoading)
 {
     <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
@@ -15,6 +29,15 @@ else if (!string.IsNullOrEmpty(errorMessage))
 }
 else
 {
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">GIT and WIP Over Time</MudText>
+        <MudChart ChartType="ChartType.Line" 
+                  ChartSeries="chartSeries" 
+                  XAxisLabels="chartLabels" 
+                  Width="100%" 
+                  Height="400px" />
+    </MudPaper>
+
     <MudTable Items="@forecastItems" Hover="true" Striped="true">
         <HeaderContent>
             <MudTh>Site</MudTh>
@@ -41,12 +64,41 @@ else
     private List<ForecastItem> forecastItems = new();
     private bool isLoading = true;
     private string errorMessage = string.Empty;
+    private int selectedMonths = 3;
+    private List<ChartSeries> chartSeries = new();
+    private string[] chartLabels = Array.Empty<string>();
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadForecastData();
+    }
+
+    private async Task LoadForecastData()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
         try
         {
-            forecastItems = await ForecastService.GetForecastDataAsync();
+            forecastItems = await ForecastService.GetForecastDataAsync(siteFilter: null, partNumberFilter: null, months: selectedMonths);
+
+            // Prepare chart data
+            var aggregatedData = forecastItems
+                .GroupBy(x => x.Date)
+                .Select(g => new
+                {
+                    Date = g.Key,
+                    GitTotal = g.Sum(x => x.Git_Balance),
+                    WipTotal = g.Sum(x => x.Wip_Balance)
+                })
+                .OrderBy(x => x.Date)
+                .ToList();
+
+            chartLabels = aggregatedData.Select(x => x.Date.ToShortDateString()).ToArray();
+            chartSeries = new List<ChartSeries>
+            {
+                new ChartSeries { Name = "GIT Balance", Data = aggregatedData.Select(x => (double)x.GitTotal).ToArray() },
+                new ChartSeries { Name = "WIP Balance", Data = aggregatedData.Select(x => (double)x.WipTotal).ToArray() }
+            };
         }
         catch (Exception ex)
         {
@@ -55,6 +107,7 @@ else
         finally
         {
             isLoading = false;
+            StateHasChanged();
         }
     }
 }

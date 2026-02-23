@@ -53,5 +53,6 @@ public class AutomationDbContext : DbContext
         modelBuilder.Entity<PremiumBookingUpdate>()
             .ToTable("premiumbookingupdate")
             .HasKey(p => p.Id);
+        modelBuilder.Entity<SafetyStockItem>().HasNoKey();
     }
 }
