@@ -6,5 +6,5 @@ namespace PartTracker;
 public interface IForecastService
 {
     Task<List<ForecastItem>> GetForecastDataAsync();
-    Task<List<ForecastItem>> GetForecastDataAsync(string? siteFilter, string? partNumberFilter, int months = 3);
+    Task<List<ForecastItem>> GetForecastDataAsync(string? siteFilter, string? partNumberFilter, string? mfgCodeFilter, int months = 3);
 }

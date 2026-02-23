@@ -16,6 +16,23 @@
         <MudSelectItem T="int" Value="6">6 Months</MudSelectItem>
         <MudSelectItem T="int" Value="12">12 Months</MudSelectItem>
     </MudSelect>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="selectedPartNumber" 
+                          @bind-Value:after="LoadForecastData"
+                          Label="Part Number" 
+                          Variant="Variant.Outlined" 
+                          Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="selectedMfgCode" 
+                          @bind-Value:after="LoadForecastData"
+                          Label="MFG Code" 
+                          Variant="Variant.Outlined" 
+                          Clearable="true" />
+        </MudItem>
+    </MudGrid>
 </MudPaper>
 
 @if (isLoading)
@@ -65,6 +82,8 @@ else
     private bool isLoading = true;
     private string errorMessage = string.Empty;
     private int selectedMonths = 3;
+    private string? selectedPartNumber;
+    private string? selectedMfgCode;
     private List<ChartSeries> chartSeries = new();
     private string[] chartLabels = Array.Empty<string>();
 
@@ -79,7 +98,7 @@ else
         errorMessage = string.Empty;
         try
         {
-            forecastItems = await ForecastService.GetForecastDataAsync(siteFilter: null, partNumberFilter: null, months: selectedMonths);
+            forecastItems = await ForecastService.GetForecastDataAsync(siteFilter: null, partNumberFilter: selectedPartNumber, mfgCodeFilter: selectedMfgCode, months: selectedMonths);
 
             // Prepare chart data
             var aggregatedData = forecastItems

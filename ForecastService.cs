@@ -20,12 +20,12 @@ public class ForecastService : IForecastService
     /// Returns forecast for ALL parts/sites (POC -> production). Be careful: can be huge.
     /// </summary>
     public Task<List<ForecastItem>> GetForecastDataAsync()
-        => GetForecastDataAsync(siteFilter: null, partNumberFilter: null, months: 3);
+        => GetForecastDataAsync(siteFilter: null, partNumberFilter: null, mfgCodeFilter: null, months: 3);
 
     /// <summary>
     /// Optional filters you can use for testing/performance. Pass null for "all".
     /// </summary>
-    public async Task<List<ForecastItem>> GetForecastDataAsync(string? siteFilter, string? partNumberFilter, int months = 3)
+    public async Task<List<ForecastItem>> GetForecastDataAsync(string? siteFilter, string? partNumberFilter, string? mfgCodeFilter, int months = 3)
     {
         // Build SQL with optional filters pushed as early as possible.
         // NOTE: Prefer parameterized queries in SnowflakeService if you can.
@@ -397,8 +397,7 @@ LEFT JOIN daily_usage du
     ON dt.site = du.site AND dt.part_number = du.part_number
 WHERE 1=1 and dt.site='VCT'
 {(string.IsNullOrWhiteSpace(siteFilter) ? "" : $" AND dt.site = '{EscapeSqlLiteral(siteFilter!.Trim())}'")}
-{(string.IsNullOrWhiteSpace(partNumberFilter) ? "" : $" AND dt.part_number = '{EscapeSqlLiteral(partNumberFilter!.Trim())}'")}
-ORDER BY dt.site, dt.part_number, dt.date
+{(string.IsNullOrWhiteSpace(partNumberFilter) ? "" : $" AND dt.part_number = '{EscapeSqlLiteral(partNumberFilter!.Trim())}'")}{(string.IsNullOrWhiteSpace(mfgCodeFilter) ? "" : $" AND ss.MFG_SUPPLIER_CODE = '{EscapeSqlLiteral(mfgCodeFilter!.Trim())}'")}ORDER BY dt.site, dt.part_number, dt.date
 limit 100;
 ";
 
