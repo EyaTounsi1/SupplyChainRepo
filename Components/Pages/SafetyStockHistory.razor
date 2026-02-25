@@ -127,7 +127,7 @@ FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURE
 ORDER BY PART_NUMBER
 LIMIT 5000";
 
-            DataTable dt = await SnowflakeService.QueryAsync(sql);
+            DataTable dt = await SnowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
             
             foreach (DataRow row in dt.Rows)
             {
@@ -177,7 +177,7 @@ WHERE PART_NUMBER = '{partNumber}'
   AND UPLOADED_FROM_SOURCE >= '2024-01-01'
 ORDER BY UPLOADED_FROM_SOURCE";
 
-            DataTable dt = await SnowflakeService.QueryAsync(sql);
+            DataTable dt = await SnowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
             
             if (dt.Rows.Count == 0)
             {

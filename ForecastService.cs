@@ -402,7 +402,10 @@ limit 100;
 ";
 
         // One Snowflake round-trip only
-        DataTable dataTable = await _snowflakeService.QueryAsync(Sql);
+ DataTable dataTable = await _snowflakeService.QueryAsync(
+    Sql,
+    "ManufacturingEnterpriseDataProducts"
+);
 
         // Convert to List<ForecastItem>
         var items = new List<ForecastItem>(capacity: dataTable.Rows.Count);

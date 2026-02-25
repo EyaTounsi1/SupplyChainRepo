@@ -22,6 +22,10 @@
     <button style="margin-left:8px;" @onclick="TestInventoryCoverageTable" disabled="@_loading">
         Test PART_CONSUMPTION_AS_MANUFACTURED table
     </button>
+
+    <button style="margin-left:8px;" @onclick="CreateTrialSchemaAndTable" disabled="@_loading">
+        Create Trial Schema & Table
+    </button>
 </div>
 
 <div style="margin-top:20px; padding:10px; border:1px solid #ccc;">
@@ -147,7 +151,7 @@ SELECT
   CURRENT_WAREHOUSE() AS WAREHOUSE,
   CURRENT_DATABASE()  AS DATABASE,
   CURRENT_SCHEMA()    AS SCHEMA
-");
+", "ManufacturingEnterpriseDataProducts");
         }
         catch (Exception ex)
         {
@@ -173,7 +177,7 @@ SELECT
             _result = await Snowflake.QueryAsync(@"
 select MFG_SUPPLIER_CODE from MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
 where PART_NUMBER = '31493276'  AND SITE = 'VCT';
-");
+", "ManufacturingEnterpriseDataProducts");
         }
         catch (Exception ex)
         {
@@ -196,7 +200,7 @@ where PART_NUMBER = '31493276'  AND SITE = 'VCT';
 
         try
         {
-            _result = await Snowflake.QueryAsync(@"
+           _result = await Snowflake.QueryAsync(@"
 SELECT
   CURRENT_USER()      AS WHOAMI_USER,
   CURRENT_ROLE()      AS WHOAMI_ROLE,
@@ -209,8 +213,7 @@ SELECT
 FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INFORMATION_AS_MANUFACTURED.PART_INFORMATION_AS_MANUFACTURED
 WHERE PART_NUMBER = '31417637'
   AND TRIM(site) = 'VCT';
-
-");
+", "ManufacturingEnterpriseDataProducts");
         }
         catch (Exception ex)
         {
@@ -233,11 +236,11 @@ WHERE PART_NUMBER = '31417637'
 
         try
         {
-            _result = await Snowflake.QueryAsync(@"
-SELECT safety_stock_nr_of_parts, SAFETY_STOCK_LEAD_TIME FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
-where part_number='32394630' and site='VCT';
-
-");
+           _result = await Snowflake.QueryAsync(@"
+SELECT safety_stock_nr_of_parts, SAFETY_STOCK_LEAD_TIME
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
+WHERE part_number = '32394630' AND site = 'VCT';
+", "ManufacturingEnterpriseDataProducts");
         }
         catch (Exception ex)
         {
@@ -248,6 +251,55 @@ where part_number='32394630' and site='VCT';
             _loading = false;
         }
     }
+
+    private async Task CreateTrialSchemaAndTable()
+{
+    _loading = true;
+    _error = null;
+    _result = null;
+
+    _showContext = false;
+    _showSample = false;
+
+    try
+    {
+        // (Optional but very useful) verify session context in the SAME target DB session
+        _result = await Snowflake.QueryAsync(@"
+SELECT
+  CURRENT_USER() AS USERNAME,
+  CURRENT_ROLE() AS ROLE,
+  CURRENT_SECONDARY_ROLES() AS SECONDARY_ROLES,
+  CURRENT_WAREHOUSE() AS WAREHOUSE,
+  CURRENT_DATABASE() AS DATABASE,
+  CURRENT_SCHEMA() AS SCHEMA;
+", "DevMfgVctBizDb");
+
+        // Create schema in DEV_MFG_VCT_BIZ_DB session
+        await Snowflake.QueryAsync(@"
+CREATE SCHEMA IF NOT EXISTS VCT_ANALYTICS;
+", "DevMfgVctBizDb");
+
+        // Create table in DEV_MFG_VCT_BIZ_DB.VCT_ANALYTICS
+        await Snowflake.QueryAsync(@"
+CREATE TABLE IF NOT EXISTS VCT_ANALYTICS.trial (
+  scenario_id        VARCHAR,
+  demand_multiplier  FLOAT,
+  description        VARCHAR,
+  created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP()
+);
+", "DevMfgVctBizDb");
+
+        _error = "Schema and table created successfully!";
+    }
+    catch (Exception ex)
+    {
+        _error = $"Error creating schema/table: {ex}";
+    }
+    finally
+    {
+        _loading = false;
+    }
+}
 
     private async Task UpdatePartPrice()
     {

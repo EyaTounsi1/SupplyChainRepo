@@ -60,7 +60,8 @@ namespace PartTracker.Components.Pages
         public List<double> TotalQuantityData { get; set; } = new();
         public List<double> AvgQuantityData { get; set; } = new();
         public List<double> MedianQuantityData { get; set; } = new();
-
+      private static string EscapeSqlLiteral(string value)
+    => value.Replace("'", "''");
         public List<MudBlazor.ChartSeries> QuantityChartSeries => new()
         {
             new MudBlazor.ChartSeries { Name = "Total SS Parts", Data = TotalQuantityData.ToArray() },
@@ -137,12 +138,12 @@ namespace PartTracker.Components.Pages
             try
             {
                 var result = await Snowflake.QueryAsync(@"
-                    SELECT DISTINCT PART_NUMBER
-                    FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_CONSUMPTION_AS_MANUFACTURED.PART_CONSUMPTION_AS_MANUFACTURED
-                    WHERE PART_NUMBER IS NOT NULL
-                    ORDER BY PART_NUMBER DESC
-                    LIMIT 1000
-                ");
+SELECT DISTINCT PART_NUMBER
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_CONSUMPTION_AS_MANUFACTURED.PART_CONSUMPTION_AS_MANUFACTURED
+WHERE PART_NUMBER IS NOT NULL
+ORDER BY PART_NUMBER DESC
+LIMIT 1000
+", "ManufacturingEnterpriseDataProducts");
 
                 foreach (DataRow row in result.Rows)
                 {
@@ -175,11 +176,14 @@ namespace PartTracker.Components.Pages
 
             try
             {
-                var result = await Snowflake.QueryAsync($@"
+               var pn = EscapeSqlLiteral(partNumber?.Trim() ?? "");
+var tf = EscapeSqlLiteral(SelectedTimeFilter ?? "");
+
+var result = await Snowflake.QueryAsync($@"
 WITH part_scope AS (
   SELECT SITE, PLANNING_POINT, PART_NUMBER, MFG_SUPPLIER_CODE
   FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_SUPPLIER_INFORMATION_AS_MANUFACTURED.PART_SUPPLIER_INFORMATION_AS_MANUFACTURED
-  WHERE PART_NUMBER = '{partNumber.Trim()}'
+  WHERE PART_NUMBER = '{pn}'
 ),
 demand AS (
   SELECT
@@ -226,21 +230,21 @@ bounds AS (
 filtered_bounds AS (
   SELECT
     CASE 
-      WHEN '{SelectedTimeFilter}' = '2024' THEN GREATEST(MIN_DT, '2024-01-01'::DATE)
-      WHEN '{SelectedTimeFilter}' = '2025' THEN GREATEST(MIN_DT, '2025-01-01'::DATE)
-      WHEN '{SelectedTimeFilter}' = 'LastQuarter' THEN GREATEST(MIN_DT, DATEADD(month, -3, CURRENT_DATE()))
+      WHEN '{tf}' = '2024' THEN GREATEST(MIN_DT, '2024-01-01'::DATE)
+      WHEN '{tf}' = '2025' THEN GREATEST(MIN_DT, '2025-01-01'::DATE)
+      WHEN '{tf}' = 'LastQuarter' THEN GREATEST(MIN_DT, DATEADD(month, -3, CURRENT_DATE()))
       ELSE MIN_DT
     END AS FILTERED_MIN_DT,
     CASE 
-      WHEN '{SelectedTimeFilter}' = '2024' THEN LEAST(MAX_DT, '2024-12-31'::DATE)
-      WHEN '{SelectedTimeFilter}' = '2025' THEN LEAST(MAX_DT, '2025-12-31'::DATE)
-      WHEN '{SelectedTimeFilter}' = 'LastQuarter' THEN LEAST(MAX_DT, CURRENT_DATE())
+      WHEN '{tf}' = '2024' THEN LEAST(MAX_DT, '2024-12-31'::DATE)
+      WHEN '{tf}' = '2025' THEN LEAST(MAX_DT, '2025-12-31'::DATE)
+      WHEN '{tf}' = 'LastQuarter' THEN LEAST(MAX_DT, CURRENT_DATE())
       ELSE MAX_DT
     END AS FILTERED_MAX_DT
   FROM bounds
 ),
 spine AS (
-  SELECT DATEADD(day, seq4(), fb.FILTERED_MIN_DT) AS DT, fb.FILTERED_MIN_DT, fb.FILTERED_MAX_DT
+  SELECT DATEADD(day, seq4(), fb.FILTERED_MIN_DT) AS DT
   FROM filtered_bounds fb,
        TABLE(GENERATOR(ROWCOUNT => 10000))
   WHERE DATEADD(day, seq4(), fb.FILTERED_MIN_DT) <= fb.FILTERED_MAX_DT
@@ -253,7 +257,7 @@ FROM spine s
 LEFT JOIN demand d ON d.DT = s.DT
 LEFT JOIN ss     ON ss.DT = s.DT
 ORDER BY s.DT;
-");
+", "ManufacturingEnterpriseDataProducts");
 
                 foreach (DataRow row in result.Rows)
                 {
@@ -333,7 +337,7 @@ SELECT
 FROM monthly_snapshot
 GROUP BY 1
 ORDER BY 1;
-");
+", "ManufacturingEnterpriseDataProducts");
 
                 foreach (DataRow row in result.Rows)
                 {
@@ -413,7 +417,7 @@ SELECT
 FROM monthly_snapshot
 GROUP BY 1
 ORDER BY 1;
-");
+", "ManufacturingEnterpriseDataProducts");
 
                 foreach (DataRow row in result.Rows)
                 {

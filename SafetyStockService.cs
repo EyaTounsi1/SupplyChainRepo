@@ -15,29 +15,20 @@ namespace PartTracker
         }
 
         // SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
-        public Task<DataTable> GetSafetyStockSettingsAsync()
-        {
-            var sql = """
-                SELECT *
-                FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED
-            """;
 
-            return _snowflake.QueryAsync(sql);
-        }
 
-    
-        public async Task<bool> TestConnectionAsync()
-        {
-            try
-            {
-                var result = await _snowflake.QueryAsync("SELECT 1");
-                return result != null && result.Rows.Count > 0;
-            }
-            catch
-            {
-                return false;
-            }
-        }
+public async Task<bool> TestConnectionAsync()
+{
+    try
+    {
+        var result = await _snowflake.QueryAsync("SELECT 1", "ManufacturingEnterpriseDataProducts");
+        return result != null && result.Rows.Count > 0;
+    }
+    catch
+    {
+        return false;
+    }
+}
 
         // Interface implementations
         public Task<List<SafetyStockItem>> GetSafetyStockDataAsync() => Task.FromResult(new List<SafetyStockItem>());

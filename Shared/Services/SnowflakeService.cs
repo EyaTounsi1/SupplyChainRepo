@@ -13,77 +13,76 @@ namespace PartTracker.Shared.Services
             _config = config;
         }
 
-        public async Task<DataTable> QueryAsync(string sql)
-        {
-            if (string.IsNullOrWhiteSpace(sql))
-                throw new ArgumentException("SQL query cannot be empty.", nameof(sql));
+        public async Task<DataTable> QueryAsync(string sql, string dbKey, string? schemaKey = null)
+{
+    if (string.IsNullOrWhiteSpace(sql))
+        throw new ArgumentException("SQL query cannot be empty.", nameof(sql));
 
-            var cfg = _config.GetSection("Snowflake");
-            if (!cfg.Exists())
-                throw new InvalidOperationException("Missing 'Snowflake' section in appsettings.json");
+    var sf = _config.GetSection("Snowflake");
+    if (!sf.Exists())
+        throw new InvalidOperationException("Missing 'Snowflake' section in appsettings.json");
 
-            var account = cfg["Account"];
-            var user = cfg["User"];
-            var warehouse = cfg["Warehouse"];
-            var role = cfg["Role"];
-            var database = cfg["Database"];
-            var keyPath = cfg["PrivateKeyPath"];
-            var passphrase = cfg["PrivateKeyPassphrase"];
+    var account = sf["Account"];
+    var user = sf["User"];
+    var warehouse = sf["Warehouse"];
+    var role = sf["Role"];
+    var keyPath = sf["PrivateKeyPath"];
+    var passphrase = sf["PrivateKeyPassphrase"];
 
-            if (string.IsNullOrWhiteSpace(account))
-                throw new InvalidOperationException("Snowflake:Account missing in appsettings.json");
-            if (string.IsNullOrWhiteSpace(user))
-                throw new InvalidOperationException("Snowflake:User missing in appsettings.json");
-            if (string.IsNullOrWhiteSpace(warehouse))
-                throw new InvalidOperationException("Snowflake:Warehouse missing in appsettings.json");
-            if (string.IsNullOrWhiteSpace(role))
-                throw new InvalidOperationException("Snowflake:Role missing in appsettings.json");
-            if (string.IsNullOrWhiteSpace(keyPath))
-                throw new InvalidOperationException("Snowflake:PrivateKeyPath missing in appsettings.json");
-            if (string.IsNullOrWhiteSpace(passphrase))
-                throw new InvalidOperationException("Snowflake:PrivateKeyPassphrase missing in appsettings.json");
+    var dbSection = sf.GetSection($"Databases:{dbKey}");
+    if (!dbSection.Exists())
+        throw new InvalidOperationException($"Missing Snowflake database config: Snowflake:Databases:{dbKey}");
 
-            if (!Path.IsPathRooted(keyPath))
-                keyPath = Path.GetFullPath(keyPath);
+    var database = dbSection["Database"];
+    if (string.IsNullOrWhiteSpace(database))
+        throw new InvalidOperationException($"Snowflake:Databases:{dbKey}:Database missing in appsettings.json");
 
-            if (!File.Exists(keyPath))
-                throw new FileNotFoundException($"Snowflake private key file not found: {keyPath}");
+    string? schema = null;
+    if (!string.IsNullOrWhiteSpace(schemaKey))
+    {
+        schema = dbSection[$"Schemas:{schemaKey}"];
+        if (string.IsNullOrWhiteSpace(schema))
+            throw new InvalidOperationException($"Snowflake schema key not found: Snowflake:Databases:{dbKey}:Schemas:{schemaKey}");
+    }
 
-            var keyText = await File.ReadAllTextAsync(keyPath);
-            keyText = keyText.ReplaceLineEndings("\n");
+    // validate required fields
+    if (string.IsNullOrWhiteSpace(account)) throw new InvalidOperationException("Snowflake:Account missing");
+    if (string.IsNullOrWhiteSpace(user)) throw new InvalidOperationException("Snowflake:User missing");
+    if (string.IsNullOrWhiteSpace(warehouse)) throw new InvalidOperationException("Snowflake:Warehouse missing");
+    if (string.IsNullOrWhiteSpace(role)) throw new InvalidOperationException("Snowflake:Role missing");
+    if (string.IsNullOrWhiteSpace(keyPath)) throw new InvalidOperationException("Snowflake:PrivateKeyPath missing");
+    if (string.IsNullOrWhiteSpace(passphrase)) throw new InvalidOperationException("Snowflake:PrivateKeyPassphrase missing");
 
-            var csb = new SnowflakeDbConnectionStringBuilder
-            {
-                ["ACCOUNT"] = account,
-                ["HOST"] = $"{account}.snowflakecomputing.com",
-                ["USER"] = user,
-                ["AUTHENTICATOR"] = "snowflake_jwt",
-                ["PRIVATE_KEY"] = keyText,
-                ["PRIVATE_KEY_PWD"] = passphrase,
+    if (!Path.IsPathRooted(keyPath)) keyPath = Path.GetFullPath(keyPath);
+    if (!File.Exists(keyPath)) throw new FileNotFoundException($"Snowflake private key file not found: {keyPath}");
 
-                // Keep these, but don't rely on them alone
-                ["WAREHOUSE"] = warehouse,
-                ["ROLE"] = role
-            };
+    var keyText = (await File.ReadAllTextAsync(keyPath)).ReplaceLineEndings("\n");
 
-            using var conn = new SnowflakeDbConnection
-            {
-                ConnectionString = csb.ConnectionString
-            };
+    var csb = new SnowflakeDbConnectionStringBuilder
+    {
+        ["ACCOUNT"] = account,
+        ["HOST"] = $"{account}.snowflakecomputing.com",
+        ["USER"] = user,
+        ["AUTHENTICATOR"] = "snowflake_jwt",
+        ["PRIVATE_KEY"] = keyText,
+        ["PRIVATE_KEY_PWD"] = passphrase,
+        ["WAREHOUSE"] = warehouse,
+        ["ROLE"] = role
+    };
 
-            await conn.OpenAsync();
+    using var conn = new SnowflakeDbConnection { ConnectionString = csb.ConnectionString };
+    await conn.OpenAsync();
 
-            // ✅ Make session context deterministic
-            await SetSessionContextAsync(conn, role, warehouse, database, null);
+    await SetSessionContextAsync(conn, role, warehouse, database, schema);
 
-            using var cmd = conn.CreateCommand();
-            cmd.CommandText = sql;
+    using var cmd = conn.CreateCommand();
+    cmd.CommandText = sql;
 
-            using var reader = await cmd.ExecuteReaderAsync();
-            var dt = new DataTable();
-            dt.Load(reader);
-            return dt;
-        }
+    using var reader = await cmd.ExecuteReaderAsync();
+    var dt = new DataTable();
+    dt.Load(reader);
+    return dt;
+}
 
        private static async Task SetSessionContextAsync(
     SnowflakeDbConnection conn,

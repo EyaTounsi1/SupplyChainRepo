@@ -142,7 +142,10 @@ WHERE SITE = 'VCT'";
                 actualSql += $" AND MFG_SUPPLIER_CODE = '{mfgCode}'";
             }
 
-            DataTable actualTable = await SnowflakeService.QueryAsync(actualSql);
+        DataTable actualTable = await SnowflakeService.QueryAsync(
+    actualSql,
+    "ManufacturingEnterpriseDataProducts"
+);
 
             // Query suggested safety stock from INVENTORY_MATRIX
             string suggestedSql = @"
@@ -165,7 +168,7 @@ WHERE FACTORY = 'VCT'";
                 suggestedSql += $" AND SUPPLIER_MFG_CODE = '{mfgCode}'";
             }
 
-            DataTable suggestedTable = await SnowflakeService.QueryAsync(suggestedSql);
+            DataTable suggestedTable = await SnowflakeService.QueryAsync(suggestedSql, "ManufacturingBusinessDataProducts");
 
             // Create dictionaries for quick lookup
             var actualDict = new Dictionary<string, (float Parts, float LeadTime)>();

@@ -1,10 +1,60 @@
 @page "/inventory-alerts"
 @using PartTracker.Shared.Services
 @using Microsoft.JSInterop
+@using System.Data
 @inject SnowflakeService SnowflakeService
 @inject IJSRuntime JSRuntime
 
 <h3>Inventory Alerts</h3>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Consumption Analysis</MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudSelect T="string"
+                       Label="Select Part Number"
+                       @bind-Value="selectedPartNumber"
+                       @bind-Value:after="OnPartChanged"
+                       Dense="true"
+                       Class="mb-3">
+                @foreach (var part in consumptionPartNumbers)
+                {
+                    <MudSelectItem T="string" Value="@part">@part</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudSelect T="string"
+                       Label="Time Aggregation"
+                       @bind-Value="selectedTimePeriod"
+                       @bind-Value:after="OnTimePeriodChanged"
+                       Dense="true"
+                       Class="mb-3">
+                <MudSelectItem T="string" Value="@("Daily")">Per Day</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Weekly")">Per Week</MudSelectItem>
+                <MudSelectItem T="string" Value="@("Monthly")">Per Month</MudSelectItem>
+                <MudSelectItem T="string" Value="@("60Days")">Per 60 Days</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+    </MudGrid>
+
+    @if (isLoadingConsumption)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (consumptionLabels.Any())
+    {
+        <MudChart ChartType="ChartType.Line"
+                  Height="400px"
+                  XAxisLabels="@consumptionLabels.ToArray()"
+                  ChartSeries="@consumptionSeries" />
+    }
+    else
+    {
+        <MudText>No consumption data available for the selected part and period.</MudText>
+    }
+</MudPaper>
 
 @if (isLoading)
 {
@@ -338,6 +388,14 @@ else
     private string _searchStringPolicyAdherence = "";
     private string _searchStringPolicyScore = "";
 
+    // Consumption analysis
+    private List<string> consumptionPartNumbers = new();
+    private string selectedPartNumber = "";
+    private string selectedTimePeriod = "Daily";
+    private bool isLoadingConsumption = false;
+    private List<string> consumptionLabels = new();
+    private List<MudBlazor.ChartSeries> consumptionSeries = new();
+
     private Func<PartInventoryItem, bool> _quickFilter => x =>
     {
         if (string.IsNullOrWhiteSpace(_searchString))
@@ -465,6 +523,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadConsumptionPartNumbers();
         await LoadRunoutData();
         await LoadLowInventoryParts();
         await LoadGitDependencyParts();
@@ -565,12 +624,12 @@ else
         }
     }
 
-    private async Task LoadRunoutData()
+  private async Task LoadRunoutData()
+{
+    isLoading = true;
+    try
     {
-        isLoading = true;
-        try
-        {
-            var query = @"
+        var query = @"
 WITH latest_day AS (
   SELECT MAX(PRODUCTION_DAY) AS production_day
   FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
@@ -590,27 +649,31 @@ FROM base
 WHERE AVAILABLE_INVENTORY_RUN_OUT_DATE IS NOT NULL;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
-            {
-                var row = result.Rows[0];
-                runout7Days = Convert.ToInt32(row[0]);
-                runout14Days = Convert.ToInt32(row[1]);
-                runout30Days = Convert.ToInt32(row[2]);
-            }
-        }
-        catch (Exception ex)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
         {
-            Console.WriteLine($"Error loading runout data: {ex.Message}");
+            var row = result.Rows[0];
+            runout7Days = Convert.ToInt32(row[0]);
+            runout14Days = Convert.ToInt32(row[1]);
+            runout30Days = Convert.ToInt32(row[2]);
         }
     }
-
-    private async Task LoadLowInventoryParts()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading runout data: {ex}");
+    }
+    finally
+    {
+        isLoading = false;
+    }
+}
+
+private async Task LoadLowInventoryParts()
+{
+    try
+    {
+        var query = @"
 WITH latest_day AS (
   SELECT MAX(PRODUCTION_DAY) AS production_day
   FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
@@ -634,35 +697,35 @@ ORDER BY AVAILABLE_INVENTORY_IN_SHIFTS ASC
 LIMIT 50;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            lowInventoryParts = new List<PartInventoryItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                lowInventoryParts = new List<PartInventoryItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                lowInventoryParts.Add(new PartInventoryItem
                 {
-                    lowInventoryParts.Add(new PartInventoryItem
-                    {
-                        PlanningPoint = row[0]?.ToString() ?? "",
-                        PartNumber = row[1]?.ToString() ?? "",
-                        AvailableInventoryInShifts = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
-                        AvailableInventoryRunOutDate = row[3] != DBNull.Value ? Convert.ToDateTime(row[3]) : null,
-                        AvailableInventoryRunOutShift = row[4] != DBNull.Value ? Convert.ToDecimal(row[4]) : null
-                    });
-                }
+                    PlanningPoint = row[0]?.ToString() ?? "",
+                    PartNumber = row[1]?.ToString() ?? "",
+                    AvailableInventoryInShifts = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
+                    AvailableInventoryRunOutDate = row[3] != DBNull.Value ? Convert.ToDateTime(row[3]) : (DateTime?)null,
+                    AvailableInventoryRunOutShift = row[4] != DBNull.Value ? Convert.ToDecimal(row[4]) : (decimal?)null
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading low inventory parts: {ex.Message}");
-        }
     }
-
-    private async Task LoadGitDependencyParts()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading low inventory parts: {ex}");
+    }
+}
+
+private async Task LoadGitDependencyParts()
+{
+    try
+    {
+        var query = @"
 WITH latest_day AS (
   SELECT MAX(PRODUCTION_DAY) AS production_day
   FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
@@ -687,35 +750,35 @@ ORDER BY git_dependency_shifts DESC
 LIMIT 200;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            gitDependencyParts = new List<GitDependencyItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                gitDependencyParts = new List<GitDependencyItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                gitDependencyParts.Add(new GitDependencyItem
                 {
-                    gitDependencyParts.Add(new GitDependencyItem
-                    {
-                        PlanningPoint = row[0]?.ToString() ?? "",
-                        PartNumber = row[1]?.ToString() ?? "",
-                        OnHandShifts = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
-                        OnHandPlusGitShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0,
-                        GitDependencyShifts = row[4] != DBNull.Value ? Convert.ToDecimal(row[4]) : 0
-                    });
-                }
+                    PlanningPoint = row[0]?.ToString() ?? "",
+                    PartNumber = row[1]?.ToString() ?? "",
+                    OnHandShifts = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
+                    OnHandPlusGitShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0,
+                    GitDependencyShifts = row[4] != DBNull.Value ? Convert.ToDecimal(row[4]) : 0
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading GIT dependency parts: {ex.Message}");
-        }
     }
-
-    private async Task LoadAcuteDrops()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading GIT dependency parts: {ex}");
+    }
+}
+
+private async Task LoadAcuteDrops()
+{
+    try
+    {
+        var query = @"
 WITH hist AS (
   SELECT
     PLANNING_POINT,
@@ -745,34 +808,34 @@ ORDER BY delta_shifts ASC
 LIMIT 100;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            acuteDrops = new List<AcuteDropItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                acuteDrops = new List<AcuteDropItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                acuteDrops.Add(new AcuteDropItem
                 {
-                    acuteDrops.Add(new AcuteDropItem
-                    {
-                        PlanningPoint = row[0]?.ToString() ?? "",
-                        PartNumber = row[1]?.ToString() ?? "",
-                        ProductionDay = row[2] != DBNull.Value ? Convert.ToDateTime(row[2]) : DateTime.MinValue,
-                        DeltaShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
-                    });
-                }
+                    PlanningPoint = row[0]?.ToString() ?? "",
+                    PartNumber = row[1]?.ToString() ?? "",
+                    ProductionDay = row[2] != DBNull.Value ? Convert.ToDateTime(row[2]) : DateTime.MinValue,
+                    DeltaShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading acute drops data: {ex.Message}");
-        }
     }
-
-    private async Task LoadChronicRiskList()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading acute drops data: {ex}");
+    }
+}
+
+private async Task LoadChronicRiskList()
+{
+    try
+    {
+        var query = @"
 WITH hist AS (
   SELECT
     PLANNING_POINT,
@@ -806,35 +869,35 @@ ORDER BY pct_days_lt_10 DESC, days_lt_10 DESC
 LIMIT 200;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            chronicRiskList = new List<ChronicRiskItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                chronicRiskList = new List<ChronicRiskItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                chronicRiskList.Add(new ChronicRiskItem
                 {
-                    chronicRiskList.Add(new ChronicRiskItem
-                    {
-                        PlanningPoint = row[0]?.ToString() ?? "",
-                        PartNumber = row[1]?.ToString() ?? "",
-                        DaysObserved = row[2] != DBNull.Value ? Convert.ToInt32(row[2]) : 0,
-                        DaysLessThan10 = row[3] != DBNull.Value ? Convert.ToInt32(row[3]) : 0,
-                        PctDaysLessThan10 = row[4] != DBNull.Value ? Convert.ToDecimal(row[4]) : 0
-                    });
-                }
+                    PlanningPoint = row[0]?.ToString() ?? "",
+                    PartNumber = row[1]?.ToString() ?? "",
+                    DaysObserved = row[2] != DBNull.Value ? Convert.ToInt32(row[2]) : 0,
+                    DaysLessThan10 = row[3] != DBNull.Value ? Convert.ToInt32(row[3]) : 0,
+                    PctDaysLessThan10 = row[4] != DBNull.Value ? Convert.ToDecimal(row[4]) : 0
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading chronic risk list data: {ex.Message}");
-        }
     }
-
-    private async Task LoadRiskOverstockQuadrant()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading chronic risk list data: {ex}");
+    }
+}
+
+private async Task LoadRiskOverstockQuadrant()
+{
+    try
+    {
+        var query = @"
 WITH latest_day AS (
   SELECT MAX(PRODUCTION_DAY) AS production_day
   FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
@@ -859,34 +922,34 @@ SELECT * FROM pp
 ORDER BY pct_low_cover DESC;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            riskOverstockQuadrant = new List<RiskOverstockItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                riskOverstockQuadrant = new List<RiskOverstockItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                riskOverstockQuadrant.Add(new RiskOverstockItem
                 {
-                    riskOverstockQuadrant.Add(new RiskOverstockItem
-                    {
-                        PlanningPoint = row[0]?.ToString() ?? "",
-                        Parts = row[1] != DBNull.Value ? Convert.ToInt32(row[1]) : 0,
-                        PctLowCover = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
-                        PctOverstock = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
-                    });
-                }
+                    PlanningPoint = row[0]?.ToString() ?? "",
+                    Parts = row[1] != DBNull.Value ? Convert.ToInt32(row[1]) : 0,
+                    PctLowCover = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
+                    PctOverstock = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading risk vs overstock quadrant data: {ex.Message}");
-        }
     }
-
-    private async Task LoadGitDependencyTrend()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading risk vs overstock quadrant data: {ex}");
+    }
+}
+
+private async Task LoadGitDependencyTrend()
+{
+    try
+    {
+        var query = @"
 WITH hist AS (
   SELECT
     DATE_TRUNC('week', PRODUCTION_DAY) AS week,
@@ -905,32 +968,32 @@ GROUP BY week
 ORDER BY week;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            gitDependencyTrend = new List<GitDependencyTrendItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                gitDependencyTrend = new List<GitDependencyTrendItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                gitDependencyTrend.Add(new GitDependencyTrendItem
                 {
-                    gitDependencyTrend.Add(new GitDependencyTrendItem
-                    {
-                        Week = row[0] != DBNull.Value ? Convert.ToDateTime(row[0]) : DateTime.MinValue,
-                        MedianGitDependencyShifts = row[1] != DBNull.Value ? Convert.ToDecimal(row[1]) : 0
-                    });
-                }
+                    Week = row[0] != DBNull.Value ? Convert.ToDateTime(row[0]) : DateTime.MinValue,
+                    MedianGitDependencyShifts = row[1] != DBNull.Value ? Convert.ToDecimal(row[1]) : 0
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading GIT dependency trend data: {ex.Message}");
-        }
     }
-
-    private async Task LoadWeeklyTrend()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading GIT dependency trend data: {ex}");
+    }
+}
+
+private async Task LoadWeeklyTrend()
+{
+    try
+    {
+        var query = @"
 WITH hist AS (
   SELECT
     DATE_TRUNC('week', PRODUCTION_DAY) AS week,
@@ -959,34 +1022,34 @@ FROM weekly
 ORDER BY week;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            weeklyTrend = new List<WeeklyTrendItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                weeklyTrend = new List<WeeklyTrendItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                weeklyTrend.Add(new WeeklyTrendItem
                 {
-                    weeklyTrend.Add(new WeeklyTrendItem
-                    {
-                        Week = row[0] != DBNull.Value ? Convert.ToDateTime(row[0]) : DateTime.MinValue,
-                        PartCount = row[1] != DBNull.Value ? Convert.ToInt32(row[1]) : 0,
-                        PartLowCount = row[2] != DBNull.Value ? Convert.ToInt32(row[2]) : 0,
-                        PctLow = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
-                    });
-                }
+                    Week = row[0] != DBNull.Value ? Convert.ToDateTime(row[0]) : DateTime.MinValue,
+                    PartCount = row[1] != DBNull.Value ? Convert.ToInt32(row[1]) : 0,
+                    PartLowCount = row[2] != DBNull.Value ? Convert.ToInt32(row[2]) : 0,
+                    PctLow = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading weekly trend data: {ex.Message}");
-        }
     }
-
-    private async Task LoadOverstockParts()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading weekly trend data: {ex}");
+    }
+}
+
+private async Task LoadOverstockParts()
+{
+    try
+    {
+        var query = @"
 WITH latest_day AS (
   SELECT MAX(PRODUCTION_DAY) AS production_day
   FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
@@ -1009,34 +1072,34 @@ ORDER BY AVAILABLE_INVENTORY_IN_SHIFTS DESC
 LIMIT 200;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            overstockParts = new List<OverstockItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                overstockParts = new List<OverstockItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                overstockParts.Add(new OverstockItem
                 {
-                    overstockParts.Add(new OverstockItem
-                    {
-                        PlanningPoint = row[0]?.ToString() ?? "",
-                        PartNumber = row[1]?.ToString() ?? "",
-                        AvailableInventory = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
-                        AvailableInventoryInShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
-                    });
-                }
+                    PlanningPoint = row[0]?.ToString() ?? "",
+                    PartNumber = row[1]?.ToString() ?? "",
+                    AvailableInventory = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
+                    AvailableInventoryInShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading overstock parts data: {ex.Message}");
-        }
     }
-
-    private async Task LoadNoDemandParts()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading overstock parts data: {ex}");
+    }
+}
+
+private async Task LoadNoDemandParts()
+{
+    try
+    {
+        var query = @"
 WITH latest_day AS (
   SELECT MAX(PRODUCTION_DAY) AS production_day
   FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
@@ -1061,35 +1124,35 @@ ORDER BY AVAILABLE_INVENTORY DESC
 LIMIT 200;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            noDemandParts = new List<NoDemandItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                noDemandParts = new List<NoDemandItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                noDemandParts.Add(new NoDemandItem
                 {
-                    noDemandParts.Add(new NoDemandItem
-                    {
-                        PlanningPoint = row[0]?.ToString() ?? "",
-                        PartNumber = row[1]?.ToString() ?? "",
-                        AvailableInventory = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
-                        AvailableInventoryInShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0,
-                        RunOutComment = row[4]?.ToString() ?? ""
-                    });
-                }
+                    PlanningPoint = row[0]?.ToString() ?? "",
+                    PartNumber = row[1]?.ToString() ?? "",
+                    AvailableInventory = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
+                    AvailableInventoryInShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0,
+                    RunOutComment = row[4]?.ToString() ?? ""
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading no-demand parts data: {ex.Message}");
-        }
     }
-
-    private async Task LoadPolicyScoreByPlanningPoint()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading no-demand parts data: {ex}");
+    }
+}
+
+private async Task LoadPolicyScoreByPlanningPoint()
+{
+    try
+    {
+        var query = @"
 WITH latest_cov_day AS (
   SELECT MAX(PRODUCTION_DAY) AS production_day
   FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
@@ -1132,34 +1195,34 @@ GROUP BY PLANNING_POINT
 ORDER BY pct_below_policy DESC;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            policyScoreByPlanningPoint = new List<PolicyScoreItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                policyScoreByPlanningPoint = new List<PolicyScoreItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                policyScoreByPlanningPoint.Add(new PolicyScoreItem
                 {
-                    policyScoreByPlanningPoint.Add(new PolicyScoreItem
-                    {
-                        PlanningPoint = row[0]?.ToString() ?? "",
-                        Parts = row[1] != DBNull.Value ? Convert.ToInt32(row[1]) : 0,
-                        BelowPolicyParts = row[2] != DBNull.Value ? Convert.ToInt32(row[2]) : 0,
-                        PctBelowPolicy = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
-                    });
-                }
+                    PlanningPoint = row[0]?.ToString() ?? "",
+                    Parts = row[1] != DBNull.Value ? Convert.ToInt32(row[1]) : 0,
+                    BelowPolicyParts = row[2] != DBNull.Value ? Convert.ToInt32(row[2]) : 0,
+                    PctBelowPolicy = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading policy score by planning point data: {ex.Message}");
-        }
     }
-
-    private async Task LoadVolatilityByPlanningPoint()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading policy score by planning point data: {ex}");
+    }
+}
+
+private async Task LoadVolatilityByPlanningPoint()
+{
+    try
+    {
+        var query = @"
 WITH hist AS (
   SELECT
     PLANNING_POINT,
@@ -1191,34 +1254,34 @@ GROUP BY PLANNING_POINT
 ORDER BY median_abs_daily_shift_change DESC;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            volatilityByPlanningPoint = new List<VolatilityByPlanningPointItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                volatilityByPlanningPoint = new List<VolatilityByPlanningPointItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                volatilityByPlanningPoint.Add(new VolatilityByPlanningPointItem
                 {
-                    volatilityByPlanningPoint.Add(new VolatilityByPlanningPointItem
-                    {
-                        PlanningPoint = row[0]?.ToString() ?? "",
-                        Observations = row[1] != DBNull.Value ? Convert.ToInt32(row[1]) : 0,
-                        AvgAbsDailyShiftChange = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
-                        MedianAbsDailyShiftChange = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
-                    });
-                }
+                    PlanningPoint = row[0]?.ToString() ?? "",
+                    Observations = row[1] != DBNull.Value ? Convert.ToInt32(row[1]) : 0,
+                    AvgAbsDailyShiftChange = row[2] != DBNull.Value ? Convert.ToDecimal(row[2]) : 0,
+                    MedianAbsDailyShiftChange = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading volatility by planning point data: {ex.Message}");
-        }
     }
-
-    private async Task LoadVolatilityTrend()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading volatility by planning point data: {ex}");
+    }
+}
+
+private async Task LoadVolatilityTrend()
+{
+    try
+    {
+        var query = @"
 WITH hist AS (
   SELECT
     PLANNING_POINT,
@@ -1248,32 +1311,32 @@ GROUP BY week
 ORDER BY week;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            volatilityTrend = new List<VolatilityTrendItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                volatilityTrend = new List<VolatilityTrendItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                volatilityTrend.Add(new VolatilityTrendItem
                 {
-                    volatilityTrend.Add(new VolatilityTrendItem
-                    {
-                        Week = row[0] != DBNull.Value ? Convert.ToDateTime(row[0]) : DateTime.MinValue,
-                        MedianVolatility = row[1] != DBNull.Value ? Convert.ToDecimal(row[1]) : 0
-                    });
-                }
+                    Week = row[0] != DBNull.Value ? Convert.ToDateTime(row[0]) : DateTime.MinValue,
+                    MedianVolatility = row[1] != DBNull.Value ? Convert.ToDecimal(row[1]) : 0
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading volatility trend data: {ex.Message}");
-        }
     }
-
-    private async Task LoadPolicyAdherence()
+    catch (Exception ex)
     {
-        try
-        {
-            var query = @"
+        Console.WriteLine($"Error loading volatility trend data: {ex}");
+    }
+}
+
+private async Task LoadPolicyAdherence()
+{
+    try
+    {
+        var query = @"
 WITH latest_cov_day AS (
   SELECT MAX(PRODUCTION_DAY) AS production_day
   FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
@@ -1318,31 +1381,138 @@ ORDER BY shifts_vs_policy ASC
 LIMIT 200;
 ";
 
-            var result = await SnowflakeService.QueryAsync(query);
-            
-            if (result != null && result.Rows.Count > 0)
+        var result = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        if (result != null && result.Rows.Count > 0)
+        {
+            policyAdherence = new List<PolicyAdherenceItem>();
+            foreach (System.Data.DataRow row in result.Rows)
             {
-                policyAdherence = new List<PolicyAdherenceItem>();
-                foreach (System.Data.DataRow row in result.Rows)
+                policyAdherence.Add(new PolicyAdherenceItem
                 {
-                    policyAdherence.Add(new PolicyAdherenceItem
-                    {
-                        PlanningPoint = row[0]?.ToString() ?? "",
-                        PartNumber = row[1]?.ToString() ?? "",
-                        MfgSupplierCode = row[2]?.ToString() ?? "",
-                        OnHandShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0,
-                        EffectiveSsShifts = row[4] != DBNull.Value ? Convert.ToDecimal(row[4]) : 0,
-                        ShiftsVsPolicy = row[5] != DBNull.Value ? Convert.ToDecimal(row[5]) : 0,
-                        PolicyStatus = row[6]?.ToString() ?? ""
-                    });
-                }
+                    PlanningPoint = row[0]?.ToString() ?? "",
+                    PartNumber = row[1]?.ToString() ?? "",
+                    MfgSupplierCode = row[2]?.ToString() ?? "",
+                    OnHandShifts = row[3] != DBNull.Value ? Convert.ToDecimal(row[3]) : 0,
+                    EffectiveSsShifts = row[4] != DBNull.Value ? Convert.ToDecimal(row[4]) : 0,
+                    ShiftsVsPolicy = row[5] != DBNull.Value ? Convert.ToDecimal(row[5]) : 0,
+                    PolicyStatus = row[6]?.ToString() ?? ""
+                });
             }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading policy adherence data: {ex.Message}");
-        }
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error loading policy adherence data: {ex}");
+    }
+}
+
+private async Task LoadConsumptionPartNumbers()
+{
+    try
+    {
+        var query = @"
+SELECT DISTINCT PART_NUMBER
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_CONSUMPTION_AS_MANUFACTURED.PART_CONSUMPTION_AS_MANUFACTURED
+WHERE SITE = 'VCT'
+ORDER BY PART_NUMBER
+LIMIT 1000";  // Limit to prevent too many options
+
+        var dt = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+        consumptionPartNumbers = dt.AsEnumerable().Select(r => r["PART_NUMBER"]?.ToString() ?? "").ToList();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error loading consumption part numbers: {ex}");
+    }
+}
+
+private async Task OnPartChanged()
+{
+    if (!string.IsNullOrEmpty(selectedPartNumber))
+    {
+        await LoadConsumptionData();
+    }
+}
+
+private async Task OnTimePeriodChanged()
+{
+    if (!string.IsNullOrEmpty(selectedPartNumber))
+    {
+        await LoadConsumptionData();
+    }
+}
+
+private async Task LoadConsumptionData()
+{
+    isLoadingConsumption = true;
+    consumptionLabels.Clear();
+    consumptionSeries.Clear();
+
+    try
+    {
+        var pn = EscapeSqlLiteral(selectedPartNumber);
+        string groupBy, dateFormat;
+
+        switch (selectedTimePeriod)
+        {
+            case "Weekly":
+                groupBy = "YEAR(PART_CONSUMED_DATE), WEEK(PART_CONSUMED_DATE)";
+                dateFormat = "CONCAT(YEAR(PART_CONSUMED_DATE), '-W', LPAD(WEEK(PART_CONSUMED_DATE), 2, '0'))";
+                break;
+            case "Monthly":
+                groupBy = "YEAR(PART_CONSUMED_DATE), MONTH(PART_CONSUMED_DATE)";
+                dateFormat = "CONCAT(YEAR(PART_CONSUMED_DATE), '-', LPAD(MONTH(PART_CONSUMED_DATE), 2, '0'))";
+                break;
+            case "60Days":
+                // Approximate 60 days as 2 months
+                groupBy = "YEAR(PART_CONSUMED_DATE), FLOOR(MONTH(PART_CONSUMED_DATE)/2)";
+                dateFormat = "CONCAT(YEAR(PART_CONSUMED_DATE), '-Q', FLOOR(MONTH(PART_CONSUMED_DATE)/2) + 1)";
+                break;
+            default: // Daily
+                groupBy = "PART_CONSUMED_DATE";
+                dateFormat = "PART_CONSUMED_DATE";
+                break;
+        }
+
+        var query = $@"
+SELECT
+    {dateFormat} AS period,
+    SUM(PART_AMOUNT) AS total_consumption
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_CONSUMPTION_AS_MANUFACTURED.PART_CONSUMPTION_AS_MANUFACTURED
+WHERE SITE = 'VCT'
+  AND PART_NUMBER = '{pn}'
+  AND PART_CONSUMED_DATE >= DATEADD(month, -12, CURRENT_DATE())  -- Last 12 months
+GROUP BY {groupBy}
+ORDER BY {groupBy}";
+
+        var dt = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+        var data = new List<double>();
+        foreach (DataRow row in dt.Rows)
+        {
+            consumptionLabels.Add(row["period"].ToString());
+            data.Add(Convert.ToDouble(row["total_consumption"]));
+        }
+
+        consumptionSeries.Add(new MudBlazor.ChartSeries
+        {
+            Name = $"Consumption ({selectedTimePeriod})",
+            Data = data.ToArray()
+        });
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error loading consumption data: {ex}");
+    }
+    finally
+    {
+        isLoadingConsumption = false;
+        await InvokeAsync(StateHasChanged);
+    }
+}
+
+private static string EscapeSqlLiteral(string value) => value.Replace("'", "''");
 
     public class PartInventoryItem
     {

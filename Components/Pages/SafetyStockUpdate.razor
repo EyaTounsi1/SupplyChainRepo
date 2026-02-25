@@ -222,7 +222,10 @@ WHERE ss.SITE = 'VCT'
 ORDER BY ss.PART_NUMBER DESC
 LIMIT 100"; // Limit for performance
 
-            DataTable dt = await Snowflake.QueryAsync(sql);
+            DataTable dt = await Snowflake.QueryAsync(
+    sql,
+    "ManufacturingEnterpriseDataProducts"
+);
             _currentSafetyStock = new List<SafetyStockItem>();
 
             foreach (DataRow row in dt.Rows)
