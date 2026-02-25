@@ -1,7 +1,8 @@
 @page "/ad-hoc/requirements-vs-transit"
 @using PartTracker.Shared.Services
 @using System.Data
-@inject SnowflakeService SnowflakeService
+@using MySqlConnector
+@inject IConfiguration Config
 
 <PageTitle>Requirements vs Transit</PageTitle>
 
@@ -14,9 +15,6 @@
         <MudGrid>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="partNumber" Label="Part Number" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="supplierCode" Label="Supplier Code" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudButton Variant="Variant.Filled"
@@ -34,27 +32,15 @@
     {
         <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mt-4" />
     }
-    else if (data.Any())
+    else if (chartLabels.Any())
     {
         <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h6" Class="mb-3">Requirements vs Transit Data</MudText>
+            <MudText Typo="Typo.h6" Class="mb-3">Requirements vs Transit Histogram</MudText>
 
-            <MudTable Items="@data" Hover="true" Striped="true" Dense="true">
-                <HeaderContent>
-                    <MudTh>Part Number</MudTh>
-                    <MudTh>Supplier Code</MudTh>
-                    <MudTh>Requirement Date</MudTh>
-                    <MudTh>Transit Date</MudTh>
-                    <MudTh>Status</MudTh>
-                </HeaderContent>
-                <RowTemplate>
-                    <MudTd DataLabel="Part Number">@context.PartNumber</MudTd>
-                    <MudTd DataLabel="Supplier Code">@context.SupplierCode</MudTd>
-                    <MudTd DataLabel="Requirement Date">@context.RequirementDate?.ToShortDateString()</MudTd>
-                    <MudTd DataLabel="Transit Date">@context.TransitDate?.ToShortDateString()</MudTd>
-                    <MudTd DataLabel="Status">@context.Status</MudTd>
-                </RowTemplate>
-            </MudTable>
+            <MudChart ChartType="ChartType.Bar"
+                      Height="400px"
+                      XAxisLabels="@chartLabels.ToArray()"
+                      ChartSeries="@chartSeries" />
         </MudPaper>
     }
     else
@@ -65,52 +51,105 @@
 
 @code {
     private string partNumber = "";
-    private string supplierCode = "";
     private bool isLoading = false;
-    private List<RequirementsVsTransitItem> data = new();
+    private string? errorMessage;
+
+    private List<string> chartLabels = new();
+    private List<MudBlazor.ChartSeries> chartSeries = new();
 
     private async Task LoadData()
     {
         isLoading = true;
-        data.Clear();
+        errorMessage = null;
+        chartLabels.Clear();
+        chartSeries.Clear();
 
         try
         {
-            // Placeholder query - replace with actual logic
-            var query = @"
-SELECT
-    PART_NUMBER,
-    SUPPLIER_CODE,
-    REQUIREMENT_DATE,
-    TRANSIT_DATE,
-    CASE
-        WHEN TRANSIT_DATE <= REQUIREMENT_DATE THEN 'On Time'
-        ELSE 'Delayed'
-    END AS STATUS
-FROM YOUR_TABLE
-WHERE 1=1
-" + (!string.IsNullOrEmpty(partNumber) ? $" AND PART_NUMBER = '{EscapeSqlLiteral(partNumber)}'" : "") +
-(!string.IsNullOrEmpty(supplierCode) ? $" AND SUPPLIER_CODE = '{EscapeSqlLiteral(supplierCode)}'" : "") +
-" ORDER BY REQUIREMENT_DATE DESC LIMIT 100";
+            var connectionString = Config.GetConnectionString("DefaultConnection");
+            using var conn = new MySqlConnection(connectionString);
+            await conn.OpenAsync();
 
-            var dt = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+            int? pn = null;
+            if (!string.IsNullOrWhiteSpace(partNumber) && int.TryParse(partNumber, out var parsed))
+                pn = parsed;
 
-            foreach (DataRow row in dt.Rows)
+            var transitData = new List<(DateTime date, int amount)>();
+            var transitQuery = @"
+                SELECT DATE(fav_tid) AS d, fav_artan
+                FROM parts_in_transit
+                WHERE (@pn IS NULL OR art_nr = @pn)
+                  AND fav_tid IS NOT NULL
+                  AND fav_artan IS NOT NULL;
+            ";
+
+            using (var cmdTransit = new MySqlCommand(transitQuery, conn))
             {
-                data.Add(new RequirementsVsTransitItem
+                cmdTransit.Parameters.AddWithValue("@pn", (object?)pn ?? DBNull.Value);
+
+                using (var readerTransit = await cmdTransit.ExecuteReaderAsync())
                 {
-                    PartNumber = row["PART_NUMBER"]?.ToString() ?? "",
-                    SupplierCode = row["SUPPLIER_CODE"]?.ToString() ?? "",
-                    RequirementDate = row["REQUIREMENT_DATE"] != DBNull.Value ? Convert.ToDateTime(row["REQUIREMENT_DATE"]) : (DateTime?)null,
-                    TransitDate = row["TRANSIT_DATE"] != DBNull.Value ? Convert.ToDateTime(row["TRANSIT_DATE"]) : (DateTime?)null,
-                    Status = row["STATUS"]?.ToString() ?? ""
-                });
+                    while (await readerTransit.ReadAsync())
+                    {
+                        var date = readerTransit.GetDateTime(0);
+                        var amount = readerTransit.GetInt32(1);
+                        transitData.Add((date, amount));
+                    }
+                } // readerTransit closed HERE
             }
+
+            // var demandData = new List<(DateTime date, int value)>();
+            // var demandQuery = @"
+            //     SELECT `Attribute` AS d, `Value`
+            //     FROM demand
+            //     WHERE (@pn IS NULL OR Artiklar = @pn)
+            //       AND `Attribute` IS NOT NULL
+            //       AND `Value` IS NOT NULL;
+            // ";
+
+            // using (var cmdDemand = new MySqlCommand(demandQuery, conn))
+            // {
+            //     cmdDemand.Parameters.AddWithValue("@pn", (object?)pn ?? DBNull.Value);
+
+            //     using (var readerDemand = await cmdDemand.ExecuteReaderAsync())
+            //     {
+            //         while (await readerDemand.ReadAsync())
+            //         {
+            //             var date = readerDemand.GetDateTime(0);
+            //             var value = readerDemand.GetInt32(1);
+            //             demandData.Add((date, value));
+            //         }
+            //     }
+            // }
+
+            // Group by week start (Monday)
+            var transitGrouped = transitData
+                .GroupBy(x => GetWeekStart(x.date))
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.amount));
+
+            // var demandGrouped = demandData
+            //     .GroupBy(x => GetWeekStart(x.date))
+            //     .ToDictionary(g => g.Key, g => g.Sum(x => x.value));
+
+            var allWeeks = transitGrouped.Keys
+                // .Concat(demandGrouped.Keys)
+                .Distinct()
+                .OrderBy(d => d)
+                .ToList();
+
+            chartLabels = allWeeks.Select(w => w.ToString("yyyy-MM-dd")).ToList();
+
+            var transitValues = allWeeks.Select(w => (double)(transitGrouped.TryGetValue(w, out var v) ? v : 0)).ToArray();
+            // var demandValues  = allWeeks.Select(w => (double)(demandGrouped.TryGetValue(w, out var v) ? v : 0)).ToArray();
+
+            chartSeries.Add(new MudBlazor.ChartSeries { Name = "Transit Amount", Data = transitValues });
+            // chartSeries.Add(new MudBlazor.ChartSeries { Name = "Demand Value", Data = demandValues });
         }
-        catch (Exception)
-        {
-            // Handle error
-        }
+catch (Exception ex)
+{
+    chartLabels = new() { "ERROR" };
+    chartSeries.Add(new MudBlazor.ChartSeries { Name = ex.Message, Data = new double[] { 0 } });
+}
         finally
         {
             isLoading = false;
@@ -118,14 +157,9 @@ WHERE 1=1
         }
     }
 
-    private static string EscapeSqlLiteral(string value) => value.Replace("'", "''");
-
-    public class RequirementsVsTransitItem
+    private static DateTime GetWeekStart(DateTime date)
     {
-        public string PartNumber { get; set; } = "";
-        public string SupplierCode { get; set; } = "";
-        public DateTime? RequirementDate { get; set; }
-        public DateTime? TransitDate { get; set; }
-        public string Status { get; set; } = "";
+        int diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
+        return date.AddDays(-diff).Date;
     }
 }
