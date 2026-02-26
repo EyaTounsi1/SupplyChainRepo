@@ -274,14 +274,10 @@ SELECT
   CURRENT_SCHEMA() AS SCHEMA;
 ", "DevMfgVctBizDb");
 
-        // Create schema in DEV_MFG_VCT_BIZ_DB session
-        await Snowflake.QueryAsync(@"
-CREATE SCHEMA IF NOT EXISTS VCT_ANALYTICS;
-", "DevMfgVctBizDb");
 
         // Create table in DEV_MFG_VCT_BIZ_DB.VCT_ANALYTICS
         await Snowflake.QueryAsync(@"
-CREATE TABLE IF NOT EXISTS VCT_ANALYTICS.trial (
+CREATE TABLE IF NOT EXISTS DEV_MFG_VCT_BIZ_DB.VCT_ANALYTICS.trial (
   scenario_id        VARCHAR,
   demand_multiplier  FLOAT,
   description        VARCHAR,

@@ -16,17 +16,14 @@
             <MudRadio Value="@("LeadTime")">Simulate by Lead Time</MudRadio>
         </MudRadioGroup>
 
-        <MudSelect T="string"
-                   Label="Time Period for Accumulated Savings"
-                   @bind-Value="selectedTimePeriod"
-                   @bind-Value:after="OnTimePeriodChanged"
+        <MudSelect T="decimal"
+                   Label="Carrying Cost Rate (%)"
+                   @bind-Value="carryingRate"
+                   @bind-Value:after="OnCarryingRateChanged"
                    Dense="true"
                    Class="mb-3">
-            <MudSelectItem T="string" Value="@("Week")">Per Week</MudSelectItem>
-            <MudSelectItem T="string" Value="@("Month")">Per Month</MudSelectItem>
-            <MudSelectItem T="string" Value="@("Quarter")">Per Quarter</MudSelectItem>
-            <MudSelectItem T="string" Value="@("6Months")">Per 6 Months</MudSelectItem>
-            <MudSelectItem T="string" Value="@("Year")">Per Year</MudSelectItem>
+            <MudSelectItem T="decimal" Value="15m">15%</MudSelectItem>
+            <MudSelectItem T="decimal" Value="30m">30%</MudSelectItem>
         </MudSelect>
 
         <MudGrid>
@@ -86,17 +83,16 @@
                         <MudTh>Current Safety Stock</MudTh>
                         <MudTh>Standard Price</MudTh>
                         <MudTh>Currency</MudTh>
-                        <MudTh>Current Value</MudTh>
-                        <MudTh>New Value</MudTh>
+                        <MudTh>One-time Cash Release</MudTh>
+                        <MudTh>Annual Carrying Savings</MudTh>
                     }
                     else
                     {
                         <MudTh>Current Safety Stock Lead Time</MudTh>
                         <MudTh>Current Cost</MudTh>
                         <MudTh>New Cost</MudTh>
+                        <MudTh>Annual Carrying Savings</MudTh>
                     }
-
-                    <MudTh>@($"Savings {GetSavingsLabel()}")</MudTh>
                 </HeaderContent>
 
                 <RowTemplate>
@@ -110,23 +106,34 @@
                         <MudTd DataLabel="Current Safety Stock">@context.CurrentSafetyStock</MudTd>
                         <MudTd DataLabel="Standard Price">@context.StandardPrice.ToString("N2")</MudTd>
                         <MudTd DataLabel="Currency">@context.Currency</MudTd>
-                        <MudTd DataLabel="Current Value">@context.CurrentValue.ToString("N2")</MudTd>
-                        <MudTd DataLabel="New Value">@context.NewValue.ToString("N2")</MudTd>
+                        <MudTd DataLabel="One-time Cash Release">
+                            <MudChip T="string"
+                                     Color="@(context.OneTimeCashRelease > 0 ? Color.Success : Color.Error)"
+                                     Size="Size.Small">
+                                @context.OneTimeCashRelease.ToString("N2")
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Annual Carrying Savings">
+                            <MudChip T="string"
+                                     Color="@(context.AnnualCarryingSavings > 0 ? Color.Success : Color.Error)"
+                                     Size="Size.Small">
+                                @context.AnnualCarryingSavings.ToString("N2")
+                            </MudChip>
+                        </MudTd>
                     }
                     else
                     {
                         <MudTd DataLabel="Current Safety Stock Lead Time">@context.CurrentSafetyStockLeadTime.ToString("N2")</MudTd>
                         <MudTd DataLabel="Current Cost">@context.CurrentCost.ToString("N2")</MudTd>
                         <MudTd DataLabel="New Cost">@context.NewCost.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Annual Carrying Savings">
+                            <MudChip T="string"
+                                     Color="@(context.AnnualCarryingSavings > 0 ? Color.Success : Color.Error)"
+                                     Size="Size.Small">
+                                @context.AnnualCarryingSavings.ToString("N2")
+                            </MudChip>
+                        </MudTd>
                     }
-
-                    <MudTd DataLabel="Savings">
-                        <MudChip T="string"
-                                 Color="@(context.Savings > 0 ? Color.Success : Color.Error)"
-                                 Size="Size.Small">
-                            @context.Savings.ToString("N2")
-                        </MudChip>
-                    </MudTd>
                 </RowTemplate>
             </MudTable>
         </MudPaper>
@@ -142,10 +149,10 @@
 
     private List<SafetyStockSimulationResult> simulationResults = new();
     private string errorMessage = "";
-    private string selectedTimePeriod = "Year";
+    private decimal carryingRate = 15m;
 
     // Called after MudSelect value changes
-    private async Task OnTimePeriodChanged()
+    private async Task OnCarryingRateChanged()
     {
         if (simulationResults.Any())
             RecalculateSavings();
@@ -153,31 +160,21 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private string GetSavingsLabel() => selectedTimePeriod switch
-    {
-        "Week" => "Per Week",
-        "Month" => "Per Month",
-        "Quarter" => "Per Quarter",
-        "6Months" => "Per 6 Months",
-        "Year" => "Per Year",
-        _ => "Per Year"
-    };
-
-    private decimal GetTimeMultiplier() => selectedTimePeriod switch
-    {
-        "Week" => 7m / 365m,
-        "Month" => 30.44m / 365m,
-        "Quarter" => 91.25m / 365m,
-        "6Months" => 182.5m / 365m,
-        "Year" => 1m,
-        _ => 1m
-    };
-
     private void RecalculateSavings()
     {
-        var multiplier = GetTimeMultiplier();
         foreach (var r in simulationResults)
-            r.Savings = r.AnnualSavings * multiplier;
+        {
+            if (simulationMode == "Parts")
+            {
+                var deltaSS = r.CurrentSafetyStock - newSafetyStockParts;
+                r.OneTimeCashRelease = deltaSS * r.StandardPrice;
+                r.AnnualCarryingSavings = deltaSS * r.StandardPrice * (carryingRate / 100m);
+            }
+            else
+            {
+                // For LeadTime, AnnualCarryingSavings is already set in RunSimulation
+            }
+        }
     }
 
     private async Task RunSimulation()
@@ -196,8 +193,6 @@
     "ManufacturingEnterpriseDataProducts"
 );
 
-            var multiplier = GetTimeMultiplier();
-
             foreach (DataRow row in dt.Rows)
             {
                 var site = row["SITE"]?.ToString() ?? "";
@@ -209,11 +204,9 @@
                     var price = row["STANDARD_PRICE"] == DBNull.Value ? 0m : Convert.ToDecimal(row["STANDARD_PRICE"]);
                     var currency = row["CURRENCY"]?.ToString() ?? "";
 
-                    var currentValue = currentStock * price;
-                    var newValue = newSafetyStockParts * price;
-
-                    var annualSavings = currentValue - newValue;
-                    var savings = annualSavings * multiplier;
+                    var deltaSS = currentStock - newSafetyStockParts;
+                    var oneTimeCashRelease = deltaSS * price;
+                    var annualCarryingSavings = deltaSS * price * (carryingRate / 100m);
 
                     simulationResults.Add(new SafetyStockSimulationResult
                     {
@@ -224,10 +217,8 @@
                         CurrentSafetyStock = currentStock,
                         StandardPrice = price,
                         Currency = currency,
-                        CurrentValue = currentValue,
-                        NewValue = newValue,
-                        AnnualSavings = annualSavings,
-                        Savings = savings
+                        OneTimeCashRelease = oneTimeCashRelease,
+                        AnnualCarryingSavings = annualCarryingSavings
                     });
                 }
                 else
@@ -239,11 +230,8 @@
                     // Same assumption as your original: LEAD_TIME is in weeks
                     var carryingCostPerUnitPerYear = leadTime > 0 ? (tiedUpCapital / leadTime) * 52m : 0m;
 
-                    var currentAnnualCost = currentStockLt * carryingCostPerUnitPerYear;
-                    var newAnnualCost = newSafetyStockLeadTime * carryingCostPerUnitPerYear;
-
-                    var annualSavings = currentAnnualCost - newAnnualCost;
-                    var savings = annualSavings * multiplier;
+                    var deltaSS = currentStockLt - newSafetyStockLeadTime;
+                    var annualCarryingSavings = deltaSS * carryingCostPerUnitPerYear;
 
                     simulationResults.Add(new SafetyStockSimulationResult
                     {
@@ -252,10 +240,9 @@
                         PartNumber = partNum,
                         MfgCode = row["MFG_SUPPLIER_CODE"]?.ToString() ?? "",
                         CurrentSafetyStockLeadTime = currentStockLt,
-                        CurrentCost = currentAnnualCost,
-                        NewCost = newAnnualCost,
-                        AnnualSavings = annualSavings,
-                        Savings = savings
+                        CurrentCost = currentStockLt * carryingCostPerUnitPerYear,
+                        NewCost = newSafetyStockLeadTime * carryingCostPerUnitPerYear,
+                        AnnualCarryingSavings = annualCarryingSavings
                     });
                 }
             }
@@ -345,16 +332,13 @@ ORDER BY ss.PART_NUMBER DESC";
         public int CurrentSafetyStock { get; set; }
         public decimal StandardPrice { get; set; }
         public string Currency { get; set; } = "";
-        public decimal CurrentValue { get; set; }
-        public decimal NewValue { get; set; }
+        public decimal OneTimeCashRelease { get; set; }
+        public decimal AnnualCarryingSavings { get; set; }
 
         // LeadTime mode
         public decimal CurrentSafetyStockLeadTime { get; set; }
         public decimal CurrentCost { get; set; }
         public decimal NewCost { get; set; }
-
-        // Common
-        public decimal AnnualSavings { get; set; }
-        public decimal Savings { get; set; }
+        public decimal AnnualCarryingSavingsLeadTime { get; set; } // Wait, no, use the same AnnualCarryingSavings
     }
 }
