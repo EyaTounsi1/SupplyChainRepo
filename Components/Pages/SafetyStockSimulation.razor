@@ -172,7 +172,11 @@
             }
             else
             {
-                // For LeadTime, AnnualCarryingSavings is already set in RunSimulation
+                // For LeadTime, recalculate based on new carrying rate
+                var leadTimeCost = r.LeadTime > 0 ? r.TiedUpCapital / r.LeadTime : 0m;
+                var carryingCost = leadTimeCost * (carryingRate / 100m);
+                var deltaSS = r.CurrentSafetyStockLeadTime - newSafetyStockLeadTime;
+                r.AnnualCarryingSavings = deltaSS * carryingCost;
             }
         }
     }
@@ -227,11 +231,14 @@
                     var tiedUpCapital = row["TIED_UP_CAPITAL"] == DBNull.Value ? 0m : Convert.ToDecimal(row["TIED_UP_CAPITAL"]);
                     var leadTime = row["LEAD_TIME"] == DBNull.Value ? 0m : Convert.ToDecimal(row["LEAD_TIME"]);
 
-                    // Same assumption as your original: LEAD_TIME is in weeks
-                    var carryingCostPerUnitPerYear = leadTime > 0 ? (tiedUpCapital / leadTime) * 52m : 0m;
+                    // Lead time cost = tied up capital divided by lead time
+                    var leadTimeCost = leadTime > 0 ? tiedUpCapital / leadTime : 0m;
+                    
+                    // Carrying cost = lead time cost reduction by carrying rate (15% or 30%)
+                    var carryingCost = leadTimeCost * (carryingRate / 100m);
 
                     var deltaSS = currentStockLt - newSafetyStockLeadTime;
-                    var annualCarryingSavings = deltaSS * carryingCostPerUnitPerYear;
+                    var annualCarryingSavings = deltaSS * carryingCost;
 
                     simulationResults.Add(new SafetyStockSimulationResult
                     {
@@ -240,9 +247,11 @@
                         PartNumber = partNum,
                         MfgCode = row["MFG_SUPPLIER_CODE"]?.ToString() ?? "",
                         CurrentSafetyStockLeadTime = currentStockLt,
-                        CurrentCost = currentStockLt * carryingCostPerUnitPerYear,
-                        NewCost = newSafetyStockLeadTime * carryingCostPerUnitPerYear,
-                        AnnualCarryingSavings = annualCarryingSavings
+                        CurrentCost = currentStockLt * leadTimeCost,
+                        NewCost = newSafetyStockLeadTime * leadTimeCost,
+                        AnnualCarryingSavings = annualCarryingSavings,
+                        TiedUpCapital = tiedUpCapital,
+                        LeadTime = leadTime
                     });
                 }
             }
@@ -262,7 +271,7 @@
     {
         var where = BuildOptionalFilters("ss");
         return $@"
-SELECT
+SELECT DISTINCT
   ss.SITE,
   ss.PLANNING_POINT,
   ss.PART_NUMBER,
@@ -283,7 +292,7 @@ ORDER BY ss.PART_NUMBER DESC";
     {
         var where = BuildOptionalFilters("ss");
         return $@"
-SELECT
+SELECT DISTINCT
   ss.SITE,
   ss.PLANNING_POINT,
   ss.PART_NUMBER,
@@ -340,5 +349,7 @@ ORDER BY ss.PART_NUMBER DESC";
         public decimal CurrentCost { get; set; }
         public decimal NewCost { get; set; }
         public decimal AnnualCarryingSavingsLeadTime { get; set; } // Wait, no, use the same AnnualCarryingSavings
+        public decimal TiedUpCapital { get; set; } // Add this
+        public decimal LeadTime { get; set; } // Add this
     }
 }

@@ -34,6 +34,15 @@
                           Clearable="true" />
         </MudItem>
     </MudGrid>
+
+    <MudGrid Class="mt-3">
+        <MudItem xs="12" md="6">
+            <MudSwitch T="bool" @bind-Checked="showSafetyStockPartsChart" Label="Show Safety Stock Parts Chart" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudSwitch T="bool" @bind-Checked="showSafetyStockLeadTimeChart" Label="Show Safety Stock Lead Time Chart" />
+        </MudItem>
+    </MudGrid>
 </MudPaper>
 
 @if (isLoading)
@@ -55,6 +64,30 @@ else
                   Width="100%" 
                   Height="400px" />
     </MudPaper>
+
+    @if (showSafetyStockPartsChart && !string.IsNullOrEmpty(selectedPartNumber))
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudText Typo="Typo.h6" Class="mb-3">Safety Stock (Parts) Over Time</MudText>
+            <MudChart ChartType="ChartType.Line" 
+                      ChartSeries="safetyStockPartsSeries" 
+                      XAxisLabels="chartLabels" 
+                      Width="100%" 
+                      Height="400px" />
+        </MudPaper>
+    }
+
+    @if (showSafetyStockLeadTimeChart && !string.IsNullOrEmpty(selectedPartNumber))
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudText Typo="Typo.h6" Class="mb-3">Safety Stock Lead Time Over Time</MudText>
+            <MudChart ChartType="ChartType.Line" 
+                      ChartSeries="safetyStockLeadTimeSeries" 
+                      XAxisLabels="chartLabels" 
+                      Width="100%" 
+                      Height="400px" />
+        </MudPaper>
+    }
 
     <MudTable Items="@forecastItems" Hover="true" Striped="true">
         <HeaderContent>
@@ -87,6 +120,10 @@ else
     private string? selectedMfgCode;
     private List<ChartSeries> chartSeries = new();
     private string[] chartLabels = Array.Empty<string>();
+    private bool showSafetyStockPartsChart = false;
+    private bool showSafetyStockLeadTimeChart = false;
+    private List<ChartSeries> safetyStockPartsSeries = new();
+    private List<ChartSeries> safetyStockLeadTimeSeries = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -119,6 +156,31 @@ else
                 new ChartSeries { Name = "GIT Balance", Data = aggregatedData.Select(x => (double)x.GitTotal).ToArray() },
                 new ChartSeries { Name = "WIP Balance", Data = aggregatedData.Select(x => (double)x.WipTotal).ToArray() }
             };
+
+            // Prepare safety stock charts if part number is selected
+            if (!string.IsNullOrEmpty(selectedPartNumber))
+            {
+                var ssData = forecastItems.OrderBy(x => x.Date).ToList();
+                
+                // Find the last known safety stock parts value to extend into the future
+                var lastPartsValue = ssData.LastOrDefault(x => x.Safety_Stock_Nr_Of_Parts.HasValue)?.Safety_Stock_Nr_Of_Parts ?? 0;
+                safetyStockPartsSeries = new List<ChartSeries>
+                {
+                    new ChartSeries { Name = "Safety Stock Parts", Data = ssData.Select(x => (double)(x.Safety_Stock_Nr_Of_Parts ?? lastPartsValue)).ToArray() }
+                };
+                
+                // Find the last known safety stock lead time value to extend into the future
+                var lastLeadTimeValue = ssData.LastOrDefault(x => x.Safety_Stock_Lead_Time.HasValue)?.Safety_Stock_Lead_Time ?? 0;
+                safetyStockLeadTimeSeries = new List<ChartSeries>
+                {
+                    new ChartSeries { Name = "Safety Stock Lead Time", Data = ssData.Select(x => (double)(x.Safety_Stock_Lead_Time ?? lastLeadTimeValue)).ToArray() }
+                };
+            }
+            else
+            {
+                safetyStockPartsSeries.Clear();
+                safetyStockLeadTimeSeries.Clear();
+            }
         }
         catch (Exception ex)
         {

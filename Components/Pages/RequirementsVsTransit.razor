@@ -66,7 +66,7 @@
 
         try
         {
-            var connectionString = Config.GetConnectionString("DefaultConnection");
+            var connectionString = Config.GetConnectionString("AutomationConnection");
             using var conn = new MySqlConnection(connectionString);
             await conn.OpenAsync();
 
@@ -98,41 +98,41 @@
                 } // readerTransit closed HERE
             }
 
-            // var demandData = new List<(DateTime date, int value)>();
-            // var demandQuery = @"
-            //     SELECT `Attribute` AS d, `Value`
-            //     FROM demand
-            //     WHERE (@pn IS NULL OR Artiklar = @pn)
-            //       AND `Attribute` IS NOT NULL
-            //       AND `Value` IS NOT NULL;
-            // ";
+            var demandData = new List<(DateTime date, int value)>();
+            var demandQuery = @"
+                SELECT attribute AS d, value
+                FROM demand
+                WHERE (@pn IS NULL OR Artiklar = @pn)
+                  AND attribute IS NOT NULL
+                  AND value IS NOT NULL;
+            ";
 
-            // using (var cmdDemand = new MySqlCommand(demandQuery, conn))
-            // {
-            //     cmdDemand.Parameters.AddWithValue("@pn", (object?)pn ?? DBNull.Value);
+            using (var cmdDemand = new MySqlCommand(demandQuery, conn))
+            {
+                cmdDemand.Parameters.AddWithValue("@pn", (object?)pn ?? DBNull.Value);
 
-            //     using (var readerDemand = await cmdDemand.ExecuteReaderAsync())
-            //     {
-            //         while (await readerDemand.ReadAsync())
-            //         {
-            //             var date = readerDemand.GetDateTime(0);
-            //             var value = readerDemand.GetInt32(1);
-            //             demandData.Add((date, value));
-            //         }
-            //     }
-            // }
+                using (var readerDemand = await cmdDemand.ExecuteReaderAsync())
+                {
+                    while (await readerDemand.ReadAsync())
+                    {
+                        var date = readerDemand.GetDateTime(0);
+                        var value = readerDemand.GetInt32(1);
+                        demandData.Add((date, value));
+                    }
+                }
+            }
 
             // Group by week start (Monday)
             var transitGrouped = transitData
                 .GroupBy(x => GetWeekStart(x.date))
                 .ToDictionary(g => g.Key, g => g.Sum(x => x.amount));
 
-            // var demandGrouped = demandData
-            //     .GroupBy(x => GetWeekStart(x.date))
-            //     .ToDictionary(g => g.Key, g => g.Sum(x => x.value));
+            var demandGrouped = demandData
+                .GroupBy(x => GetWeekStart(x.date))
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.value));
 
             var allWeeks = transitGrouped.Keys
-                // .Concat(demandGrouped.Keys)
+                .Concat(demandGrouped.Keys)
                 .Distinct()
                 .OrderBy(d => d)
                 .ToList();
@@ -140,10 +140,10 @@
             chartLabels = allWeeks.Select(w => w.ToString("yyyy-MM-dd")).ToList();
 
             var transitValues = allWeeks.Select(w => (double)(transitGrouped.TryGetValue(w, out var v) ? v : 0)).ToArray();
-            // var demandValues  = allWeeks.Select(w => (double)(demandGrouped.TryGetValue(w, out var v) ? v : 0)).ToArray();
+            var demandValues  = allWeeks.Select(w => (double)(demandGrouped.TryGetValue(w, out var v) ? v : 0)).ToArray();
 
             chartSeries.Add(new MudBlazor.ChartSeries { Name = "Transit Amount", Data = transitValues });
-            // chartSeries.Add(new MudBlazor.ChartSeries { Name = "Demand Value", Data = demandValues });
+            chartSeries.Add(new MudBlazor.ChartSeries { Name = "Demand Value", Data = demandValues });
         }
 catch (Exception ex)
 {
