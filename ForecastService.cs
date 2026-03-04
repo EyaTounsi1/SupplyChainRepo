@@ -3,6 +3,7 @@ using PartTracker.Shared.Services;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.Threading.Tasks;
 
 namespace PartTracker;
@@ -16,20 +17,26 @@ public class ForecastService : IForecastService
         _snowflakeService = snowflakeService;
     }
 
-    /// <summary>
-    /// Returns forecast for ALL parts/sites (POC -> production). Be careful: can be huge.
-    /// </summary>
     public Task<List<ForecastItem>> GetForecastDataAsync()
         => GetForecastDataAsync(siteFilter: null, partNumberFilter: null, mfgCodeFilter: null, months: 3);
 
-    /// <summary>
-    /// Optional filters you can use for testing/performance. Pass null for "all".
-    /// </summary>
-    public async Task<List<ForecastItem>> GetForecastDataAsync(string? siteFilter, string? partNumberFilter, string? mfgCodeFilter, int months = 3, double demandMultiplier = 1.0, int leadTimeShiftDays = 0, double? ssOverrideParts = null, double? ssOverrideLeadTime = null)
+    public async Task<List<ForecastItem>> GetForecastDataAsync(
+        string? siteFilter,
+        string? partNumberFilter,
+        string? mfgCodeFilter,
+        int months = 3,
+        double demandMultiplier = 1.0,
+        int leadTimeShiftDays = 0,
+        double? ssOverrideParts = null,
+        double? ssOverrideLeadTime = null)
     {
-        // Build SQL with optional filters pushed as early as possible.
-        // NOTE: Prefer parameterized queries in SnowflakeService if you can.
-        // This uses safe literal escaping to avoid breaking SQL when values contain apostrophes.
+        // Basic validation (prevents weird inputs / accidental huge queries)
+        if (months < 1) months = 1;
+        if (months > 24) months = 24; // clamp - adjust as you like
+        if (demandMultiplier <= 0) demandMultiplier = 1.0;
+        if (leadTimeShiftDays < -365) leadTimeShiftDays = -365;
+        if (leadTimeShiftDays > 365) leadTimeShiftDays = 365;
+
         var siteWhere = string.IsNullOrWhiteSpace(siteFilter)
             ? ""
             : $" AND {{0}}.SITE = '{EscapeSqlLiteral(siteFilter.Trim())}'";
@@ -38,23 +45,19 @@ public class ForecastService : IForecastService
             ? ""
             : $" AND {{0}}.PART_NUMBER = '{EscapeSqlLiteral(partNumberFilter.Trim())}'";
 
-        // Filters applied to source tables early (pis/ds/pd/ss) AND again at the end as a safety net.
-        string Sql = $@"
+        // NOTE:
+        // - We format numeric values using InvariantCulture to avoid 1,1 vs 1.1 issues.
+        // - We inject only numbers (validated above), and we still escape string filters.
+        string sql = $@"
 WITH
--- ============================================================================
--- DIGITAL TWIN SCENARIO PARAMETERS
--- ============================================================================
 params AS (
     SELECT
-        {demandMultiplier}::FLOAT AS demand_multiplier,
-        {leadTimeShiftDays}::INT AS lead_time_shift_days,
-        {(ssOverrideParts.HasValue ? ssOverrideParts.Value.ToString() : "NULL")}::FLOAT AS ss_override_parts,
-        {(ssOverrideLeadTime.HasValue ? ssOverrideLeadTime.Value.ToString() : "NULL")}::FLOAT AS ss_override_lead_time
+        {ToSqlNumber(demandMultiplier)} AS demand_multiplier,
+        {leadTimeShiftDays} AS lead_time_shift_days,
+        {ToSqlNullableNumber(ssOverrideParts)} AS ss_override_parts,
+        {ToSqlNullableNumber(ssOverrideLeadTime)} AS ss_override_lead_time
 ),
 
--- ============================================================================
--- STEP 1: STARTING WIP EVENTS (starting balance from inventory)
--- ============================================================================
 starting_wip_events AS (
     SELECT
         pis.SITE AS site,
@@ -75,9 +78,6 @@ starting_wip_events AS (
     {string.Format(partWhere, "pis")}
 ),
 
--- ============================================================================
--- STEP 2: CURRENT GIT EVENTS (Pickup + Arrival, current in-transit)
--- ============================================================================
 current_git_events AS (
     -- Pickup
     SELECT
@@ -97,7 +97,7 @@ current_git_events AS (
 
     UNION ALL
 
-    -- Arrival
+    -- Arrival (shift by lead_time_shift_days)
     SELECT
         ds.SITE AS site,
         ds.PART_NUMBER AS part_number,
@@ -115,9 +115,6 @@ current_git_events AS (
     {string.Format(partWhere, "ds")}
 ),
 
--- ============================================================================
--- STEP 3: PICKUP PLAN EVENTS (future pickups/arrivals)
--- ============================================================================
 pickup_plan_events AS (
     -- Pickup
     SELECT
@@ -136,7 +133,7 @@ pickup_plan_events AS (
 
     UNION ALL
 
-    -- Arrival
+    -- Arrival (shift by lead_time_shift_days)
     SELECT
         ds.SITE AS site,
         ds.PART_NUMBER AS part_number,
@@ -153,9 +150,6 @@ pickup_plan_events AS (
     {string.Format(partWhere, "ds")}
 ),
 
--- ============================================================================
--- STEP 4: CONSUMPTION EVENTS (future demand)
--- ============================================================================
 consumption_events AS (
     SELECT
         pd.SITE AS site,
@@ -174,9 +168,6 @@ consumption_events AS (
     GROUP BY pd.SITE, pd.PART_NUMBER, pd.PRODUCTION_DAY, p.demand_multiplier
 ),
 
--- ============================================================================
--- STEP 5: UNION ALL EVENTS
--- ============================================================================
 all_events AS (
     SELECT site, part_number, event_date, event_type, quantity, git_impact, wip_impact, price FROM starting_wip_events
     UNION ALL
@@ -187,9 +178,6 @@ all_events AS (
     SELECT site, part_number, event_date, event_type, quantity, git_impact, wip_impact, price FROM consumption_events
 ),
 
--- ============================================================================
--- STEP 5.5: FILTER PARTS (must have supply AND consumption)
--- ============================================================================
 parts_with_supply AS (
     SELECT DISTINCT site, part_number
     FROM all_events
@@ -212,9 +200,6 @@ all_events_filtered AS (
         ON e.site = vp.site AND e.part_number = vp.part_number
 ),
 
--- ============================================================================
--- STEP 6: ADD PRICES (single source of truth -> all values derived from this)
--- ============================================================================
 events_with_prices AS (
     SELECT
         e.site,
@@ -231,9 +216,6 @@ events_with_prices AS (
        AND pim.PART_NUMBER = e.part_number
 ),
 
--- ============================================================================
--- STEP 7: RUNNING BALANCES
--- ============================================================================
 events_with_balances AS (
     SELECT
         *,
@@ -277,9 +259,6 @@ final_events AS (
     FROM events_with_balances
 ),
 
--- ============================================================================
--- STEP 9: DAILY TIMELINE (variable months)
--- ============================================================================
 calendar AS (
     SELECT DATEADD(day, SEQ4(), CURRENT_DATE()) AS calendar_date
     FROM TABLE(GENERATOR(ROWCOUNT => {months * 31}))
@@ -410,19 +389,17 @@ LEFT JOIN ss
 LEFT JOIN daily_usage du
     ON dt.site = du.site AND dt.part_number = du.part_number
 CROSS JOIN params p
-WHERE 1=1 and dt.site='VCT'
+WHERE 1=1
 {(string.IsNullOrWhiteSpace(siteFilter) ? "" : $" AND dt.site = '{EscapeSqlLiteral(siteFilter!.Trim())}'")}
-{(string.IsNullOrWhiteSpace(partNumberFilter) ? "" : $" AND dt.part_number = '{EscapeSqlLiteral(partNumberFilter!.Trim())}'")}{(string.IsNullOrWhiteSpace(mfgCodeFilter) ? "" : $" AND ss.MFG_SUPPLIER_CODE = '{EscapeSqlLiteral(mfgCodeFilter!.Trim())}'")}ORDER BY dt.site, dt.part_number, dt.date
+{(string.IsNullOrWhiteSpace(partNumberFilter) ? "" : $" AND dt.part_number = '{EscapeSqlLiteral(partNumberFilter!.Trim())}'")}
+{(string.IsNullOrWhiteSpace(mfgCodeFilter) ? "" : $" AND ss.MFG_SUPPLIER_CODE = '{EscapeSqlLiteral(mfgCodeFilter!.Trim())}'")}
+ORDER BY dt.site, dt.part_number, dt.date
+-- NOTE: remove this limit for charts / full timelines:
 limit 100;
 ";
 
-        // One Snowflake round-trip only
- DataTable dataTable = await _snowflakeService.QueryAsync(
-    Sql,
-    "ManufacturingEnterpriseDataProducts"
-);
+        DataTable dataTable = await _snowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
 
-        // Convert to List<ForecastItem>
         var items = new List<ForecastItem>(capacity: dataTable.Rows.Count);
 
         foreach (DataRow row in dataTable.Rows)
@@ -460,6 +437,12 @@ limit 100;
     // -------- Helpers --------
 
     private static string EscapeSqlLiteral(string value) => value.Replace("'", "''");
+
+    private static string ToSqlNumber(double value)
+        => value.ToString("0.################", CultureInfo.InvariantCulture);
+
+    private static string ToSqlNullableNumber(double? value)
+        => value.HasValue ? ToSqlNumber(value.Value) : "NULL";
 
     private static string? GetString(DataRow row, string col)
         => row.Table.Columns.Contains(col) && row[col] != DBNull.Value ? row[col]?.ToString() : null;
