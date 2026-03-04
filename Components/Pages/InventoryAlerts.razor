@@ -1491,7 +1491,7 @@ ORDER BY {groupBy}";
         var data = new List<double>();
         foreach (DataRow row in dt.Rows)
         {
-            consumptionLabels.Add(row["period"].ToString());
+            consumptionLabels.Add(row["period"]?.ToString() ?? "");
             data.Add(Convert.ToDouble(row["total_consumption"]));
         }
 

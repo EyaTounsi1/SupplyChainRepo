@@ -18,7 +18,7 @@
         <MudSelectItem T="int" Value="12">12 Months</MudSelectItem>
     </MudSelect>
 
-    <MudGrid>
+    <MudGrid Class="mt-3">
         <MudItem xs="12" md="6">
             <MudTextField @bind-Value="selectedPartNumber" 
                           @bind-Value:after="LoadForecastData"
@@ -32,6 +32,43 @@
                           Label="MFG Code" 
                           Variant="Variant.Outlined" 
                           Clearable="true" />
+        </MudItem>
+    </MudGrid>
+
+    <MudText Typo="Typo.h6" Class="mb-3 mt-4">Digital Twin Scenario Parameters</MudText>
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudNumericField @bind-Value="demandMultiplier" 
+                             @bind-Value:after="LoadForecastData"
+                             Label="Demand Multiplier" 
+                             Min="0.1" 
+                             Max="5.0" 
+                             Step="0.1" 
+                             Format="N1" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudNumericField @bind-Value="leadTimeShiftDays" 
+                             @bind-Value:after="LoadForecastData"
+                             Label="Lead Time Shift (Days)" 
+                             Min="-30" 
+                             Max="30" 
+                             Step="1" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudNumericField @bind-Value="ssOverrideParts" 
+                             @bind-Value:after="LoadForecastData"
+                             Label="Safety Stock Override (Parts)" 
+                             Min="0" 
+                             Step="1" 
+                             Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudNumericField @bind-Value="ssOverrideLeadTime" 
+                             @bind-Value:after="LoadForecastData"
+                             Label="Safety Stock Lead Time Override (Days)" 
+                             Min="0" 
+                             Step="1" 
+                             Clearable="true" />
         </MudItem>
     </MudGrid>
 
@@ -125,6 +162,12 @@ else
     private List<ChartSeries> safetyStockPartsSeries = new();
     private List<ChartSeries> safetyStockLeadTimeSeries = new();
 
+    // Digital Twin Parameters
+    private double demandMultiplier = 1.0;
+    private int leadTimeShiftDays = 0;
+    private double? ssOverrideParts = null;
+    private double? ssOverrideLeadTime = null;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadForecastData();
@@ -136,7 +179,7 @@ else
         errorMessage = string.Empty;
         try
         {
-            forecastItems = await ForecastService.GetForecastDataAsync(siteFilter: null, partNumberFilter: selectedPartNumber, mfgCodeFilter: selectedMfgCode, months: selectedMonths);
+            forecastItems = await ForecastService.GetForecastDataAsync(siteFilter: null, partNumberFilter: selectedPartNumber, mfgCodeFilter: selectedMfgCode, months: selectedMonths, demandMultiplier: demandMultiplier, leadTimeShiftDays: leadTimeShiftDays, ssOverrideParts: ssOverrideParts, ssOverrideLeadTime: ssOverrideLeadTime);
 
             // Prepare chart data
             var aggregatedData = forecastItems

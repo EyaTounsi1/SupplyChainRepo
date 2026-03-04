@@ -25,7 +25,7 @@ public class ForecastService : IForecastService
     /// <summary>
     /// Optional filters you can use for testing/performance. Pass null for "all".
     /// </summary>
-    public async Task<List<ForecastItem>> GetForecastDataAsync(string? siteFilter, string? partNumberFilter, string? mfgCodeFilter, int months = 3)
+    public async Task<List<ForecastItem>> GetForecastDataAsync(string? siteFilter, string? partNumberFilter, string? mfgCodeFilter, int months = 3, double demandMultiplier = 1.0, int leadTimeShiftDays = 0, double? ssOverrideParts = null, double? ssOverrideLeadTime = null)
     {
         // Build SQL with optional filters pushed as early as possible.
         // NOTE: Prefer parameterized queries in SnowflakeService if you can.
@@ -41,6 +41,17 @@ public class ForecastService : IForecastService
         // Filters applied to source tables early (pis/ds/pd/ss) AND again at the end as a safety net.
         string Sql = $@"
 WITH
+-- ============================================================================
+-- DIGITAL TWIN SCENARIO PARAMETERS
+-- ============================================================================
+params AS (
+    SELECT
+        {demandMultiplier}::FLOAT AS demand_multiplier,
+        {leadTimeShiftDays}::INT AS lead_time_shift_days,
+        {(ssOverrideParts.HasValue ? ssOverrideParts.Value.ToString() : "NULL")}::FLOAT AS ss_override_parts,
+        {(ssOverrideLeadTime.HasValue ? ssOverrideLeadTime.Value.ToString() : "NULL")}::FLOAT AS ss_override_lead_time
+),
+
 -- ============================================================================
 -- STEP 1: STARTING WIP EVENTS (starting balance from inventory)
 -- ============================================================================
@@ -90,13 +101,14 @@ current_git_events AS (
     SELECT
         ds.SITE AS site,
         ds.PART_NUMBER AS part_number,
-        ds.ARRIVAL_TIME_EARLIEST::DATE AS event_date,
+        DATEADD(day, p.lead_time_shift_days, ds.ARRIVAL_TIME_EARLIEST::DATE) AS event_date,
         'Arrival' AS event_type,
         ds.PART_AMOUNT AS quantity,
         -ds.PART_AMOUNT AS git_impact,
         ds.PART_AMOUNT AS wip_impact,
         NULL::NUMBER AS price
     FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.DELIVERY_SCHEDULE_AS_MANUFACTURED.DELIVERY_SCHEDULE_AS_MANUFACTURED ds
+    CROSS JOIN params p
     WHERE ds.DEPARTURE_TIME_EARLIEST::DATE <= CURRENT_DATE()
       AND ds.ARRIVAL_TIME_EARLIEST::DATE > CURRENT_DATE()
     {string.Format(siteWhere, "ds")}
@@ -128,13 +140,14 @@ pickup_plan_events AS (
     SELECT
         ds.SITE AS site,
         ds.PART_NUMBER AS part_number,
-        ds.ARRIVAL_TIME_EARLIEST::DATE AS event_date,
+        DATEADD(day, p.lead_time_shift_days, ds.ARRIVAL_TIME_EARLIEST::DATE) AS event_date,
         'Arrival' AS event_type,
         ds.PART_AMOUNT AS quantity,
         -ds.PART_AMOUNT AS git_impact,
         ds.PART_AMOUNT AS wip_impact,
         NULL::NUMBER AS price
     FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.DELIVERY_SCHEDULE_AS_MANUFACTURED.DELIVERY_SCHEDULE_AS_MANUFACTURED ds
+    CROSS JOIN params p
     WHERE ds.DEPARTURE_TIME_EARLIEST::DATE > CURRENT_DATE()
     {string.Format(siteWhere, "ds")}
     {string.Format(partWhere, "ds")}
@@ -149,15 +162,16 @@ consumption_events AS (
         pd.PART_NUMBER AS part_number,
         pd.PRODUCTION_DAY AS event_date,
         'Consumption' AS event_type,
-        SUM(pd.PART_AMOUNT) AS quantity,
+        SUM(pd.PART_AMOUNT) * p.demand_multiplier AS quantity,
         0 AS git_impact,
-        -SUM(pd.PART_AMOUNT) AS wip_impact,
+        -(SUM(pd.PART_AMOUNT) * p.demand_multiplier) AS wip_impact,
         NULL::NUMBER AS price
     FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_CURRENT_DATE pd
+    CROSS JOIN params p
     WHERE pd.PRODUCTION_DAY > CURRENT_DATE()
     {string.Format(siteWhere, "pd")}
     {string.Format(partWhere, "pd")}
-    GROUP BY pd.SITE, pd.PART_NUMBER, pd.PRODUCTION_DAY
+    GROUP BY pd.SITE, pd.PART_NUMBER, pd.PRODUCTION_DAY, p.demand_multiplier
 ),
 
 -- ============================================================================
@@ -367,10 +381,10 @@ SELECT
     dt.total_capital_m_sek,
     ss.MFG_SUPPLIER_CODE,
 
-    ss.SAFETY_STOCK_NR_OF_PARTS AS safety_stock_nr_of_parts,
-    ss.SAFETY_STOCK_LEAD_TIME AS safety_stock_lead_time,
+    COALESCE(p.ss_override_parts, ss.SAFETY_STOCK_NR_OF_PARTS) AS safety_stock_nr_of_parts,
+    COALESCE(p.ss_override_lead_time, ss.SAFETY_STOCK_LEAD_TIME) AS safety_stock_lead_time,
 
-    dt.wip_balance - ss.SAFETY_STOCK_NR_OF_PARTS AS wip_minus_ss,
+    dt.wip_balance - COALESCE(p.ss_override_parts, ss.SAFETY_STOCK_NR_OF_PARTS) AS wip_minus_ss,
 
     CASE
         WHEN dt.wip_balance <= 0 THEN 0
@@ -379,14 +393,14 @@ SELECT
     END AS days_until_stockout,
 
     CASE
-        WHEN dt.wip_balance < ss.SAFETY_STOCK_NR_OF_PARTS
-        THEN (ss.SAFETY_STOCK_NR_OF_PARTS - dt.wip_balance) * dt.price
+        WHEN dt.wip_balance < COALESCE(p.ss_override_parts, ss.SAFETY_STOCK_NR_OF_PARTS)
+        THEN (COALESCE(p.ss_override_parts, ss.SAFETY_STOCK_NR_OF_PARTS) - dt.wip_balance) * dt.price
         ELSE 0
     END AS capital_at_risk_sek,
 
     CASE
-        WHEN dt.wip_balance < ss.SAFETY_STOCK_NR_OF_PARTS THEN 'Below SS'
-        WHEN dt.wip_balance = ss.SAFETY_STOCK_NR_OF_PARTS THEN 'At SS'
+        WHEN dt.wip_balance < COALESCE(p.ss_override_parts, ss.SAFETY_STOCK_NR_OF_PARTS) THEN 'Below SS'
+        WHEN dt.wip_balance = COALESCE(p.ss_override_parts, ss.SAFETY_STOCK_NR_OF_PARTS) THEN 'At SS'
         ELSE 'Above SS'
     END AS ss_deviation_flag
 
@@ -395,6 +409,7 @@ LEFT JOIN ss
     ON dt.site = ss.SITE AND dt.part_number = ss.PART_NUMBER
 LEFT JOIN daily_usage du
     ON dt.site = du.site AND dt.part_number = du.part_number
+CROSS JOIN params p
 WHERE 1=1 and dt.site='VCT'
 {(string.IsNullOrWhiteSpace(siteFilter) ? "" : $" AND dt.site = '{EscapeSqlLiteral(siteFilter!.Trim())}'")}
 {(string.IsNullOrWhiteSpace(partNumberFilter) ? "" : $" AND dt.part_number = '{EscapeSqlLiteral(partNumberFilter!.Trim())}'")}{(string.IsNullOrWhiteSpace(mfgCodeFilter) ? "" : $" AND ss.MFG_SUPPLIER_CODE = '{EscapeSqlLiteral(mfgCodeFilter!.Trim())}'")}ORDER BY dt.site, dt.part_number, dt.date
