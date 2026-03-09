@@ -1,0 +1,582 @@
+@page "/inventory-alerts/piwds"
+
+@using PartTracker.Shared.Services
+@using Microsoft.JSInterop
+@using System.Data
+@inject SnowflakeService SnowflakeService
+@inject IJSRuntime JSRuntime
+@using MudBlazor
+
+<h3>PIWDs</h3>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Parts Running Out Over Next 90 Days</MudText>
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudSwitch @bind-Value="chinaOnly" @bind-Value:after="OnFilterChanged" Label="Only China parts" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudSwitch @bind-Value="excludeSweden" @bind-Value:after="OnFilterChanged" Label="Exclude Sweden parts" />
+        </MudItem>
+    </MudGrid>
+
+    @if (isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (chartSeries.Any())
+    {
+        <MudChart ChartType="ChartType.Line"
+                  Height="400px"
+                  XAxisLabels="@chartLabels.ToArray()"
+                  ChartSeries="chartSeries"
+                  XAxisTitle="Date"
+                  YAxisTitle="Number of Parts Running Out">
+        </MudChart>
+    }
+    else
+    {
+        <MudText>No data available.</MudText>
+    }
+</MudPaper>
+
+<MudPaper Class="pa-4 mb-4 mt-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Demand Changes Over Planning Time</MudText>
+    <MudText>This shows whether the planned amount for a given day was changed as planning evolved.</MudText>
+
+    @if (isLoadingDemand)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (demandChartSeries.Any())
+    {
+        <MudChart ChartType="ChartType.Line"
+                  Height="400px"
+                  XAxisLabels="@demandChartLabels.ToArray()"
+                  ChartSeries="demandChartSeries"
+                  XAxisTitle="Planning Time"
+                  YAxisTitle="Planned Amount">
+        </MudChart>
+    }
+    else
+    {
+        <MudText>No demand data available.</MudText>
+    }
+</MudPaper>
+
+<MudPaper Class="pa-4 mb-4 mt-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Earliest vs Latest Plan Comparison</MudText>
+    <MudText>This compares the earliest plan vs latest plan for each production day to see if demand increased or decreased. Delta > 0 means later plans increased demand.</MudText>
+
+    @if (isLoadingComparison)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (comparisonChartSeries.Any())
+    {
+        <MudChart ChartType="ChartType.Bar"
+                  Height="400px"
+                  XAxisLabels="@comparisonChartLabels.ToArray()"
+                  ChartSeries="comparisonChartSeries"
+                  XAxisTitle="Production Day"
+                  YAxisTitle="Delta Amount">
+        </MudChart>
+    }
+    else
+    {
+        <MudText>No comparison data available.</MudText>
+    }
+</MudPaper>
+
+<MudPaper Class="pa-4 mb-4 mt-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Daily View of Plan Changes</MudText>
+    <MudText>This shows how planned amounts change across production days for different planning times. If earlier days gain volume and later days lose, the plan was pulled ahead.</MudText>
+
+    @if (isLoadingDaily)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (dailyChartSeries.Any())
+    {
+        <MudChart ChartType="ChartType.Line"
+                  Height="400px"
+                  XAxisLabels="@dailyChartLabels.ToArray()"
+                  ChartSeries="dailyChartSeries"
+                  XAxisTitle="Production Day"
+                  YAxisTitle="Planned Amount">
+        </MudChart>
+    }
+    else
+    {
+        <MudText>No daily data available.</MudText>
+    }
+</MudPaper>
+
+<MudPaper Class="pa-4 mb-4 mt-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Planning Lead Time Comparison</MudText>
+    <MudText>This shows the average planning lead days for production days. Higher values mean planned well in advance.</MudText>
+
+    @if (isLoadingLead)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else if (leadChartSeries.Any())
+    {
+        <MudChart ChartType="ChartType.Line"
+                  Height="400px"
+                  XAxisLabels="@leadChartLabels.ToArray()"
+                  ChartSeries="leadChartSeries"
+                  XAxisTitle="Production Day"
+                  YAxisTitle="Average Planning Lead Days">
+        </MudChart>
+    }
+    else
+    {
+        <MudText>No lead time data available.</MudText>
+    }
+</MudPaper>
+
+@code {
+    private bool isLoading = true;
+    private List<string> chartLabels = new();
+    private List<ChartSeries> chartSeries = new();
+    private bool chinaOnly = false;
+    private bool excludeSweden = false;
+    private bool isLoadingDemand = true;
+    private List<string> demandChartLabels = new();
+    private List<ChartSeries> demandChartSeries = new();
+    private bool isLoadingComparison = true;
+    private List<string> comparisonChartLabels = new();
+    private List<ChartSeries> comparisonChartSeries = new();
+    private bool isLoadingDaily = true;
+    private List<string> dailyChartLabels = new();
+    private List<ChartSeries> dailyChartSeries = new();
+    private bool isLoadingLead = true;
+    private List<string> leadChartLabels = new();
+    private List<ChartSeries> leadChartSeries = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadChartData();
+        await LoadDemandChartData();
+        await LoadComparisonChartData();
+        await LoadDailyChartData();
+        await LoadLeadChartData();
+    }
+
+    private async Task OnFilterChanged()
+    {
+        await LoadChartData();
+    }
+
+    private async Task LoadChartData()
+    {
+        isLoading = true;
+        try
+        {
+            string chinaFilter = chinaOnly ? @" AND PART_NUMBER IN (
+                SELECT PART_NUMBER
+                FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INFORMATION_AS_MANUFACTURED.PART_INFORMATION_AS_MANUFACTURED
+                WHERE CURRENCY = 'CNY'
+                  AND CURRENT_DATE BETWEEN INTRODUCTION_DATE AND OUTGOING_DATE
+                  AND SITE = INVENTORY_COVERAGE_AS_MANUFACTURED.SITE
+            )" : "";
+
+            string swedenFilter = excludeSweden ? @" AND PART_NUMBER NOT IN (
+                SELECT PART_NUMBER
+                FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INFORMATION_AS_MANUFACTURED.PART_INFORMATION_AS_MANUFACTURED
+                WHERE CURRENCY = 'SEK'
+                  AND SITE = INVENTORY_COVERAGE_AS_MANUFACTURED.SITE
+            )" : "";
+
+            string sql = $@"
+SELECT
+    AVAILABLE_INVENTORY_RUN_OUT_DATE AS run_out_day,
+    COUNT(DISTINCT PART_NUMBER) AS parts_running_out
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
+WHERE AVAILABLE_INVENTORY_RUN_OUT_DATE IS NOT NULL
+  AND AVAILABLE_INVENTORY_RUN_OUT_DATE >= CURRENT_DATE()
+  AND AVAILABLE_INVENTORY_RUN_OUT_DATE < DATEADD(DAY, 90, CURRENT_DATE())
+  AND PART_NUMBER NOT IN (
+      SELECT DISTINCT PART_NUMBER
+      FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.DELIVERY_SCHEDULE_AS_MANUFACTURED.DELIVERY_SCHEDULE_AS_MANUFACTURED
+      WHERE TO_DATE(DEPARTURE_TIME_EARLIEST) = TO_DATE(ARRIVAL_TIME_EARLIEST)
+        AND SITE = INVENTORY_COVERAGE_AS_MANUFACTURED.SITE
+  ){chinaFilter}{swedenFilter}
+GROUP BY AVAILABLE_INVENTORY_RUN_OUT_DATE
+ORDER BY AVAILABLE_INVENTORY_RUN_OUT_DATE;
+";
+
+            var dataTable = await SnowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
+
+            var data = new List<PartsRunOutItem>();
+            foreach (DataRow row in dataTable.Rows)
+            {
+                data.Add(new PartsRunOutItem
+                {
+                    RunOutDay = (DateTime)row["run_out_day"],
+                    PartsRunningOut = (int)(long)row["parts_running_out"]
+                });
+            }
+
+            chartLabels = data.Select(d => d.RunOutDay.ToString("yyyy-MM-dd")).ToList();
+            chartSeries = new List<ChartSeries>
+            {
+                new ChartSeries
+                {
+                    Name = "Parts Running Out",
+                    Data = data.Select(d => (double)d.PartsRunningOut).ToArray()
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadDemandChartData()
+    {
+        isLoadingDemand = true;
+        try
+        {
+            string sql = @"
+SELECT
+    SITE,
+    PLANNING_POINT,
+    PART_NUMBER,
+    PRODUCTION_DAY,
+    SHIFT,
+    PLANNING_TIME,
+    SUM(PART_AMOUNT) AS planned_amount
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_ALL_PLANNING_TIMES
+WHERE SITE = 'VCT'
+  AND PART_NUMBER = '80041945'
+  AND PRODUCTION_DAY = (
+      SELECT MAX(PRODUCTION_DAY)
+      FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_ALL_PLANNING_TIMES
+      WHERE SITE = 'VCT' AND PART_NUMBER = '80041945'
+  )
+GROUP BY
+    SITE,
+    PLANNING_POINT,
+    PART_NUMBER,
+    PRODUCTION_DAY,
+    SHIFT,
+    PLANNING_TIME
+ORDER BY
+    PRODUCTION_DAY,
+    SHIFT,
+    PLANNING_TIME;
+";
+
+            var dataTable = await SnowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
+
+            var data = new List<DemandItem>();
+            foreach (DataRow row in dataTable.Rows)
+            {
+                data.Add(new DemandItem
+                {
+                    PlanningTime = (DateTime)row["planning_time"],
+                    PlannedAmount = (double)(decimal)row["planned_amount"]
+                });
+            }
+
+            data = data.OrderBy(d => d.PlanningTime).ToList();
+
+            demandChartLabels = data.Select(d => d.PlanningTime.ToString("yyyy-MM-dd HH:mm")).ToList();
+            demandChartSeries = new List<ChartSeries>
+            {
+                new ChartSeries
+                {
+                    Name = "Planned Amount",
+                    Data = data.Select(d => d.PlannedAmount).ToArray()
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isLoadingDemand = false;
+        }
+    }
+
+    private async Task LoadComparisonChartData()
+    {
+        isLoadingComparison = true;
+        try
+        {
+            string sql = @"
+WITH demand_snapshots AS (
+    SELECT
+        SITE,
+        PLANNING_POINT,
+        PART_NUMBER,
+        PRODUCTION_DAY,
+        SHIFT,
+        PLANNING_TIME,
+        SUM(PART_AMOUNT) AS planned_amount
+    FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_ALL_PLANNING_TIMES
+    WHERE SITE = 'VCT'
+    GROUP BY
+        SITE,
+        PLANNING_POINT,
+        PART_NUMBER,
+        PRODUCTION_DAY,
+        SHIFT,
+        PLANNING_TIME
+),
+ranked AS (
+    SELECT
+        *,
+        ROW_NUMBER() OVER (
+            PARTITION BY SITE, PLANNING_POINT, PART_NUMBER, PRODUCTION_DAY, SHIFT
+            ORDER BY PLANNING_TIME ASC
+        ) AS rn_first,
+        ROW_NUMBER() OVER (
+            PARTITION BY SITE, PLANNING_POINT, PART_NUMBER, PRODUCTION_DAY, SHIFT
+            ORDER BY PLANNING_TIME DESC
+        ) AS rn_last
+    FROM demand_snapshots
+),
+first_plan AS (
+    SELECT
+        SITE,
+        PLANNING_POINT,
+        PART_NUMBER,
+        PRODUCTION_DAY,
+        SHIFT,
+        PLANNING_TIME AS first_planning_time,
+        planned_amount AS first_planned_amount
+    FROM ranked
+    WHERE rn_first = 1
+),
+last_plan AS (
+    SELECT
+        SITE,
+        PLANNING_POINT,
+        PART_NUMBER,
+        PRODUCTION_DAY,
+        SHIFT,
+        PLANNING_TIME AS last_planning_time,
+        planned_amount AS last_planned_amount
+    FROM ranked
+    WHERE rn_last = 1
+)
+SELECT
+    f.PRODUCTION_DAY,
+    SUM(l.last_planned_amount - f.first_planned_amount) AS total_delta
+FROM first_plan f
+JOIN last_plan l
+    ON f.SITE = l.SITE
+   AND f.PLANNING_POINT = l.PLANNING_POINT
+   AND f.PART_NUMBER = l.PART_NUMBER
+   AND f.PRODUCTION_DAY = l.PRODUCTION_DAY
+   AND f.SHIFT = l.SHIFT
+GROUP BY f.PRODUCTION_DAY
+ORDER BY f.PRODUCTION_DAY;
+";
+
+            var dataTable = await SnowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
+
+            var data = new List<ComparisonItem>();
+            foreach (DataRow row in dataTable.Rows)
+            {
+                data.Add(new ComparisonItem
+                {
+                    ProductionDay = (DateTime)row["production_day"],
+                    TotalDelta = (double)(decimal)row["total_delta"]
+                });
+            }
+
+            data = data.OrderBy(d => d.ProductionDay).ToList();
+
+            comparisonChartLabels = data.Select(d => d.ProductionDay.ToString("yyyy-MM-dd")).ToList();
+            comparisonChartSeries = new List<ChartSeries>
+            {
+                new ChartSeries
+                {
+                    Name = "Delta Amount",
+                    Data = data.Select(d => d.TotalDelta).ToArray()
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isLoadingComparison = false;
+        }
+    }
+
+    private async Task LoadDailyChartData()
+    {
+        isLoadingDaily = true;
+        try
+        {
+            string sql = @"
+WITH ranked_planning_times AS (
+    SELECT
+        PLANNING_TIME,
+        ROW_NUMBER() OVER (ORDER BY PLANNING_TIME DESC) AS rn
+    FROM (
+        SELECT DISTINCT PLANNING_TIME
+        FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_ALL_PLANNING_TIMES
+        WHERE SITE = 'VCT'
+    ) pt
+)
+SELECT
+    pt.PLANNING_TIME,
+    pd.PRODUCTION_DAY,
+    SUM(pd.PART_AMOUNT) AS planned_amount
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_ALL_PLANNING_TIMES pd
+JOIN ranked_planning_times pt ON pd.PLANNING_TIME = pt.PLANNING_TIME
+WHERE pd.SITE = 'VCT'
+  AND pt.rn <= 5  -- Top 5 most recent planning times
+  AND pd.PRODUCTION_DAY >= DATEADD(DAY, -30, CURRENT_DATE())
+GROUP BY pt.PLANNING_TIME, pd.PRODUCTION_DAY
+ORDER BY pd.PRODUCTION_DAY, pt.PLANNING_TIME;
+";
+
+            var dataTable = await SnowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
+
+            var data = new List<DailyItem>();
+            foreach (DataRow row in dataTable.Rows)
+            {
+                data.Add(new DailyItem
+                {
+                    PlanningTime = (DateTime)row["planning_time"],
+                    ProductionDay = (DateTime)row["production_day"],
+                    PlannedAmount = (double)(decimal)row["planned_amount"]
+                });
+            }
+
+            // Group by ProductionDay for labels
+            var grouped = data.GroupBy(d => d.ProductionDay).OrderBy(g => g.Key).ToList();
+            dailyChartLabels = grouped.Select(g => g.Key.ToString("yyyy-MM-dd")).ToList();
+
+            // Series for each planning time
+            var planningTimes = data.Select(d => d.PlanningTime).Distinct().OrderBy(pt => pt).ToList();
+            dailyChartSeries = new List<ChartSeries>();
+            foreach (var pt in planningTimes)
+            {
+                var seriesData = new double[dailyChartLabels.Count];
+                for (int i = 0; i < dailyChartLabels.Count; i++)
+                {
+                    var day = grouped[i].Key;
+                    var item = grouped[i].FirstOrDefault(d => d.PlanningTime == pt);
+                    seriesData[i] = item?.PlannedAmount ?? 0;
+                }
+                dailyChartSeries.Add(new ChartSeries
+                {
+                    Name = pt.ToString("yyyy-MM-dd HH:mm"),
+                    Data = seriesData
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isLoadingDaily = false;
+        }
+    }
+
+    private async Task LoadLeadChartData()
+    {
+        isLoadingLead = true;
+        try
+        {
+            string sql = @"
+SELECT
+    PRODUCTION_DAY,
+    AVG(DATEDIFF(DAY, PLANNING_TIME, PRODUCTION_DAY)) AS avg_planning_lead_days
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_ALL_PLANNING_TIMES
+WHERE SITE = 'VCT'
+  AND PRODUCTION_DAY >= DATEADD(DAY, -30, CURRENT_DATE())
+GROUP BY PRODUCTION_DAY
+ORDER BY PRODUCTION_DAY;
+";
+
+            var dataTable = await SnowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
+
+            var data = new List<LeadItem>();
+            foreach (DataRow row in dataTable.Rows)
+            {
+                data.Add(new LeadItem
+                {
+                    ProductionDay = (DateTime)row["production_day"],
+                    AvgPlanningLeadDays = (double)(decimal)row["avg_planning_lead_days"]
+                });
+            }
+
+            data = data.OrderBy(d => d.ProductionDay).ToList();
+
+            leadChartLabels = data.Select(d => d.ProductionDay.ToString("yyyy-MM-dd")).ToList();
+            leadChartSeries = new List<ChartSeries>
+            {
+                new ChartSeries
+                {
+                    Name = "Avg Planning Lead Days",
+                    Data = data.Select(d => d.AvgPlanningLeadDays).ToArray()
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            // Handle error
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            isLoadingLead = false;
+        }
+    }
+
+    public class PartsRunOutItem
+    {
+        public DateTime RunOutDay { get; set; }
+        public int PartsRunningOut { get; set; }
+    }
+
+    public class DemandItem
+    {
+        public DateTime PlanningTime { get; set; }
+        public double PlannedAmount { get; set; }
+    }
+
+    public class ComparisonItem
+    {
+        public DateTime ProductionDay { get; set; }
+        public double TotalDelta { get; set; }
+    }
+
+    public class DailyItem
+    {
+        public DateTime PlanningTime { get; set; }
+        public DateTime ProductionDay { get; set; }
+        public double PlannedAmount { get; set; }
+    }
+
+    public class LeadItem
+    {
+        public DateTime ProductionDay { get; set; }
+        public double AvgPlanningLeadDays { get; set; }
+    }
+}
