@@ -40,9 +40,10 @@ else if (rows is not null)
         {
             Console.WriteLine($"{DateTime.Now} Starting to load");
  
-            rows = await Snowflake.QueryAsync(
-                "SELECT * FROM VCT.ANDON.UNPLANNEDLOSS LIMIT 10"
-            );
+           rows = await Snowflake.QueryAsync(
+    "SELECT * FROM VCT.ANDON.UNPLANNEDLOSS LIMIT 10",
+    "DevMfgVctBizDb"
+);
  
             Console.WriteLine($"{DateTime.Now} Loaded");
         }

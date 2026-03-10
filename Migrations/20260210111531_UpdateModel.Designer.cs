@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PartTracker.Models;
 
@@ -11,9 +12,11 @@ using PartTracker.Models;
 namespace PartTracker.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260210111531_UpdateModel")]
+    partial class UpdateModel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -300,6 +303,27 @@ namespace PartTracker.Migrations
                         .HasName("p_k_parts_in_transit");
 
                     b.ToTable("parts_in_transit");
+                });
+
+            modelBuilder.Entity("PartTracker.Models.SafetyStockItem", b =>
+                {
+                    b.Property<string>("PartNumber")
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("part_number");
+
+                    b.Property<string>("MfgSupplierCode")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("mfg_supplier_code");
+
+                    b.Property<float>("SafetyStockNrOfParts")
+                        .HasColumnType("float")
+                        .HasColumnName("safety_stock_nr_of_parts");
+
+                    b.HasKey("PartNumber")
+                        .HasName("p_k_safety_stock_items");
+
+                    b.ToTable("safety_stock_items");
                 });
 #pragma warning restore 612, 618
         }

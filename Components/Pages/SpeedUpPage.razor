@@ -1,0 +1,256 @@
+@page "/speedup"
+@rendermode InteractiveServer
+@layout MainLayout
+@inject PartTracker.Models.AutomationDbContext AutomationDb
+
+<MudText Typo="Typo.h3">Speed Up</MudText>
+
+<div style="margin-top:40px; padding:10px; border:1px solid #ccc;">
+    <h4>Add Speed Up Entry</h4>
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudDatePicker @bind-Date="_speedup.StartTime" Label="Date" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_cdsid" Label="CDSID" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_speedup.TONumber1" Label="TO Number" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_speedup.PartNumber" Label="Part Number" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_speedup.MFGCode1" Label="MFG Code" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudSelect @bind-Value="_speedup.Reasons2" Label="Reasons" Variant="Variant.Outlined">
+                @foreach (var reason in _reasons)
+                {
+                    <MudSelectItem Value="@reason">@reason</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_speedup.Comment2" Label="Comment" Variant="Variant.Outlined" Lines="2" />
+        </MudItem>
+    </MudGrid>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="SaveSpeedUp" Disabled="@_adding">@(_editingEntry == null ? "Add Entry" : "Update Entry")</MudButton>
+    @if (_message != null)
+    {
+        <p style="color:@(_success ? "green" : "red");">@_message</p>
+    }
+</div>
+
+<div style="margin-top:40px;">
+    <h4>Speed Up Entries</h4>
+    <MudTable Items="_entries" Elevation="0" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Id</MudTh>
+            <MudTh>Date</MudTh>
+            <MudTh>TO Number</MudTh>
+            <MudTh>Part Number</MudTh>
+            <MudTh>MFG Code</MudTh>
+            <MudTh>Reasons</MudTh>
+            <MudTh>Comment</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Id</MudTd>
+            <MudTd>@context.StartTime?.ToString("yyyy-MM-dd")</MudTd>
+            <MudTd>@context.TONumber1</MudTd>
+            <MudTd>@context.PartNumber</MudTd>
+            <MudTd>@context.MFGCode1</MudTd>
+            <MudTd>@context.Reasons2</MudTd>
+            <MudTd>@context.Comment2</MudTd>
+            <MudTd><MudButton Size="Size.Small" Variant="Variant.Outlined" @onclick="() => EditEntry(context)">Edit</MudButton></MudTd>
+        </RowTemplate>
+    </MudTable>
+</div>
+
+@code {
+    private PartTracker.Models.SpeedUpModel _speedup = new();
+    private bool _adding;
+    private string? _message;
+    private bool _success;
+    private List<PartTracker.Models.SpeedUpModel> _entries = new();
+    private PartTracker.Models.SpeedUpModel? _editingEntry = null;
+    private string _cdsid = "";
+
+    private readonly Dictionary<string, (string Name, string Email)> _cdsidMappings = new()
+    {
+        { "JCHRISTOFFERSON", ("Johan Christofferson", "johan.christofferson@volvocars.com") },
+        { "EMARJAMÄKI", ("Evelina Marjamäki", "evelina.marjamaki@volvocars.com") },
+        { "TNYLANDE", ("Therese Färdigh", "therese.fardigh@volvocars.com") },
+        { "NZEWAR", ("Nergis Zewar", "nergis.zewar@volvocars.com") },
+        { "ETOUNSI", ("Eya Tounsi", "eya.tounsi@volvocars.com") },
+        { "LPETTERSSON", ("Linda Pettersson", "linda.pettersson@volvocars.com") },
+        { "MRIMME", ("Martin Rimme", "martin.rimme@volvocars.com") },
+        { "MJOHANSSON", ("Markus Johansson", "markus.johansson@volvocars.com") },
+        { "GGRÄSBERG", ("Gustav Gräsberg", "gustav.grasberg@volvocars.com") },
+        { "JJOHANNESSON", ("Jan-Eric Johannesson", "jan-eric.johannesson@volvocars.com") },
+        { "TLINDSTRÖM", ("Tomas Lindström", "tomas.lindstrom@volvocars.com") },
+        { "JDAHLMAN", ("Jonas Dahlman", "jonas.dahlman@volvocars.com") },
+        { "JSKOTT", ("Jacob Skott", "jacob.skott@volvocars.com") },
+        { "APIETILÄ", ("Andreas Pietilä", "andreas.pietila@volvocars.com") },
+        { "JHÅKANSSON", ("Joakim Håkansson", "joakim.hakansson@volvocars.com") },
+        { "SVETELI", ("Sara Veteli", "sara.veteli@volvocars.com") },
+        { "AFRIBERGTHORSSON", ("Ann-Sofie Friberg Thorsson", "ann-sofie.fribergthorsson@volvocars.com") },
+        { "JNEJMAN", ("Jörgen Nejman", "jorgen.nejman@volvocars.com") },
+        { "MMEIRA", ("Mikael Meira", "mikael.meira@volvocars.com") },
+        { "MJÖRNRYD", ("Mika Jörnryd", "mika.jornryd@volvocars.com") },
+        { "LLUBECK", ("Linda Lübeck", "linda.lubeck@volvocars.com") },
+        { "LKARLSSON", ("Lina Karlsson", "lina.karlsson@volvocars.com") }
+    };
+
+    private readonly List<string> _collectedByOptions = new()
+    {
+        "Premium",
+        "Self pickup"
+    };
+
+    private readonly List<string> _reasons = new()
+    {
+        "VCC - Demand Changes after call-off due to market",
+        "VCC - Stock deviation, also wrong registrated quantity",
+        "VCC - INet TMS Technical issues",
+        "VCC - Call-off above bought capacity (CWC)",
+        "VCC - Internal damaged goods",
+        "VCC - Internal problems, lack of personnel, tool break down etc",
+        "VCC - Cube out",
+        "VCC - IBL incorrect info(ETD/ETA) provided",
+        "VCC - IBL Late transport route setup and/or changes",
+        "VCC - Late Purchase Order",
+        "VCC - Missing packaging in 1:1 flow",
+        "VCC - Late production changes/overtime",
+        "VCC - Repair Reorders",
+        "VCC - Bank holiday",
+        "VCC - Parts, quality issue",
+        "VCC - Transport order greater than contracted carrier capacity",
+        "VCC - Force majeure - fire, strike, earthquake, derailment etc",
+        "VCC - Lack of packaging",
+        "VCC - No transport order (based on available call-off)",
+        "VCC - Reinstated Lay off day",
+        "VCC - LC Issues",
+        "VCC - Missing packing instruction",
+        "VCC - UCR 3 claim",
+        "VCC - UCR 4 claim",
+        "VCC - Model Year changes",
+        "VCC - Late materials purchase contract (by direct purchaser)",
+        "VCC - Directed tier 2 issues",
+        "VCC - GCS - Logistic Coordination",
+        "VCC - Late Change note",
+        "VCC - VP/MTO/TT/PP Pre-series parts (specify Project)",
+        "VCC - Project parts Mass Production MP1 -> Final Status Report (specify Project)",
+        "VCC - Obsolete material",
+        "VCC - Semiconductor shortage",
+        "VCC - Deliberately missing route due to low frequency",
+        "VCC - Supplier caused can't be blocked for recharge (APAC Use only)",
+        "VCC - V551 Launch cost (VP/MTO/TT/PP)",
+        "VCC - V446K Launch cost (VP/MTO/TT/PP)",
+        "VCC - E-motor",
+        "VCC - 825K Launch cost (VP/MTO/TT/PP)",
+        "VCC - Tariff impact",
+        "VCC - Force majeure- fire, strike, earthquake, derailment etc",
+        "VCC - Late materials purchase contract(by direct purchaser)",
+        "VCC - Late reaction to devitation",
+        "VCC - Plant Reallocation",
+        "VCC- Semiconductor shortage",
+        "VCC-V551 Launch cost( VP/MTO/TT/PP)",
+        "VCC-V446K Launch cost( VP/MTO/TT/PP)",
+        "VCC-825K Launch cost( VP/MTO/TT/PP)",
+        "Carrier - Can not deliver within contracted capacity",
+        "Carrier - Damaged goods in transit",
+        "Carrier - Late collection",
+        "Carrier - Late delivery",
+        "Carrier - Lost in transit",
+        "Carrier - No show",
+        "Supplier - Arrears",
+        "Supplier - Constraint",
+        "Supplier - Deviation booked vs. Actual",
+        "Supplier - Goods not ready in time for collection",
+        "Supplier - Lack of packaging due to late order",
+        "Supplier - Parts, quality issue",
+        "Supplier - Project and pre-serie parts (Specify project)",
+        "Supplier - Repair Reorders",
+        "Supplier - Standard TO not confirmed before set deadline",
+        "Supplier - Wrong label/delivery",
+        "Supplier- Semiconductor shortage",
+        "Supplier-825K Launch cost( VP/MTO/TT/PP)",
+        "Supplier-E-motor"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _entries = await AutomationDb.SpeedUps.ToListAsync();
+    }
+
+    private void EditEntry(PartTracker.Models.SpeedUpModel entry)
+    {
+        _editingEntry = entry;
+        _speedup = new PartTracker.Models.SpeedUpModel
+        {
+            Id = entry.Id,
+            TONumber1 = entry.TONumber1,
+            PartNumber = entry.PartNumber,
+            MFGCode1 = entry.MFGCode1,
+            Reasons2 = entry.Reasons2,
+            Comment2 = entry.Comment2,
+            StartTime = entry.StartTime,
+            CompletionTime = entry.CompletionTime,
+            Email = entry.Email,
+            Name = entry.Name
+        };
+        _cdsid = ""; // CDSID not stored, so leave empty
+    }
+
+    private async Task SaveSpeedUp()
+    {
+        _adding = true;
+        _message = null;
+        _success = false;
+
+        // Set Name and Email based on CDSID
+        if (_cdsidMappings.TryGetValue(_cdsid.ToUpper(), out var userInfo))
+        {
+            _speedup.Name = userInfo.Name;
+            _speedup.Email = userInfo.Email;
+        }
+        else
+        {
+            _speedup.Name = null;
+            _speedup.Email = null;
+        }
+
+        // Set CompletionTime to StartTime
+        _speedup.CompletionTime = _speedup.StartTime;
+
+        try
+        {
+            if (_editingEntry == null)
+            {
+                AutomationDb.SpeedUps.Add(_speedup);
+            }
+            else
+            {
+                AutomationDb.Entry(_editingEntry).CurrentValues.SetValues(_speedup);
+            }
+
+            await AutomationDb.SaveChangesAsync();
+            _entries = await AutomationDb.SpeedUps.ToListAsync();
+            _message = _editingEntry == null ? "Entry added successfully" : "Entry updated successfully";
+            _success = true;
+            _speedup = new PartTracker.Models.SpeedUpModel();
+            _editingEntry = null;
+            _cdsid = ""; // Reset CDSID
+        }
+        catch (Exception ex)
+        {
+            _message = $"Error saving entry: {ex.Message}";
+        }
+        finally
+        {
+            _adding = false;
+        }
+    }
+}

@@ -1,0 +1,163 @@
+@page "/ad-hoc/requirements-vs-transit"
+@using PartTracker.Shared.Services
+@using System.Data
+@using MySqlConnector
+@inject IConfiguration Config
+
+<PageTitle>Requirements vs Transit</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Requirements vs Transit</MudText>
+
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Filters</MudText>
+
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="partNumber" Label="Part Number" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="LoadData"
+                           FullWidth="true"
+                           Class="mt-2">
+                    Load Data
+                </MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    @if (isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+    }
+    else if (chartLabels.Any())
+    {
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" Class="mb-3">Requirements vs Transit Histogram</MudText>
+
+            <MudChart ChartType="ChartType.Bar"
+                      Height="400px"
+                      XAxisLabels="@chartLabels.ToArray()"
+                      ChartSeries="@chartSeries" />
+        </MudPaper>
+    }
+    else
+    {
+        <MudText>No data available.</MudText>
+    }
+</MudContainer>
+
+@code {
+    private string partNumber = "";
+    private bool isLoading = false;
+
+    private List<string> chartLabels = new();
+    private List<MudBlazor.ChartSeries> chartSeries = new();
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        chartLabels.Clear();
+        chartSeries.Clear();
+
+        try
+        {
+            var connectionString = Config.GetConnectionString("AutomationConnection");
+            using var conn = new MySqlConnection(connectionString);
+            await conn.OpenAsync();
+
+            int? pn = null;
+            if (!string.IsNullOrWhiteSpace(partNumber) && int.TryParse(partNumber, out var parsed))
+                pn = parsed;
+
+            var transitData = new List<(DateTime date, int amount)>();
+            var transitQuery = @"
+                SELECT DATE(fav_tid) AS d, fav_artan
+                FROM parts_in_transit
+                WHERE (@pn IS NULL OR art_nr = @pn)
+                  AND fav_tid IS NOT NULL
+                  AND fav_artan IS NOT NULL;
+            ";
+
+            using (var cmdTransit = new MySqlCommand(transitQuery, conn))
+            {
+                cmdTransit.Parameters.AddWithValue("@pn", (object?)pn ?? DBNull.Value);
+
+                using (var readerTransit = await cmdTransit.ExecuteReaderAsync())
+                {
+                    while (await readerTransit.ReadAsync())
+                    {
+                        var date = readerTransit.GetDateTime(0);
+                        var amount = readerTransit.GetInt32(1);
+                        transitData.Add((date, amount));
+                    }
+                } // readerTransit closed HERE
+            }
+
+            var demandData = new List<(DateTime date, int value)>();
+            var demandQuery = @"
+                SELECT attribute AS d, value
+                FROM demand
+                WHERE (@pn IS NULL OR Artiklar = @pn)
+                  AND attribute IS NOT NULL
+                  AND value IS NOT NULL;
+            ";
+
+            using (var cmdDemand = new MySqlCommand(demandQuery, conn))
+            {
+                cmdDemand.Parameters.AddWithValue("@pn", (object?)pn ?? DBNull.Value);
+
+                using (var readerDemand = await cmdDemand.ExecuteReaderAsync())
+                {
+                    while (await readerDemand.ReadAsync())
+                    {
+                        var date = readerDemand.GetDateTime(0);
+                        var value = readerDemand.GetInt32(1);
+                        demandData.Add((date, value));
+                    }
+                }
+            }
+
+            // Group by week start (Monday)
+            var transitGrouped = transitData
+                .GroupBy(x => GetWeekStart(x.date))
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.amount));
+
+            var demandGrouped = demandData
+                .GroupBy(x => GetWeekStart(x.date))
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.value));
+
+            var allWeeks = transitGrouped.Keys
+                .Concat(demandGrouped.Keys)
+                .Distinct()
+                .OrderBy(d => d)
+                .ToList();
+
+            chartLabels = allWeeks.Select(w => w.ToString("yyyy-MM-dd")).ToList();
+
+            var transitValues = allWeeks.Select(w => (double)(transitGrouped.TryGetValue(w, out var v) ? v : 0)).ToArray();
+            var demandValues  = allWeeks.Select(w => (double)(demandGrouped.TryGetValue(w, out var v) ? v : 0)).ToArray();
+
+            chartSeries.Add(new MudBlazor.ChartSeries { Name = "Transit Amount", Data = transitValues });
+            chartSeries.Add(new MudBlazor.ChartSeries { Name = "Demand Value", Data = demandValues });
+        }
+catch (Exception ex)
+{
+    chartLabels = new() { "ERROR" };
+    chartSeries.Add(new MudBlazor.ChartSeries { Name = ex.Message, Data = new double[] { 0 } });
+}
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static DateTime GetWeekStart(DateTime date)
+    {
+        int diff = (7 + (date.DayOfWeek - DayOfWeek.Monday)) % 7;
+        return date.AddDays(-diff).Date;
+    }
+}

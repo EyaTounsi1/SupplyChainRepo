@@ -1,0 +1,262 @@
+@page "/safety-stock-vs-demand"
+@using System.Data
+@using PartTracker.Shared.Services
+@inject SnowflakeService SnowflakeService
+
+<PageTitle>Safety Stock vs. Actual Demand</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Safety Stock vs. Actual Demand</MudText>
+
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" Class="mb-3">Select Part and Time Filter</MudText>
+
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           Label="Part Number"
+                           @bind-Value="selectedPartNumber"
+                           @bind-Value:after="OnPartChanged"
+                           Dense="true"
+                           Class="mb-3">
+                    @foreach (var part in partNumbers)
+                    {
+                        <MudSelectItem T="string" Value="@part">@part</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="string"
+                           Label="Time Filter"
+                           @bind-Value="selectedTimeFilter"
+                           @bind-Value:after="OnTimeFilterChanged"
+                           Dense="true"
+                           Class="mb-3">
+                    <MudSelectItem T="string" Value="@("All")">All Time</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("2024")">2024</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("2025")">2025</MudSelectItem>
+                    <MudSelectItem T="string" Value="@("LastQuarter")">Last Quarter</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+
+        <MudText Class="mt-2" Typo="Typo.caption">
+            Labels: @dateLabels.Count | Demand: @actualDemandSeries.Count | Safety: @safetyStockSeries.Count
+        </MudText>
+    </MudPaper>
+
+    @if (isLoading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" Class="mt-4" />
+    }
+    else if (!string.IsNullOrEmpty(selectedPartNumber))
+    {
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6">Safety Stock vs. Actual Demand for @selectedPartNumber</MudText>
+
+            @if (dateLabels.Count == 0)
+            {
+                <MudText Class="mt-2">No demand/safety stock data returned for this part.</MudText>
+            }
+            else
+            {
+                <MudChart ChartType="ChartType.Line"
+                          Height="400px"
+                          XAxisLabels="@chartLabelsArray"
+                          ChartSeries="@chartDatasets" />
+            }
+        </MudPaper>
+    }
+    else
+    {
+        <MudText>No part selected.</MudText>
+    }
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <MudAlert Severity="Severity.Error" Class="mt-4">@errorMessage</MudAlert>
+    }
+</MudContainer>
+
+@code {
+    private bool isLoading = true;
+    private string errorMessage = "";
+    private List<string> partNumbers = new();
+    private string selectedPartNumber = "";
+    private string selectedTimeFilter = "All";
+
+    private List<string> dateLabels = new();
+    private List<double> actualDemandSeries = new();
+    private List<double> safetyStockSeries = new();
+
+    private string[] chartLabelsArray => dateLabels.ToArray();
+    private List<MudBlazor.ChartSeries> chartDatasets => new()
+    {
+        new MudBlazor.ChartSeries { Name = "Actual Demand", Data = actualDemandSeries.ToArray() },
+        new MudBlazor.ChartSeries { Name = "Safety Stock (Parts)", Data = safetyStockSeries.ToArray() }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPartNumbersAsync();
+    }
+
+    private async Task LoadPartNumbersAsync()
+    {
+        try
+        {
+            var query = @"
+SELECT DISTINCT PART_NUMBER
+FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_SUPPLIER_INFORMATION_AS_MANUFACTURED.PART_SUPPLIER_INFORMATION_AS_MANUFACTURED
+WHERE SITE = 'VCT'
+  AND MFG_SUPPLIER_CODE NOT ILIKE '%BSNRA%'
+  AND COALESCE(SEQUENCE_PARTS_FLAG, '') <> 'Sequence Part'
+ORDER BY PART_NUMBER";
+
+            var dt = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+            partNumbers = dt.AsEnumerable().Select(r => r["PART_NUMBER"]?.ToString() ?? "").ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load part numbers: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task OnPartChanged()
+    {
+        if (!string.IsNullOrEmpty(selectedPartNumber))
+        {
+            await LoadDataForPartAsync(selectedPartNumber);
+        }
+    }
+
+    private async Task OnTimeFilterChanged()
+    {
+        if (!string.IsNullOrEmpty(selectedPartNumber))
+        {
+            await LoadDataForPartAsync(selectedPartNumber);
+        }
+    }
+
+    private async Task LoadDataForPartAsync(string partNumber)
+    {
+        isLoading = true;
+        dateLabels.Clear();
+        actualDemandSeries.Clear();
+        safetyStockSeries.Clear();
+        errorMessage = "";
+
+        try
+        {
+            var tf = selectedTimeFilter;
+            var pn = EscapeSqlLiteral(partNumber);
+
+            var query = $@"
+WITH part_scope AS (
+  SELECT
+    SITE,
+    PLANNING_POINT,
+    PART_NUMBER,
+    MFG_SUPPLIER_CODE
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_SUPPLIER_INFORMATION_AS_MANUFACTURED.PART_SUPPLIER_INFORMATION_AS_MANUFACTURED
+  WHERE PART_NUMBER = '{pn}'
+),
+demand AS (
+  SELECT
+    c.PART_CONSUMED_DATE AS DT,
+    SUM(c.PART_AMOUNT)::FLOAT AS DEMAND
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_CONSUMPTION_AS_MANUFACTURED.PART_CONSUMPTION_AS_MANUFACTURED c
+  JOIN part_scope p
+    ON c.SITE = p.SITE
+   AND c.PLANNING_POINT = p.PLANNING_POINT
+   AND c.PART_NUMBER = p.PART_NUMBER
+   AND c.MFG_SUPPLIER_CODE = p.MFG_SUPPLIER_CODE
+  GROUP BY c.PART_CONSUMED_DATE
+),
+ss_daily AS (
+  SELECT
+    h.VALID_FROM_DATE AS DT,
+    h.SAFETY_STOCK_NR_OF_PARTS AS SS_PARTS,
+    ROW_NUMBER() OVER (PARTITION BY h.VALID_FROM_DATE ORDER BY h.VALID_FROM_DATE DESC) AS RN
+  FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED_HISTORICAL.SAFETY_STOCK_SETTINGS_AS_MANUFACTURED_HISTORICAL h
+  JOIN part_scope p
+    ON h.SITE = p.SITE
+   AND h.PLANNING_POINT = p.PLANNING_POINT
+   AND h.PART_NUMBER = p.PART_NUMBER
+   AND h.MFG_SUPPLIER_CODE = p.MFG_SUPPLIER_CODE
+),
+ss AS (
+  SELECT DT, SS_PARTS
+  FROM ss_daily
+  WHERE RN = 1
+),
+bounds AS (
+  SELECT
+    LEAST(
+      COALESCE((SELECT MIN(DT) FROM demand), '2999-12-31'::DATE),
+      COALESCE((SELECT MIN(DT) FROM ss), '2999-12-31'::DATE)
+    ) AS FILTERED_MIN_DT,
+    GREATEST(
+      COALESCE((SELECT MAX(DT) FROM demand), '1900-01-01'::DATE),
+      COALESCE((SELECT MAX(DT) FROM ss), '1900-01-01'::DATE)
+    ) AS FILTERED_MAX_DT,
+    CASE 
+      WHEN '{tf}' = '2024' THEN GREATEST(FILTERED_MIN_DT, '2024-01-01'::DATE)
+      WHEN '{tf}' = '2025' THEN GREATEST(FILTERED_MIN_DT, '2025-01-01'::DATE)
+      WHEN '{tf}' = 'LastQuarter' THEN GREATEST(FILTERED_MIN_DT, DATEADD(month, -3, CURRENT_DATE()))
+      ELSE FILTERED_MIN_DT
+    END AS FILTERED_MIN_DT,
+    CASE 
+      WHEN '{tf}' = '2024' THEN LEAST(FILTERED_MAX_DT, '2024-12-31'::DATE)
+      WHEN '{tf}' = '2025' THEN LEAST(FILTERED_MAX_DT, '2025-12-31'::DATE)
+      WHEN '{tf}' = 'LastQuarter' THEN LEAST(FILTERED_MAX_DT, CURRENT_DATE())
+      ELSE FILTERED_MAX_DT
+    END AS FILTERED_MAX_DT
+  FROM (SELECT 1 AS dummy) d
+),
+timeline AS (
+  SELECT DATEADD(day, seq4(), fb.FILTERED_MIN_DT) AS DT
+  FROM bounds fb,
+       TABLE(GENERATOR(ROWCOUNT => 10000))
+  WHERE DATEADD(day, seq4(), fb.FILTERED_MIN_DT) <= fb.FILTERED_MAX_DT
+)
+SELECT
+  t.DT,
+  COALESCE(d.DEMAND, 0) AS DEMAND,
+  COALESCE(s.SS_PARTS, 0) AS SS_PARTS
+FROM timeline t
+LEFT JOIN demand d ON t.DT = d.DT
+LEFT JOIN ss s ON t.DT = s.DT
+ORDER BY t.DT";
+
+            var dt = await SnowflakeService.QueryAsync(query, "ManufacturingEnterpriseDataProducts");
+
+            foreach (DataRow row in dt.Rows)
+            {
+                var dtVal = Convert.ToDateTime(row["DT"]);
+                var demand = Convert.ToDouble(row["DEMAND"]);
+                var ssParts = Convert.ToDouble(row["SS_PARTS"]);
+
+                dateLabels.Add(dtVal.ToString("yyyy-MM-dd"));
+                actualDemandSeries.Add(demand);
+                safetyStockSeries.Add(ssParts);
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load data: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static string EscapeSqlLiteral(string value) => value.Replace("'", "''");
+}

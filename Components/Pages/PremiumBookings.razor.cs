@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using PartTracker;
 using PartTracker.Models;
+using MudBlazor;
 
 namespace PartTracker.Components.Pages
 {
@@ -35,8 +36,23 @@ namespace PartTracker.Components.Pages
         private List<int> reasonCodeCounts = new();
         private bool reasonCodePieChartDrawn = false;
         private List<string> premiumCostLabels = new();
-        private List<decimal> premiumCostData = new();
-        private bool premiumCostChartDrawn = false;
+        private List<decimal> premiumCostData2025 = new();
+        private List<decimal> premiumCostData2026 = new();
+    
+        private List<MudBlazor.ChartSeries> PremiumCostChartSeries => new()
+        {
+            new MudBlazor.ChartSeries { Name = "2025 Cost (SEK)", Data = premiumCostData2025.Select(x => (double)x).ToArray() },
+            new MudBlazor.ChartSeries { Name = "2026 Cost (SEK)", Data = premiumCostData2026.Select(x => (double)x).ToArray() }
+        };
+    
+        private ChartOptions premiumCostChartOptions = new()
+        {
+            YAxisTicks = 10,
+            MaxNumYAxisTicks = 10,
+            YAxisFormat = "N0",
+            InterpolationOption = InterpolationOption.Straight,
+            LineStrokeWidth = 2
+        };
 
         protected override async Task OnInitializedAsync()
         {
@@ -307,49 +323,147 @@ namespace PartTracker.Components.Pages
         }
 
         private async Task LoadPremiumCostTrends()
+{
+    try
+    {
+        Console.WriteLine("=== Starting LoadPremiumCostTrends ===");
+        var startDate2024 = new DateTime(2024, 1, 1);
+        var endDate2024   = new DateTime(2024, 12, 31, 23, 59, 59);
+        var startDate2025 = new DateTime(2025, 1, 1);
+        var endDate2025   = new DateTime(2025, 12, 31, 23, 59, 59);
+        var startDate2026 = new DateTime(2026, 1, 1);
+        var endDate2026   = new DateTime(2026, 12, 31, 23, 59, 59);
+
+        // --- Fetch 2024 SEK data (Premiums2024) ---
+        var records2024 = await AutomationDbContext.Premiums2024
+            .Where(p => p.Date.HasValue
+                     && p.Date.Value >= startDate2024
+                     && p.Date.Value <= endDate2024)
+            .Where(p => p.TotalCostsSek.HasValue)
+            .Select(p => new { p.Date, p.TotalCostsSek })
+            .ToListAsync();
+
+        Console.WriteLine($"Records from 2024 (Premiums2024): {records2024.Count}");
+
+        var data2024 = records2024
+            .GroupBy(p => new { p.Date!.Value.Year, p.Date!.Value.Month })
+            .Select(g => new
+            {
+                Year  = g.Key.Year,
+                Month = g.Key.Month,
+                TotalCost = g.Sum(x => x.TotalCostsSek ?? 0m)
+            })
+            .ToList();
+
+        Console.WriteLine($"Grouped 2024 data: {data2024.Count} months");
+        foreach (var item in data2024)
         {
-            try
-            {
-                var startDate = new DateTime(2025, 1, 1);
-                var endDate = new DateTime(2025, 12, 31, 23, 59, 59);
-
-                // Load data first, then group in memory
-                var records = await AutomationDbContext.Premiums2025
-                    .Where(p => p.ShipmentDate.HasValue 
-                            && p.ShipmentDate.Value >= startDate 
-                            && p.ShipmentDate.Value <= endDate)
-                    .Where(p => p.TotalCostsSek.HasValue)
-                    .Select(p => new
-                    {
-                        p.ShipmentDate,
-                        p.TotalCostsSek
-                    })
-                    .ToListAsync();
-
-                var data = records
-                    .GroupBy(p => new { 
-                        Year = p.ShipmentDate!.Value.Year,
-                        Month = p.ShipmentDate!.Value.Month
-                    })
-                    .Select(g => new
-                    {
-                        Date = new DateTime(g.Key.Year, g.Key.Month, 1),
-                        TotalCost = g.Sum(x => x.TotalCostsSek ?? 0)
-                    })
-                    .OrderBy(x => x.Date)
-                    .ToList();
-
-                premiumCostLabels = data.Select(x => x.Date.ToString("MMM yyyy")).ToList();
-                premiumCostData = data.Select(x => x.TotalCost).ToList();
-
-                Console.WriteLine($"Loaded {premiumCostLabels.Count} premium cost data points for 2025 from {records.Count} records");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading premium cost trends: {ex.Message}");
-            }
+            Console.WriteLine($"  {item.Year}-{item.Month:D2}: {item.TotalCost:N2} SEK");
         }
 
+        // --- Fetch 2025 SEK data (Premiums2025) ---
+        var records2025 = await AutomationDbContext.Premiums2025
+            .Where(p => p.ShipmentDate.HasValue
+                     && p.ShipmentDate.Value >= startDate2025
+                     && p.ShipmentDate.Value <= endDate2025)
+            .Where(p => p.TotalCostsSek.HasValue)
+            .Select(p => new { p.ShipmentDate, p.TotalCostsSek })
+            .ToListAsync();
+
+        Console.WriteLine($"Records from 2025 (Premiums2025): {records2025.Count}");
+
+        var data2025 = records2025
+            .GroupBy(p => new { p.ShipmentDate!.Value.Year, p.ShipmentDate!.Value.Month })
+            .Select(g => new
+            {
+                Year  = g.Key.Year,
+                Month = g.Key.Month,
+                TotalCost = g.Sum(x => x.TotalCostsSek ?? 0m)
+            })
+            .ToList();
+
+        Console.WriteLine($"Grouped 2025 data: {data2025.Count} months");
+        foreach (var item in data2025)
+        {
+            Console.WriteLine($"  {item.Year}-{item.Month:D2}: {item.TotalCost:N2} SEK");
+        }
+
+        // --- Fetch 2026 EUR data (Splunk) and convert to SEK ---
+        var eurToSek = 11.5m; // adjust if needed
+        var records2026 = await AutomationDbContext.Splunk
+            .Where(e => e.CreatedAt.HasValue
+                     && e.CreatedAt.Value >= startDate2026
+                     && e.CreatedAt.Value <= endDate2026
+                     && e.TotalCostEUR.HasValue)
+            .Select(e => new { e.CreatedAt, e.TotalCostEUR })
+            .ToListAsync();
+
+        Console.WriteLine($"Records from 2026 (Splunk): {records2026.Count}");
+
+        var data2026 = records2026
+            .GroupBy(e => new { e.CreatedAt!.Value.Year, e.CreatedAt!.Value.Month })
+            .Select(g => new
+            {
+                Year  = g.Key.Year,
+                Month = g.Key.Month,
+                TotalCost = g.Sum(x => (x.TotalCostEUR ?? 0m) * eurToSek)
+            })
+            .ToList();
+
+        Console.WriteLine($"Grouped 2026 data: {data2026.Count} months");
+        foreach (var item in data2026)
+        {
+            Console.WriteLine($"  {item.Year}-{item.Month:D2}: {item.TotalCost:N2} SEK");
+        }
+
+        // --- Build timeline months: Jan -> Dec (12 months only) ---
+        var months2025 = Enumerable.Range(1, 12)
+            .Select(month => new DateTime(2025, month, 1))
+            .ToList();
+        
+        var months2026 = Enumerable.Range(1, 12)
+            .Select(month => new DateTime(2026, month, 1))
+            .ToList();
+
+        // Labels: Jan, Feb, Mar, ... Dec
+        premiumCostLabels = Enumerable.Range(1, 12)
+            .Select(m => new DateTime(2025, m, 1).ToString("MMM"))
+            .ToList();
+
+        // 2025 data for Jan-Dec 2025
+        premiumCostData2025 = months2025.Select(d =>
+        {
+            var match = data2025.FirstOrDefault(x => x.Year == d.Year && x.Month == d.Month);
+            return match?.TotalCost ?? 0m;
+        }).ToList();
+
+        // 2026 data: rolling comparison - for passed months use 2026, for future use 2024
+        var currentMonth = DateTime.Now.Month;
+        premiumCostData2026 = months2026.Select(d =>
+        {
+            var match2026 = data2026.FirstOrDefault(x => x.Year == d.Year && x.Month == d.Month);
+            var match2024 = data2024.FirstOrDefault(x => x.Year == 2024 && x.Month == d.Month);
+            if (d.Month < currentMonth)
+            {
+                return match2026?.TotalCost ?? 0m;
+            }
+            else
+            {
+                return match2024?.TotalCost ?? 0m;
+            }
+        }).ToList();
+
+        Console.WriteLine($"Loaded {premiumCostLabels.Count} premium cost timeline points (Jan - Dec)");
+        Console.WriteLine($"2025 data count: {premiumCostData2025.Count}, Sum: {premiumCostData2025.Sum():N2}");
+        Console.WriteLine($"2026/2024 rolling data count: {premiumCostData2026.Count}, Sum: {premiumCostData2026.Sum():N2}");
+        Console.WriteLine($"premiumCostLabels.Any(): {premiumCostLabels.Any()}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error loading premium cost trends: {ex.Message}");
+        Console.WriteLine($"Stack trace: {ex.StackTrace}");
+    }
+}
         private async Task LoadTrendsData()
         {
             try
@@ -440,20 +554,7 @@ namespace PartTracker.Components.Pages
                 }
             }
 
-            if (!isLoading && !premiumCostChartDrawn && premiumCostLabels.Any())
-            {
-                Console.WriteLine($"Drawing premium cost chart with {premiumCostLabels.Count} labels");
-                try
-                {
-                    await JSRuntime.InvokeVoidAsync("drawPremiumCostChart", "premiumCostTrendsChart", premiumCostLabels, premiumCostData);
-                    premiumCostChartDrawn = true;
-                    Console.WriteLine("Premium cost chart drawn successfully");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error drawing premium cost chart: {ex.Message}");
-                }
-            }
+            // Premium cost chart now uses MudBlazor - no JS rendering needed
         }
 
         private async Task<List<PremiumCsvRow>> ReadPremiumCsvAsync(string path)

@@ -1,0 +1,283 @@
+@page "/premium-booking-update"
+@rendermode InteractiveServer
+@layout MainLayout
+@inject AppDbContext DbContext
+@inject IJSRuntime JSRuntime
+@inject PartTracker.Models.AutomationDbContext AutomationDb
+
+<MudText Typo="Typo.h3">Premium Booking Update</MudText>
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <MudText>Loading data...</MudText>
+}
+else
+{
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h4">Today's Bookings</MudText>
+        <MudText Typo="Typo.h5" Color="Color.Primary">@todaysBookingsCount bookings made today</MudText>
+        <MudText Typo="Typo.h5" Color="Color.Secondary">@totalBookingsCount total bookings made so far</MudText>
+    </MudPaper>
+}
+
+<div style="margin-top:40px; padding:10px; border:1px solid #ccc;">
+    <h4>Add Premium Booking Update Entry</h4>
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudDatePicker @bind-Date="_booking.StartTime" Label="Date" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_cdsid" Label="CDSID" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_booking.TONumber" Label="TO Number" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_booking.MFGCode" Label="MFG Code" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="_booking.SHPCode" Label="SHP Code" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudSelect @bind-Value="_booking.Reasons" Label="Reasons" Variant="Variant.Outlined">
+                @foreach (var reason in _reasons)
+                {
+                    <MudSelectItem Value="@reason">@reason</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField @bind-Value="_booking.CommentMain" Label="Comment (Add PN if Stock Deviation)" Variant="Variant.Outlined" Lines="2" />
+        </MudItem>
+    </MudGrid>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" @onclick="SaveBooking" Disabled="@_adding">@(_editingEntry == null ? "Add Entry" : "Update Entry")</MudButton>
+    @if (_message != null)
+    {
+        <p style="color:@(_success ? "green" : "red");">@_message</p>
+    }
+</div>
+
+<div style="margin-top:40px;">
+    <h4>Premium Booking Update Entries</h4>
+    <MudTable Items="_entries" Elevation="0" Hover="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Id</MudTh>
+            <MudTh>Date</MudTh>
+            <MudTh>TO Number</MudTh>
+            <MudTh>MFG Code</MudTh>
+            <MudTh>SHP Code</MudTh>
+            <MudTh>Reasons</MudTh>
+            <MudTh>Comment</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@context.Id</MudTd>
+            <MudTd>@context.StartTime?.ToString("yyyy-MM-dd")</MudTd>
+            <MudTd>@context.TONumber</MudTd>
+            <MudTd>@context.MFGCode</MudTd>
+            <MudTd>@context.SHPCode</MudTd>
+            <MudTd>@context.Reasons</MudTd>
+            <MudTd>@context.CommentMain</MudTd>
+            <MudTd><MudButton Size="Size.Small" Variant="Variant.Outlined" @onclick="() => EditEntry(context)">Edit</MudButton></MudTd>
+        </RowTemplate>
+    </MudTable>
+</div>
+
+@code {
+    private int todaysBookingsCount = 0;
+    private int totalBookingsCount = 0;
+    private bool isLoading = true;
+    private PartTracker.Models.PremiumBookingUpdate _booking = new();
+    private bool _adding;
+    private string? _message;
+    private bool _success;
+    private List<PartTracker.Models.PremiumBookingUpdate> _entries = new();
+    private PartTracker.Models.PremiumBookingUpdate? _editingEntry = null;
+
+    private string _cdsid = "";
+
+    private readonly Dictionary<string, (string Name, string Email)> _cdsidMappings = new()
+    {
+        { "JCHRISTOFFERSON", ("Johan Christofferson", "johan.christofferson@volvocars.com") },
+        { "EMARJAMÄKI", ("Evelina Marjamäki", "evelina.marjamaki@volvocars.com") },
+        { "TNYLANDE", ("Therese Färdigh", "therese.fardigh@volvocars.com") },
+        { "NZEWAR", ("Nergis Zewar", "nergis.zewar@volvocars.com") },
+        { "ETOUNSI", ("Eya Tounsi", "eya.tounsi@volvocars.com") },
+        { "LPETTERSSON", ("Linda Pettersson", "linda.pettersson@volvocars.com") },
+        { "MRIMME", ("Martin Rimme", "martin.rimme@volvocars.com") },
+        { "MJOHANSSON", ("Markus Johansson", "markus.johansson@volvocars.com") },
+        { "GGRÄSBERG", ("Gustav Gräsberg", "gustav.grasberg@volvocars.com") },
+        { "JJOHANNESSON", ("Jan-Eric Johannesson", "jan-eric.johannesson@volvocars.com") },
+        { "TLINDSTRÖM", ("Tomas Lindström", "tomas.lindstrom@volvocars.com") },
+        { "JDAHLMAN", ("Jonas Dahlman", "jonas.dahlman@volvocars.com") },
+        { "JSKOTT", ("Jacob Skott", "jacob.skott@volvocars.com") },
+        { "APIETILÄ", ("Andreas Pietilä", "andreas.pietila@volvocars.com") },
+        { "JHÅKANSSON", ("Joakim Håkansson", "joakim.hakansson@volvocars.com") },
+        { "SVETELI", ("Sara Veteli", "sara.veteli@volvocars.com") },
+        { "AFRIBERGTHORSSON", ("Ann-Sofie Friberg Thorsson", "ann-sofie.fribergthorsson@volvocars.com") },
+        { "JNEJMAN", ("Jörgen Nejman", "jorgen.nejman@volvocars.com") },
+        { "MMEIRA", ("Mikael Meira", "mikael.meira@volvocars.com") },
+        { "MJÖRNRYD", ("Mika Jörnryd", "mika.jornryd@volvocars.com") },
+        { "LLUBECK", ("Linda Lübeck", "linda.lubeck@volvocars.com") },
+        { "LKARLSSON", ("Lina Karlsson", "lina.karlsson@volvocars.com") }
+    };
+
+    private readonly List<string> _reasons = new()
+    {
+        "VCC - Demand Changes after call-off due to market",
+        "VCC - Stock deviation, also wrong registrated quantity",
+        "VCC - INet TMS Technical issues",
+        "VCC - Call-off above bought capacity (CWC)",
+        "VCC - Internal damaged goods",
+        "VCC - Internal problems, lack of personnel, tool break down etc",
+        "VCC - Cube out",
+        "VCC - IBL incorrect info(ETD/ETA) provided",
+        "VCC - IBL Late transport route setup and/or changes",
+        "VCC - Late Purchase Order",
+        "VCC - Missing packaging in 1:1 flow",
+        "VCC - Late production changes/overtime",
+        "VCC - Repair Reorders",
+        "VCC - Bank holiday",
+        "VCC - Parts, quality issue",
+        "VCC - Transport order greater than contracted carrier capacity",
+        "VCC - Force majeure - fire, strike, earthquake, derailment etc",
+        "VCC - Lack of packaging",
+        "VCC - No transport order (based on available call-off)",
+        "VCC - Reinstated Lay off day",
+        "VCC - LC Issues",
+        "VCC - Missing packing instruction",
+        "VCC - UCR 3 claim",
+        "VCC - UCR 4 claim",
+        "VCC - Model Year changes",
+        "VCC - Late materials purchase contract (by direct purchaser)",
+        "VCC - Directed tier 2 issues",
+        "VCC - GCS - Logistic Coordination",
+        "VCC - Late Change note",
+        "VCC - VP/MTO/TT/PP Pre-series parts (specify Project)",
+        "VCC - Project parts Mass Production MP1 -> Final Status Report (specify Project)",
+        "VCC - Obsolete material",
+        "VCC - Semiconductor shortage",
+        "VCC - Deliberately missing route due to low frequency",
+        "VCC - Supplier caused can't be blocked for recharge (APAC Use only)",
+        "VCC - V551 Launch cost (VP/MTO/TT/PP)",
+        "VCC - V446K Launch cost (VP/MTO/TT/PP)",
+        "VCC - E-motor",
+        "VCC - 825K Launch cost (VP/MTO/TT/PP)",
+        "VCC - Tariff impact",
+        "VCC - Force majeure- fire, strike, earthquake, derailment etc",
+        "VCC - Late materials purchase contract(by direct purchaser)",
+        "VCC - Late reaction to devitation",
+        "VCC - Plant Reallocation",
+        "VCC-V551 Launch cost( VP/MTO/TT/PP)",
+        "VCC-V446K Launch cost( VP/MTO/TT/PP)",
+        "VCC-825K Launch cost( VP/MTO/TT/PP)"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            var today = DateTime.Today;
+            todaysBookingsCount = await AutomationDb.PremiumBookingUpdates
+                .CountAsync(e => e.StartTime.HasValue && e.StartTime.Value.Date == today);
+            totalBookingsCount = await AutomationDb.PremiumBookingUpdates.CountAsync();
+
+            _entries = await AutomationDb.PremiumBookingUpdates
+                .OrderByDescending(e => e.StartTime)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _message = $"Error loading data: {ex.Message}";
+            _success = false;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveBooking()
+    {
+        _adding = true;
+        _message = null;
+
+        try
+        {
+            if (_editingEntry == null)
+            {
+                // New entry
+                _booking.StartTime = DateTime.Now;
+                _booking.CompletionTime = null;
+                _booking.BookingType = "Premium Booking";
+                _booking.Language = "en"; // Default language
+
+                if (_cdsidMappings.TryGetValue(_cdsid.ToUpper(), out var userInfo))
+                {
+                    _booking.Email = userInfo.Email;
+                    _booking.Name = userInfo.Name;
+                }
+                else
+                {
+                    _booking.Email = "";
+                    _booking.Name = "";
+                }
+
+                AutomationDb.PremiumBookingUpdates.Add(_booking);
+            }
+            else
+            {
+                // Update existing
+                _editingEntry.TONumber = _booking.TONumber;
+                _editingEntry.MFGCode = _booking.MFGCode;
+                _editingEntry.SHPCode = _booking.SHPCode;
+                _editingEntry.Reasons = _booking.Reasons;
+                _editingEntry.CommentMain = _booking.CommentMain;
+                AutomationDb.PremiumBookingUpdates.Update(_editingEntry);
+            }
+
+            await AutomationDb.SaveChangesAsync();
+
+            _message = _editingEntry == null ? "Entry added successfully!" : "Entry updated successfully!";
+            _success = true;
+
+            // Reset form
+            _booking = new PartTracker.Models.PremiumBookingUpdate();
+            _editingEntry = null;
+            _cdsid = "";
+
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            _message = $"Error saving entry: {ex.Message}";
+            _success = false;
+        }
+        finally
+        {
+            _adding = false;
+        }
+    }
+
+    private void EditEntry(PartTracker.Models.PremiumBookingUpdate entry)
+    {
+        _editingEntry = entry;
+        _booking = new PartTracker.Models.PremiumBookingUpdate
+        {
+            TONumber = entry.TONumber,
+            MFGCode = entry.MFGCode,
+            SHPCode = entry.SHPCode,
+            Reasons = entry.Reasons,
+            CommentMain = entry.CommentMain,
+            StartTime = entry.StartTime
+        };
+        _cdsid = ""; // Reset CDSID for editing
+    }
+}

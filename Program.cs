@@ -38,7 +38,6 @@ builder.Services.AddDbContext<AutomationDbContext>(options =>
         .EnableSensitiveDataLogging(builder.Environment.IsDevelopment());
 });
 
-builder.Services.AddScoped<AnotherSnowflakeService>();
 // Blazor and Session Storage
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
@@ -64,7 +63,6 @@ builder.Services.AddScoped<PartTracker.Shared.Services.SnowflakeService>();
 
 // Safety stock service
 builder.Services.AddScoped<ISafetyStockService, SafetyStockService>();
-builder.Services.AddScoped<AnotherSnowflakeService>();
 
 // Forecast service
 builder.Services.AddScoped<IForecastService, ForecastService>();

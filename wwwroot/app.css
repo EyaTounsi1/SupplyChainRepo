@@ -94,3 +94,7 @@ h1:focus {
 }
 
 .dev-fixed-btn span { display:inline-block; }
+
+.min-width-200 {
+    min-width: 200px;
+}

@@ -9,6 +9,13 @@ public class AutomationDbContext : DbContext
     public DbSet<HelperEntry> Helper { get; set; }
     public DbSet<SpeedUpRequest> SpeedUpRequests { get; set; }
     public DbSet<Premium2025> Premiums2025 { get; set; }
+    public DbSet<Premium2024> Premiums2024 { get; set; }
+    public DbSet<PartPrice> PartPrices { get; set; }
+    public DbSet<SafetyStockFormEntry> SafetyStockForms { get; set; }
+    public DbSet<TestCrudSafety> TestCrudSafeties { get; set; }
+    public DbSet<AftermarketCollectionModel> AftermarketCollections { get; set; }
+    public DbSet<SpeedUpModel> SpeedUps { get; set; }
+    public DbSet<PremiumBookingUpdate> PremiumBookingUpdates { get; set; }
 
     public AutomationDbContext(DbContextOptions<AutomationDbContext> options) : base(options) { }
 
@@ -29,5 +36,23 @@ public class AutomationDbContext : DbContext
         modelBuilder.Entity<Premium2025>()
             .ToTable("premiums2025")
             .HasKey(p => p.Id);
+        modelBuilder.Entity<Premium2024>()
+            .ToTable("premiums2024")
+            .HasKey(p => p.Id);
+        modelBuilder.Entity<PartPrice>()
+            .ToTable("Part_Price");
+        modelBuilder.Entity<SafetyStockFormEntry>()
+            .ToTable("safetystockform")
+            .HasKey(s => s.Id);
+        modelBuilder.Entity<TestCrudSafety>()
+            .ToTable("TestCrudSafety")
+            .HasKey(t => t.Id);
+        modelBuilder.Entity<AftermarketCollectionModel>()
+            .ToTable("aftermarketcollection")
+            .HasKey(a => a.Id);
+        modelBuilder.Entity<PremiumBookingUpdate>()
+            .ToTable("premiumbookingupdate")
+            .HasKey(p => p.Id);
+        modelBuilder.Entity<SafetyStockItem>().HasNoKey();
     }
 }
