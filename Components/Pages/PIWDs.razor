@@ -3,11 +3,52 @@
 @using PartTracker.Shared.Services
 @using Microsoft.JSInterop
 @using System.Data
+@using ApexCharts
 @inject SnowflakeService SnowflakeService
 @inject IJSRuntime JSRuntime
 @using MudBlazor
 
 <h3>PIWDs</h3>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Date Range Filter</MudText>
+    <MudGrid>
+        <MudItem xs="12" md="3">
+            <MudTextField @bind-Value="_rangeStartDate"
+                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Label="From Date" InputType="InputType.Date" Format="yyyy-MM-dd" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudTextField @bind-Value="_rangeEndDate"
+                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Label="To Date" InputType="InputType.Date" Format="yyyy-MM-dd" />
+        </MudItem>
+        <MudItem xs="12" md="2">
+            <MudTextField @bind-Value="_rangeStartTime"
+                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Label="From Time" InputType="InputType.Time" />
+        </MudItem>
+        <MudItem xs="12" md="2">
+            <MudTextField @bind-Value="_rangeEndTime"
+                          Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Label="To Time" InputType="InputType.Time" />
+        </MudItem>
+        <MudItem xs="12" md="1">
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Primary"
+                       Size="MudBlazor.Size.Large" OnClick="ApplyFilterAsync"
+                       FullWidth="true" Style="height:56px;">
+                <MudIcon Icon="@Icons.Material.Filled.FilterAlt" />
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" md="1">
+            <MudButton Variant="Variant.Filled" Color="MudBlazor.Color.Surface"
+                       Size="MudBlazor.Size.Large" OnClick="ResetFilterAsync"
+                       FullWidth="true" Style="height:56px;">
+                <MudIcon Icon="@Icons.Material.Filled.Refresh" />
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
 
 <MudPaper Class="pa-4 mb-4">
     <MudText Typo="Typo.h6" Class="mb-3">Parts Running Out Over Next 90 Days</MudText>
@@ -23,17 +64,21 @@
 
     @if (isLoading)
     {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <MudProgressCircular Color="MudBlazor.Color.Primary" Indeterminate="true" />
     }
-    else if (chartSeries.Any())
+    else if (_chartReady && runOutData.Any())
     {
-        <MudChart ChartType="ChartType.Line"
-                  Height="400px"
-                  XAxisLabels="@chartLabels.ToArray()"
-                  ChartSeries="chartSeries"
-                  XAxisTitle="Date"
-                  YAxisTitle="Number of Parts Running Out">
-        </MudChart>
+        <ApexChart TItem="PartsRunOutItem"
+                   Height="400"
+                   Options="runOutOptions"
+                   @key="_runOutChartKey">
+            <ApexPointSeries TItem="PartsRunOutItem"
+                             Items="runOutData"
+                             Name="Parts Running Out"
+                             SeriesType="SeriesType.Line"
+                             XValue="p => p.RunOutDay"
+                             YValue="p => (decimal)p.PartsRunningOut" />
+        </ApexChart>
     }
     else
     {
@@ -47,17 +92,21 @@
 
     @if (isLoadingDemand)
     {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <MudProgressCircular Color="MudBlazor.Color.Primary" Indeterminate="true" />
     }
-    else if (demandChartSeries.Any())
+    else if (_chartReady && demandData.Any())
     {
-        <MudChart ChartType="ChartType.Line"
-                  Height="400px"
-                  XAxisLabels="@demandChartLabels.ToArray()"
-                  ChartSeries="demandChartSeries"
-                  XAxisTitle="Planning Time"
-                  YAxisTitle="Planned Amount">
-        </MudChart>
+        <ApexChart TItem="DemandItem"
+                   Height="400"
+                   Options="demandOptions"
+                   @key="_demandChartKey">
+            <ApexPointSeries TItem="DemandItem"
+                             Items="demandData"
+                             Name="Planned Amount"
+                             SeriesType="SeriesType.Line"
+                             XValue="p => p.PlanningTime"
+                             YValue="p => (decimal)p.PlannedAmount" />
+        </ApexChart>
     }
     else
     {
@@ -71,17 +120,21 @@
 
     @if (isLoadingComparison)
     {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <MudProgressCircular Color="MudBlazor.Color.Primary" Indeterminate="true" />
     }
-    else if (comparisonChartSeries.Any())
+    else if (_chartReady && comparisonData.Any())
     {
-        <MudChart ChartType="ChartType.Bar"
-                  Height="400px"
-                  XAxisLabels="@comparisonChartLabels.ToArray()"
-                  ChartSeries="comparisonChartSeries"
-                  XAxisTitle="Production Day"
-                  YAxisTitle="Delta Amount">
-        </MudChart>
+        <ApexChart TItem="ComparisonItem"
+                   Height="400"
+                   Options="comparisonOptions"
+                   @key="_comparisonChartKey">
+            <ApexPointSeries TItem="ComparisonItem"
+                             Items="comparisonData"
+                             Name="Delta Amount"
+                             SeriesType="SeriesType.Bar"
+                             XValue="p => p.ProductionDay"
+                             YValue="p => (decimal)p.TotalDelta" />
+        </ApexChart>
     }
     else
     {
@@ -95,17 +148,24 @@
 
     @if (isLoadingDaily)
     {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <MudProgressCircular Color="MudBlazor.Color.Primary" Indeterminate="true" />
     }
-    else if (dailyChartSeries.Any())
+    else if (_chartReady && dailyData.Any())
     {
-        <MudChart ChartType="ChartType.Line"
-                  Height="400px"
-                  XAxisLabels="@dailyChartLabels.ToArray()"
-                  ChartSeries="dailyChartSeries"
-                  XAxisTitle="Production Day"
-                  YAxisTitle="Planned Amount">
-        </MudChart>
+        <ApexChart TItem="DailyItem"
+                   Height="400"
+                   Options="dailyOptions"
+                   @key="_dailyChartKey">
+            @foreach (var pt in dailyData.Select(d => d.PlanningTime).Distinct().OrderBy(t => t))
+            {
+                <ApexPointSeries TItem="DailyItem"
+                                 Items="dailyData.Where(d => d.PlanningTime == pt).ToList()"
+                                 Name="@pt.ToString("yyyy-MM-dd HH:mm")"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="p => p.ProductionDay"
+                                 YValue="p => (decimal)p.PlannedAmount" />
+            }
+        </ApexChart>
     }
     else
     {
@@ -119,17 +179,21 @@
 
     @if (isLoadingLead)
     {
-        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        <MudProgressCircular Color="MudBlazor.Color.Primary" Indeterminate="true" />
     }
-    else if (leadChartSeries.Any())
+    else if (_chartReady && leadData.Any())
     {
-        <MudChart ChartType="ChartType.Line"
-                  Height="400px"
-                  XAxisLabels="@leadChartLabels.ToArray()"
-                  ChartSeries="leadChartSeries"
-                  XAxisTitle="Production Day"
-                  YAxisTitle="Average Planning Lead Days">
-        </MudChart>
+        <ApexChart TItem="LeadItem"
+                   Height="400"
+                   Options="leadOptions"
+                   @key="_leadChartKey">
+            <ApexPointSeries TItem="LeadItem"
+                             Items="leadData"
+                             Name="Avg Planning Lead Days"
+                             SeriesType="SeriesType.Line"
+                             XValue="p => p.ProductionDay"
+                             YValue="p => (decimal)p.AvgPlanningLeadDays" />
+        </ApexChart>
     }
     else
     {
@@ -139,24 +203,171 @@
 
 @code {
     private bool isLoading = true;
-    private List<string> chartLabels = new();
-    private List<ChartSeries> chartSeries = new();
     private bool chinaOnly = false;
     private bool excludeSweden = false;
     private bool isLoadingDemand = true;
-    private List<string> demandChartLabels = new();
-    private List<ChartSeries> demandChartSeries = new();
     private bool isLoadingComparison = true;
-    private List<string> comparisonChartLabels = new();
-    private List<ChartSeries> comparisonChartSeries = new();
     private bool isLoadingDaily = true;
-    private List<string> dailyChartLabels = new();
-    private List<ChartSeries> dailyChartSeries = new();
     private bool isLoadingLead = true;
-    private List<string> leadChartLabels = new();
-    private List<ChartSeries> leadChartSeries = new();
+    private bool _chartReady;
 
-    protected override async Task OnInitializedAsync()
+    // --- Period / Time filter (same pattern as FleetManagement) ---
+    private DateTime? _rangeStartDate;
+    private DateTime? _rangeEndDate;
+    private TimeSpan? _rangeStartTime;
+    private TimeSpan? _rangeEndTime;
+
+    // Data lists
+    private List<PartsRunOutItem> runOutData = new();
+    private List<DemandItem> demandData = new();
+    private List<ComparisonItem> comparisonData = new();
+    private List<DailyItem> dailyData = new();
+    private List<LeadItem> leadData = new();
+
+    // Chart keys for re-render
+    private Guid _runOutChartKey = Guid.NewGuid();
+    private Guid _demandChartKey = Guid.NewGuid();
+    private Guid _comparisonChartKey = Guid.NewGuid();
+    private Guid _dailyChartKey = Guid.NewGuid();
+    private Guid _leadChartKey = Guid.NewGuid();
+
+    // ApexChart options
+    private ApexChartOptions<PartsRunOutItem> runOutOptions = CreateLineOptions<PartsRunOutItem>("Date", "Parts Running Out");
+    private ApexChartOptions<DemandItem> demandOptions = CreateLineOptions<DemandItem>("Planning Time", "Planned Amount");
+    private ApexChartOptions<ComparisonItem> comparisonOptions = CreateBarOptions<ComparisonItem>("Production Day", "Delta Amount");
+    private ApexChartOptions<DailyItem> dailyOptions = CreateLineOptions<DailyItem>("Production Day", "Planned Amount");
+    private ApexChartOptions<LeadItem> leadOptions = CreateLineOptions<LeadItem>("Production Day", "Avg Planning Lead Days");
+
+    private static ApexChartOptions<T> CreateLineOptions<T>(string xTitle, string yTitle) where T : class
+    {
+        return new ApexChartOptions<T>
+        {
+            Chart = new Chart
+            {
+                Toolbar = new Toolbar { Show = true },
+                Zoom = new Zoom { Enabled = true }
+            },
+            Xaxis = new XAxis
+            {
+                Type = XAxisType.Datetime,
+                Title = new AxisTitle { Text = xTitle },
+                Labels = new XAxisLabels
+                {
+                    DatetimeFormatter = new DatetimeFormatter
+                    {
+                        Day = "dd MMM",
+                        Month = "MMM yyyy"
+                    }
+                }
+            },
+            Yaxis = new List<YAxis>
+            {
+                new YAxis
+                {
+                    Title = new AxisTitle { Text = yTitle }
+                }
+            },
+            Stroke = new Stroke
+            {
+                Curve = Curve.Smooth,
+                Width = 2
+            },
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd MMM yyyy" }
+            },
+            Colors = new List<string> { "#5E81AC", "#BF616A", "#A3BE8C", "#EBCB8B", "#B48EAD", "#88C0D0", "#D08770" }
+        };
+    }
+
+    private static ApexChartOptions<T> CreateBarOptions<T>(string xTitle, string yTitle) where T : class
+    {
+        return new ApexChartOptions<T>
+        {
+            Chart = new Chart
+            {
+                Toolbar = new Toolbar { Show = true },
+                Zoom = new Zoom { Enabled = true }
+            },
+            Xaxis = new XAxis
+            {
+                Type = XAxisType.Datetime,
+                Title = new AxisTitle { Text = xTitle },
+                Labels = new XAxisLabels
+                {
+                    DatetimeFormatter = new DatetimeFormatter
+                    {
+                        Day = "dd MMM",
+                        Month = "MMM yyyy"
+                    }
+                }
+            },
+            Yaxis = new List<YAxis>
+            {
+                new YAxis
+                {
+                    Title = new AxisTitle { Text = yTitle }
+                }
+            },
+            PlotOptions = new PlotOptions
+            {
+                Bar = new PlotOptionsBar
+                {
+                    ColumnWidth = "60%"
+                }
+            },
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd MMM yyyy" }
+            },
+            Colors = new List<string> { "#5E81AC", "#BF616A", "#A3BE8C", "#EBCB8B", "#B48EAD" }
+        };
+    }
+
+    private (DateTime From, DateTime To) GetSelectedRange()
+    {
+        var startDate = _rangeStartDate ?? DateTime.Today.AddDays(-90);
+        var endDate = _rangeEndDate ?? DateTime.Today;
+
+        var startTime = _rangeStartTime ?? TimeSpan.Zero;
+        var endTime = _rangeEndTime ?? new TimeSpan(23, 59, 59);
+
+        var from = startDate.Date + startTime;
+        var to = endDate.Date + endTime;
+
+        if (from > to) (from, to) = (to, from);
+
+        return (from, to);
+    }
+
+    private async Task ApplyFilterAsync()
+    {
+        await LoadAllChartsAsync();
+        RegenerateAllChartKeys();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ResetFilterAsync()
+    {
+        _rangeStartDate = null;
+        _rangeEndDate = null;
+        _rangeStartTime = null;
+        _rangeEndTime = null;
+        await LoadAllChartsAsync();
+        RegenerateAllChartKeys();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void RegenerateAllChartKeys()
+    {
+        _runOutChartKey = Guid.NewGuid();
+        _demandChartKey = Guid.NewGuid();
+        _comparisonChartKey = Guid.NewGuid();
+        _dailyChartKey = Guid.NewGuid();
+        _leadChartKey = Guid.NewGuid();
+    }
+
+    private async Task LoadAllChartsAsync()
     {
         await LoadChartData();
         await LoadDemandChartData();
@@ -165,9 +376,24 @@
         await LoadLeadChartData();
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAllChartsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _chartReady = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     private async Task OnFilterChanged()
     {
         await LoadChartData();
+        _runOutChartKey = Guid.NewGuid();
     }
 
     private async Task LoadChartData()
@@ -175,6 +401,10 @@
         isLoading = true;
         try
         {
+            var (from, to) = GetSelectedRange();
+            var daysAhead = (int)(to.Date - DateTime.Today).TotalDays;
+            if (daysAhead < 1) daysAhead = 90;
+
             string chinaFilter = chinaOnly ? @" AND PART_NUMBER IN (
                 SELECT PART_NUMBER
                 FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_INFORMATION_AS_MANUFACTURED.PART_INFORMATION_AS_MANUFACTURED
@@ -196,8 +426,8 @@ SELECT
     COUNT(DISTINCT PART_NUMBER) AS parts_running_out
 FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.INVENTORY_COVERAGE_AS_MANUFACTURED.INVENTORY_COVERAGE_AS_MANUFACTURED
 WHERE AVAILABLE_INVENTORY_RUN_OUT_DATE IS NOT NULL
-  AND AVAILABLE_INVENTORY_RUN_OUT_DATE >= CURRENT_DATE()
-  AND AVAILABLE_INVENTORY_RUN_OUT_DATE < DATEADD(DAY, 90, CURRENT_DATE())
+  AND AVAILABLE_INVENTORY_RUN_OUT_DATE >= '{from:yyyy-MM-dd}'
+  AND AVAILABLE_INVENTORY_RUN_OUT_DATE < '{to:yyyy-MM-dd}'
   AND PART_NUMBER NOT IN (
       SELECT DISTINCT PART_NUMBER
       FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.DELIVERY_SCHEDULE_AS_MANUFACTURED.DELIVERY_SCHEDULE_AS_MANUFACTURED
@@ -210,29 +440,18 @@ ORDER BY AVAILABLE_INVENTORY_RUN_OUT_DATE;
 
             var dataTable = await SnowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
 
-            var data = new List<PartsRunOutItem>();
+            runOutData = new List<PartsRunOutItem>();
             foreach (DataRow row in dataTable.Rows)
             {
-                data.Add(new PartsRunOutItem
+                runOutData.Add(new PartsRunOutItem
                 {
-                    RunOutDay = (DateTime)row["run_out_day"],
-                    PartsRunningOut = (int)(long)row["parts_running_out"]
+                    RunOutDay = Convert.ToDateTime(row["run_out_day"]),
+                    PartsRunningOut = Convert.ToInt32(row["parts_running_out"])
                 });
             }
-
-            chartLabels = data.Select(d => d.RunOutDay.ToString("yyyy-MM-dd")).ToList();
-            chartSeries = new List<ChartSeries>
-            {
-                new ChartSeries
-                {
-                    Name = "Parts Running Out",
-                    Data = data.Select(d => (double)d.PartsRunningOut).ToArray()
-                }
-            };
         }
         catch (Exception ex)
         {
-            // Handle error
             Console.WriteLine(ex.Message);
         }
         finally
@@ -246,7 +465,9 @@ ORDER BY AVAILABLE_INVENTORY_RUN_OUT_DATE;
         isLoadingDemand = true;
         try
         {
-            string sql = @"
+            var (from, to) = GetSelectedRange();
+
+            string sql = $@"
 SELECT
     SITE,
     PLANNING_POINT,
@@ -258,6 +479,8 @@ SELECT
 FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_ALL_PLANNING_TIMES
 WHERE SITE = 'VCT'
   AND PART_NUMBER = '80041945'
+  AND PLANNING_TIME >= '{from:yyyy-MM-dd HH:mm:ss}'
+  AND PLANNING_TIME <= '{to:yyyy-MM-dd HH:mm:ss}'
   AND PRODUCTION_DAY = (
       SELECT MAX(PRODUCTION_DAY)
       FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_ALL_PLANNING_TIMES
@@ -278,31 +501,20 @@ ORDER BY
 
             var dataTable = await SnowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
 
-            var data = new List<DemandItem>();
+            demandData = new List<DemandItem>();
             foreach (DataRow row in dataTable.Rows)
             {
-                data.Add(new DemandItem
+                demandData.Add(new DemandItem
                 {
-                    PlanningTime = (DateTime)row["planning_time"],
-                    PlannedAmount = (double)(decimal)row["planned_amount"]
+                    PlanningTime = Convert.ToDateTime(row["planning_time"]),
+                    PlannedAmount = Convert.ToDouble(row["planned_amount"])
                 });
             }
 
-            data = data.OrderBy(d => d.PlanningTime).ToList();
-
-            demandChartLabels = data.Select(d => d.PlanningTime.ToString("yyyy-MM-dd HH:mm")).ToList();
-            demandChartSeries = new List<ChartSeries>
-            {
-                new ChartSeries
-                {
-                    Name = "Planned Amount",
-                    Data = data.Select(d => d.PlannedAmount).ToArray()
-                }
-            };
+            demandData = demandData.OrderBy(d => d.PlanningTime).ToList();
         }
         catch (Exception ex)
         {
-            // Handle error
             Console.WriteLine(ex.Message);
         }
         finally
@@ -316,7 +528,9 @@ ORDER BY
         isLoadingComparison = true;
         try
         {
-            string sql = @"
+            var (from, to) = GetSelectedRange();
+
+            string sql = $@"
 WITH demand_snapshots AS (
     SELECT
         SITE,
@@ -328,6 +542,8 @@ WITH demand_snapshots AS (
         SUM(PART_AMOUNT) AS planned_amount
     FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_ALL_PLANNING_TIMES
     WHERE SITE = 'VCT'
+      AND PRODUCTION_DAY >= '{from:yyyy-MM-dd}'
+      AND PRODUCTION_DAY <= '{to:yyyy-MM-dd}'
     GROUP BY
         SITE,
         PLANNING_POINT,
@@ -389,31 +605,20 @@ ORDER BY f.PRODUCTION_DAY;
 
             var dataTable = await SnowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
 
-            var data = new List<ComparisonItem>();
+            comparisonData = new List<ComparisonItem>();
             foreach (DataRow row in dataTable.Rows)
             {
-                data.Add(new ComparisonItem
+                comparisonData.Add(new ComparisonItem
                 {
-                    ProductionDay = (DateTime)row["production_day"],
-                    TotalDelta = (double)(decimal)row["total_delta"]
+                    ProductionDay = Convert.ToDateTime(row["production_day"]),
+                    TotalDelta = Convert.ToDouble(row["total_delta"])
                 });
             }
 
-            data = data.OrderBy(d => d.ProductionDay).ToList();
-
-            comparisonChartLabels = data.Select(d => d.ProductionDay.ToString("yyyy-MM-dd")).ToList();
-            comparisonChartSeries = new List<ChartSeries>
-            {
-                new ChartSeries
-                {
-                    Name = "Delta Amount",
-                    Data = data.Select(d => d.TotalDelta).ToArray()
-                }
-            };
+            comparisonData = comparisonData.OrderBy(d => d.ProductionDay).ToList();
         }
         catch (Exception ex)
         {
-            // Handle error
             Console.WriteLine(ex.Message);
         }
         finally
@@ -427,7 +632,9 @@ ORDER BY f.PRODUCTION_DAY;
         isLoadingDaily = true;
         try
         {
-            string sql = @"
+            var (from, to) = GetSelectedRange();
+
+            string sql = $@"
 WITH ranked_planning_times AS (
     SELECT
         PLANNING_TIME,
@@ -436,6 +643,8 @@ WITH ranked_planning_times AS (
         SELECT DISTINCT PLANNING_TIME
         FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_ALL_PLANNING_TIMES
         WHERE SITE = 'VCT'
+          AND PLANNING_TIME >= '{from:yyyy-MM-dd HH:mm:ss}'
+          AND PLANNING_TIME <= '{to:yyyy-MM-dd HH:mm:ss}'
     ) pt
 )
 SELECT
@@ -445,51 +654,28 @@ SELECT
 FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_ALL_PLANNING_TIMES pd
 JOIN ranked_planning_times pt ON pd.PLANNING_TIME = pt.PLANNING_TIME
 WHERE pd.SITE = 'VCT'
-  AND pt.rn <= 5  -- Top 5 most recent planning times
-  AND pd.PRODUCTION_DAY >= DATEADD(DAY, -30, CURRENT_DATE())
+  AND pt.rn <= 5
+  AND pd.PRODUCTION_DAY >= '{from:yyyy-MM-dd}'
+  AND pd.PRODUCTION_DAY <= '{to:yyyy-MM-dd}'
 GROUP BY pt.PLANNING_TIME, pd.PRODUCTION_DAY
 ORDER BY pd.PRODUCTION_DAY, pt.PLANNING_TIME;
 ";
 
             var dataTable = await SnowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
 
-            var data = new List<DailyItem>();
+            dailyData = new List<DailyItem>();
             foreach (DataRow row in dataTable.Rows)
             {
-                data.Add(new DailyItem
+                dailyData.Add(new DailyItem
                 {
-                    PlanningTime = (DateTime)row["planning_time"],
-                    ProductionDay = (DateTime)row["production_day"],
-                    PlannedAmount = (double)(decimal)row["planned_amount"]
-                });
-            }
-
-            // Group by ProductionDay for labels
-            var grouped = data.GroupBy(d => d.ProductionDay).OrderBy(g => g.Key).ToList();
-            dailyChartLabels = grouped.Select(g => g.Key.ToString("yyyy-MM-dd")).ToList();
-
-            // Series for each planning time
-            var planningTimes = data.Select(d => d.PlanningTime).Distinct().OrderBy(pt => pt).ToList();
-            dailyChartSeries = new List<ChartSeries>();
-            foreach (var pt in planningTimes)
-            {
-                var seriesData = new double[dailyChartLabels.Count];
-                for (int i = 0; i < dailyChartLabels.Count; i++)
-                {
-                    var day = grouped[i].Key;
-                    var item = grouped[i].FirstOrDefault(d => d.PlanningTime == pt);
-                    seriesData[i] = item?.PlannedAmount ?? 0;
-                }
-                dailyChartSeries.Add(new ChartSeries
-                {
-                    Name = pt.ToString("yyyy-MM-dd HH:mm"),
-                    Data = seriesData
+                    PlanningTime = Convert.ToDateTime(row["planning_time"]),
+                    ProductionDay = Convert.ToDateTime(row["production_day"]),
+                    PlannedAmount = Convert.ToDouble(row["planned_amount"])
                 });
             }
         }
         catch (Exception ex)
         {
-            // Handle error
             Console.WriteLine(ex.Message);
         }
         finally
@@ -503,44 +689,36 @@ ORDER BY pd.PRODUCTION_DAY, pt.PLANNING_TIME;
         isLoadingLead = true;
         try
         {
-            string sql = @"
+            var (from, to) = GetSelectedRange();
+
+            string sql = $@"
 SELECT
     PRODUCTION_DAY,
     AVG(DATEDIFF(DAY, PLANNING_TIME, PRODUCTION_DAY)) AS avg_planning_lead_days
 FROM MANUFACTURING_ENTERPRISE_DATA_PRODUCTS.PART_DEMAND_AS_MANUFACTURED.PART_DEMAND_AS_MANUFACTURED_ALL_PLANNING_TIMES
 WHERE SITE = 'VCT'
-  AND PRODUCTION_DAY >= DATEADD(DAY, -30, CURRENT_DATE())
+  AND PRODUCTION_DAY >= '{from:yyyy-MM-dd}'
+  AND PRODUCTION_DAY <= '{to:yyyy-MM-dd}'
 GROUP BY PRODUCTION_DAY
 ORDER BY PRODUCTION_DAY;
 ";
 
             var dataTable = await SnowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
 
-            var data = new List<LeadItem>();
+            leadData = new List<LeadItem>();
             foreach (DataRow row in dataTable.Rows)
             {
-                data.Add(new LeadItem
+                leadData.Add(new LeadItem
                 {
-                    ProductionDay = (DateTime)row["production_day"],
-                    AvgPlanningLeadDays = (double)(decimal)row["avg_planning_lead_days"]
+                    ProductionDay = Convert.ToDateTime(row["production_day"]),
+                    AvgPlanningLeadDays = Convert.ToDouble(row["avg_planning_lead_days"])
                 });
             }
 
-            data = data.OrderBy(d => d.ProductionDay).ToList();
-
-            leadChartLabels = data.Select(d => d.ProductionDay.ToString("yyyy-MM-dd")).ToList();
-            leadChartSeries = new List<ChartSeries>
-            {
-                new ChartSeries
-                {
-                    Name = "Avg Planning Lead Days",
-                    Data = data.Select(d => d.AvgPlanningLeadDays).ToArray()
-                }
-            };
+            leadData = leadData.OrderBy(d => d.ProductionDay).ToList();
         }
         catch (Exception ex)
         {
-            // Handle error
             Console.WriteLine(ex.Message);
         }
         finally

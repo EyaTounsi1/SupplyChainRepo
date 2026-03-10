@@ -232,11 +232,18 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (isDataLoaded && !chartsDrawn)
+        if (isDataLoaded && !chartsDrawn && partsInTransit != null && partsInTransit.Any())
         {
-            await JSRuntime.InvokeVoidAsync("drawPackagePieChart", "todayBookingsPie", todayLabels, todayData);
-            await JSRuntime.InvokeVoidAsync("drawPackagePieChart", "totalBookingsPie", totalLabels, totalData);
-            chartsDrawn = true;
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("drawPackagePieChart", "todayBookingsPie", todayLabels, todayData);
+                await JSRuntime.InvokeVoidAsync("drawPackagePieChart", "totalBookingsPie", totalLabels, totalData);
+                chartsDrawn = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Chart rendering error: {ex.Message}");
+            }
         }
     }
 
