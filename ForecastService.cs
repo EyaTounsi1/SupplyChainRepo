@@ -389,13 +389,14 @@ LEFT JOIN ss
 LEFT JOIN daily_usage du
     ON dt.site = du.site AND dt.part_number = du.part_number
 CROSS JOIN params p
-WHERE 1=1 and site='VCT'
+WHERE 1=1 and date <= '2026-05-10' and dt.site ='VCT'
 {(string.IsNullOrWhiteSpace(siteFilter) ? "" : $" AND dt.site = '{EscapeSqlLiteral(siteFilter!.Trim())}'")}
 {(string.IsNullOrWhiteSpace(partNumberFilter) ? "" : $" AND dt.part_number = '{EscapeSqlLiteral(partNumberFilter!.Trim())}'")}
 {(string.IsNullOrWhiteSpace(mfgCodeFilter) ? "" : $" AND ss.MFG_SUPPLIER_CODE = '{EscapeSqlLiteral(mfgCodeFilter!.Trim())}'")}
 ORDER BY dt.site, dt.part_number, dt.date
 ;
 ";
+
 
         DataTable dataTable = await _snowflakeService.QueryAsync(sql, "ManufacturingEnterpriseDataProducts");
 

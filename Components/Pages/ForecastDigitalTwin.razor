@@ -1,11 +1,13 @@
 @page "/forecast-digital-twin"
 @layout MainLayout
+@using ApexCharts
 @inject IForecastService ForecastService
 
 <MudText Typo="Typo.h3">Forecast & Digital Twin</MudText>
 
 <MudPaper Class="pa-4 mb-4">
     <MudText Typo="Typo.h6" Class="mb-3">Forecast Parameters</MudText>
+
     <MudSelect T="int"
                Label="Time Frame (Months)"
                @bind-Value="selectedMonths"
@@ -20,71 +22,72 @@
 
     <MudGrid Class="mt-3">
         <MudItem xs="12" md="6">
-            <MudTextField @bind-Value="selectedPartNumber" 
+            <MudTextField @bind-Value="selectedPartNumber"
                           @bind-Value:after="LoadForecastData"
-                          Label="Part Number" 
-                          Variant="Variant.Outlined" 
+                          Label="Part Number"
+                          Variant="Variant.Outlined"
                           Clearable="true" />
         </MudItem>
         <MudItem xs="12" md="6">
-            <MudTextField @bind-Value="selectedMfgCode" 
+            <MudTextField @bind-Value="selectedMfgCode"
                           @bind-Value:after="LoadForecastData"
-                          Label="MFG Code" 
-                          Variant="Variant.Outlined" 
+                          Label="MFG Code"
+                          Variant="Variant.Outlined"
                           Clearable="true" />
         </MudItem>
     </MudGrid>
 
     <MudText Typo="Typo.h6" Class="mb-3 mt-4">Digital Twin Scenario Parameters</MudText>
+
     <MudGrid>
         <MudItem xs="12" md="6">
-            <MudNumericField @bind-Value="demandMultiplier" 
+            <MudNumericField @bind-Value="demandMultiplier"
                              @bind-Value:after="LoadForecastData"
-                             Label="Demand Multiplier" 
-                             Min="0.1" 
-                             Max="5.0" 
-                             Step="0.1" 
+                             Label="Demand Multiplier"
+                             Min="0.1"
+                             Max="5.0"
+                             Step="0.1"
                              Format="N1" />
         </MudItem>
         <MudItem xs="12" md="6">
-            <MudNumericField @bind-Value="leadTimeShiftDays" 
+            <MudNumericField @bind-Value="leadTimeShiftDays"
                              @bind-Value:after="LoadForecastData"
-                             Label="Lead Time Shift (Days)" 
-                             Min="-30" 
-                             Max="30" 
+                             Label="Lead Time Shift (Days)"
+                             Min="-30"
+                             Max="30"
                              Step="1" />
         </MudItem>
         <MudItem xs="12" md="6">
-            <MudNumericField @bind-Value="ssOverrideParts" 
+            <MudNumericField @bind-Value="ssOverrideParts"
                              @bind-Value:after="LoadForecastData"
-                             Label="Safety Stock Override (Parts)" 
-                             Min="0" 
-                             Step="1" 
+                             Label="Safety Stock Override (Parts)"
+                             Min="0"
+                             Step="1"
                              Clearable="true" />
         </MudItem>
         <MudItem xs="12" md="6">
-            <MudNumericField @bind-Value="ssOverrideLeadTime" 
+            <MudNumericField @bind-Value="ssOverrideLeadTime"
                              @bind-Value:after="LoadForecastData"
-                             Label="Safety Stock Lead Time Override (Days)" 
-                             Min="0" 
-                             Step="1" 
+                             Label="Safety Stock Lead Time Override (Days)"
+                             Min="0"
+                             Step="1"
                              Clearable="true" />
         </MudItem>
     </MudGrid>
 
     <MudGrid Class="mt-3">
         <MudItem xs="12" md="6">
-            <MudSwitch T="bool" @bind-Checked="showSafetyStockPartsChart" Label="Show Safety Stock Parts Chart" />
+            <MudSwitch T="bool" @bind-Value="showSafetyStockPartsChart" Label="Show Safety Stock Parts Chart" />
         </MudItem>
         <MudItem xs="12" md="6">
-            <MudSwitch T="bool" @bind-Checked="showSafetyStockLeadTimeChart" Label="Show Safety Stock Lead Time Chart" />
+            <MudSwitch T="bool" @bind-Value="showSafetyStockLeadTimeChart" Label="Show Safety Stock Lead Time Chart" />
         </MudItem>
     </MudGrid>
 </MudPaper>
 
 @if (isLoading)
 {
-    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    <MudProgressCircular Color="MudBlazor.Color.Primary" Indeterminate="true" />
     <MudText>Loading forecast data...</MudText>
 }
 else if (!string.IsNullOrEmpty(errorMessage))
@@ -95,34 +98,89 @@ else
 {
     <MudPaper Class="pa-4 mb-4">
         <MudText Typo="Typo.h6" Class="mb-3">GIT and WIP Over Time</MudText>
-        <MudChart ChartType="ChartType.Line" 
-                  ChartSeries="chartSeries" 
-                  XAxisLabels="chartLabels" 
-                  Width="100%" 
-                  Height="400px" />
+
+        <MudText>Forecast rows: @forecastItems.Count</MudText>
+        <MudText>Chart points: @gitWipChartData.Count</MudText>
+        <MudText>First date: @gitWipChartData.FirstOrDefault()?.Date</MudText>
+        <MudText>First GIT: @gitWipChartData.FirstOrDefault()?.GitBalance</MudText>
+        <MudText>First WIP: @gitWipChartData.FirstOrDefault()?.WipBalance</MudText>
+
+        @if (_chartReady && gitWipChartData.Any())
+        {
+            <ApexChart TItem="GitWipChartItem"
+                       Height="400"
+                       Options="gitWipOptions"
+                       @key="_gitWipChartKey">
+                <ApexPointSeries TItem="GitWipChartItem"
+                                 Items="gitWipChartData"
+                                 Name="GIT Balance"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="x => x.Date"
+                                 YValue="x => (decimal)x.GitBalance" />
+
+                <ApexPointSeries TItem="GitWipChartItem"
+                                 Items="gitWipChartData"
+                                 Name="WIP Balance"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="x => x.Date"
+                                 YValue="x => (decimal)x.WipBalance" />
+            </ApexChart>
+        }
+        else
+        {
+            <MudText>No forecast chart data available.</MudText>
+        }
     </MudPaper>
 
-    @if (showSafetyStockPartsChart && !string.IsNullOrEmpty(selectedPartNumber))
+    @if (showSafetyStockPartsChart && !string.IsNullOrWhiteSpace(selectedPartNumber))
     {
         <MudPaper Class="pa-4 mb-4">
             <MudText Typo="Typo.h6" Class="mb-3">Safety Stock (Parts) Over Time</MudText>
-            <MudChart ChartType="ChartType.Line" 
-                      ChartSeries="safetyStockPartsSeries" 
-                      XAxisLabels="chartLabels" 
-                      Width="100%" 
-                      Height="400px" />
+
+            @if (_chartReady && safetyStockPartsData.Any())
+            {
+                <ApexChart TItem="SafetyStockPartsChartItem"
+                           Height="400"
+                           Options="safetyStockPartsOptions"
+                           @key="_safetyStockPartsChartKey">
+                    <ApexPointSeries TItem="SafetyStockPartsChartItem"
+                                     Items="safetyStockPartsData"
+                                     Name="Safety Stock Parts"
+                                     SeriesType="SeriesType.Line"
+                                     XValue="x => x.Date"
+                                     YValue="x => (decimal)x.SafetyStockParts" />
+                </ApexChart>
+            }
+            else
+            {
+                <MudText>No safety stock parts data available.</MudText>
+            }
         </MudPaper>
     }
 
-    @if (showSafetyStockLeadTimeChart && !string.IsNullOrEmpty(selectedPartNumber))
+    @if (showSafetyStockLeadTimeChart && !string.IsNullOrWhiteSpace(selectedPartNumber))
     {
         <MudPaper Class="pa-4 mb-4">
             <MudText Typo="Typo.h6" Class="mb-3">Safety Stock Lead Time Over Time</MudText>
-            <MudChart ChartType="ChartType.Line" 
-                      ChartSeries="safetyStockLeadTimeSeries" 
-                      XAxisLabels="chartLabels" 
-                      Width="100%" 
-                      Height="400px" />
+
+            @if (_chartReady && safetyStockLeadTimeData.Any())
+            {
+                <ApexChart TItem="SafetyStockLeadTimeChartItem"
+                           Height="400"
+                           Options="safetyStockLeadTimeOptions"
+                           @key="_safetyStockLeadTimeChartKey">
+                    <ApexPointSeries TItem="SafetyStockLeadTimeChartItem"
+                                     Items="safetyStockLeadTimeData"
+                                     Name="Safety Stock Lead Time"
+                                     SeriesType="SeriesType.Line"
+                                     XValue="x => x.Date"
+                                     YValue="x => (decimal)x.SafetyStockLeadTime" />
+                </ApexChart>
+            }
+            else
+            {
+                <MudText>No safety stock lead time data available.</MudText>
+            }
         </MudPaper>
     }
 
@@ -151,79 +209,124 @@ else
 @code {
     private List<ForecastItem> forecastItems = new();
     private bool isLoading = true;
+    private bool _chartReady;
     private string errorMessage = string.Empty;
+
     private int selectedMonths = 3;
     private string? selectedPartNumber;
     private string? selectedMfgCode;
-    private List<ChartSeries> chartSeries = new();
-    private string[] chartLabels = Array.Empty<string>();
+
     private bool showSafetyStockPartsChart = false;
     private bool showSafetyStockLeadTimeChart = false;
-    private List<ChartSeries> safetyStockPartsSeries = new();
-    private List<ChartSeries> safetyStockLeadTimeSeries = new();
 
-    // Digital Twin Parameters
     private double demandMultiplier = 1.0;
     private int leadTimeShiftDays = 0;
     private double? ssOverrideParts = null;
     private double? ssOverrideLeadTime = null;
+
+    private List<GitWipChartItem> gitWipChartData = new();
+    private List<SafetyStockPartsChartItem> safetyStockPartsData = new();
+    private List<SafetyStockLeadTimeChartItem> safetyStockLeadTimeData = new();
+
+    private Guid _gitWipChartKey = Guid.NewGuid();
+    private Guid _safetyStockPartsChartKey = Guid.NewGuid();
+    private Guid _safetyStockLeadTimeChartKey = Guid.NewGuid();
+
+    private ApexChartOptions<GitWipChartItem> gitWipOptions =
+        CreateLineOptions<GitWipChartItem>("Date", "Balance");
+
+    private ApexChartOptions<SafetyStockPartsChartItem> safetyStockPartsOptions =
+        CreateLineOptions<SafetyStockPartsChartItem>("Date", "Safety Stock Parts");
+
+    private ApexChartOptions<SafetyStockLeadTimeChartItem> safetyStockLeadTimeOptions =
+        CreateLineOptions<SafetyStockLeadTimeChartItem>("Date", "Lead Time (Days)");
 
     protected override async Task OnInitializedAsync()
     {
         await LoadForecastData();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _chartReady = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     private async Task LoadForecastData()
     {
         isLoading = true;
         errorMessage = string.Empty;
+
         try
         {
-            forecastItems = await ForecastService.GetForecastDataAsync(siteFilter: null, partNumberFilter: selectedPartNumber, mfgCodeFilter: selectedMfgCode, months: selectedMonths, demandMultiplier: demandMultiplier, leadTimeShiftDays: leadTimeShiftDays, ssOverrideParts: ssOverrideParts, ssOverrideLeadTime: ssOverrideLeadTime);
+            forecastItems = await ForecastService.GetForecastDataAsync(
+                siteFilter: null,
+                partNumberFilter: selectedPartNumber,
+                mfgCodeFilter: selectedMfgCode,
+                months: selectedMonths,
+                demandMultiplier: demandMultiplier,
+                leadTimeShiftDays: leadTimeShiftDays,
+                ssOverrideParts: ssOverrideParts,
+                ssOverrideLeadTime: ssOverrideLeadTime);
 
-            // Prepare chart data
-            var aggregatedData = forecastItems
-                .GroupBy(x => x.Date)
-                .Select(g => new
+            gitWipChartData = forecastItems
+                .GroupBy(x => x.Date.Date)
+                .Select(g => new GitWipChartItem
                 {
                     Date = g.Key,
-                    GitTotal = g.Sum(x => x.Git_Balance),
-                    WipTotal = g.Sum(x => x.Wip_Balance)
+                    GitBalance = g.Sum(x => (double)x.Git_Balance),
+                    WipBalance = g.Sum(x => (double)x.Wip_Balance)
                 })
                 .OrderBy(x => x.Date)
                 .ToList();
 
-            chartLabels = aggregatedData.Select(x => x.Date.ToShortDateString()).ToArray();
-            chartSeries = new List<ChartSeries>
+            if (!string.IsNullOrWhiteSpace(selectedPartNumber))
             {
-                new ChartSeries { Name = "GIT Balance", Data = aggregatedData.Select(x => (double)x.GitTotal).ToArray() },
-                new ChartSeries { Name = "WIP Balance", Data = aggregatedData.Select(x => (double)x.WipTotal).ToArray() }
-            };
+                var ssData = forecastItems
+                    .Where(x => x.Part_Number == selectedPartNumber)
+                    .OrderBy(x => x.Date)
+                    .ToList();
 
-            // Prepare safety stock charts if part number is selected
-            if (!string.IsNullOrEmpty(selectedPartNumber))
-            {
-                var ssData = forecastItems.OrderBy(x => x.Date).ToList();
-                
-                // Find the last known safety stock parts value to extend into the future
-                var lastPartsValue = ssData.LastOrDefault(x => x.Safety_Stock_Nr_Of_Parts.HasValue)?.Safety_Stock_Nr_Of_Parts ?? 0;
-                safetyStockPartsSeries = new List<ChartSeries>
-                {
-                    new ChartSeries { Name = "Safety Stock Parts", Data = ssData.Select(x => (double)(x.Safety_Stock_Nr_Of_Parts ?? lastPartsValue)).ToArray() }
-                };
-                
-                // Find the last known safety stock lead time value to extend into the future
-                var lastLeadTimeValue = ssData.LastOrDefault(x => x.Safety_Stock_Lead_Time.HasValue)?.Safety_Stock_Lead_Time ?? 0;
-                safetyStockLeadTimeSeries = new List<ChartSeries>
-                {
-                    new ChartSeries { Name = "Safety Stock Lead Time", Data = ssData.Select(x => (double)(x.Safety_Stock_Lead_Time ?? lastLeadTimeValue)).ToArray() }
-                };
+                var lastPartsValue = ssData
+                    .LastOrDefault(x => x.Safety_Stock_Nr_Of_Parts.HasValue)?
+                    .Safety_Stock_Nr_Of_Parts ?? 0;
+
+                safetyStockPartsData = ssData
+                    .GroupBy(x => x.Date.Date)
+                    .Select(g => new SafetyStockPartsChartItem
+                    {
+                        Date = g.Key,
+                        SafetyStockParts = Convert.ToDouble(
+                            g.LastOrDefault(x => x.Safety_Stock_Nr_Of_Parts.HasValue)?.Safety_Stock_Nr_Of_Parts ?? lastPartsValue)
+                    })
+                    .OrderBy(x => x.Date)
+                    .ToList();
+
+                var lastLeadTimeValue = ssData
+                    .LastOrDefault(x => x.Safety_Stock_Lead_Time.HasValue)?
+                    .Safety_Stock_Lead_Time ?? 0;
+
+                safetyStockLeadTimeData = ssData
+                    .GroupBy(x => x.Date.Date)
+                    .Select(g => new SafetyStockLeadTimeChartItem
+                    {
+                        Date = g.Key,
+                        SafetyStockLeadTime = Convert.ToDouble(
+                            g.LastOrDefault(x => x.Safety_Stock_Lead_Time.HasValue)?.Safety_Stock_Lead_Time ?? lastLeadTimeValue)
+                    })
+                    .OrderBy(x => x.Date)
+                    .ToList();
             }
             else
             {
-                safetyStockPartsSeries.Clear();
-                safetyStockLeadTimeSeries.Clear();
+                safetyStockPartsData.Clear();
+                safetyStockLeadTimeData.Clear();
             }
+
+            RegenerateChartKeys();
         }
         catch (Exception ex)
         {
@@ -232,7 +335,75 @@ else
         finally
         {
             isLoading = false;
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private void RegenerateChartKeys()
+    {
+        _gitWipChartKey = Guid.NewGuid();
+        _safetyStockPartsChartKey = Guid.NewGuid();
+        _safetyStockLeadTimeChartKey = Guid.NewGuid();
+    }
+
+    private static ApexChartOptions<T> CreateLineOptions<T>(string xTitle, string yTitle) where T : class
+    {
+        return new ApexChartOptions<T>
+        {
+            Chart = new Chart
+            {
+                Toolbar = new Toolbar { Show = true },
+                Zoom = new Zoom { Enabled = true }
+            },
+            Xaxis = new XAxis
+            {
+                Type = XAxisType.Datetime,
+                Title = new AxisTitle { Text = xTitle },
+                Labels = new XAxisLabels
+                {
+                    DatetimeFormatter = new DatetimeFormatter
+                    {
+                        Day = "dd MMM",
+                        Month = "MMM yyyy"
+                    }
+                }
+            },
+            Yaxis = new List<YAxis>
+            {
+                new YAxis
+                {
+                    Title = new AxisTitle { Text = yTitle }
+                }
+            },
+            Stroke = new Stroke
+            {
+                Curve = Curve.Smooth,
+                Width = 2
+            },
+            Tooltip = new Tooltip
+            {
+                X = new TooltipX { Format = "dd MMM yyyy" }
+            },
+            Colors = new List<string> { "#5E81AC", "#BF616A", "#A3BE8C", "#EBCB8B", "#B48EAD", "#88C0D0" }
+        };
+    }
+
+    public class GitWipChartItem
+    {
+        public DateTime Date { get; set; }
+        public double GitBalance { get; set; }
+        public double WipBalance { get; set; }
+    }
+
+    public class SafetyStockPartsChartItem
+    {
+        public DateTime Date { get; set; }
+        public double SafetyStockParts { get; set; }
+    }
+
+    public class SafetyStockLeadTimeChartItem
+    {
+        public DateTime Date { get; set; }
+        public double SafetyStockLeadTime { get; set; }
     }
 }
