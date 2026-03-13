@@ -7,9 +7,6 @@ using PartTracker.Components;
 using PartTracker.Models;
 using PartTracker;
 using MudBlazor.Services;
-// using PartTracker.Shared.Variables;
-// using PartTracker.Shared.Functions;
-// using PartTracker.Configurations;
 using PartTracker.Shared.Services;
 // using PartTracker.Components.Pages.PartTracker.Avdelningar.TA.Cyclic;
 
@@ -42,21 +39,14 @@ builder.Services.AddDbContext<AutomationDbContext>(options =>
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddScoped<ProtectedSessionStorage>();
-// builder.Services.AddScoped<UserSession>();
-// builder.Services.AddScoped<GlobalVariables>();
-// builder.Services.AddScoped<DataTimer>();
-// builder.Services.AddSingleton<DashboardTimerService>();
 builder.Services.AddControllers();
 builder.Services.AddMudServices();
 // builder.Services.AddSingleton<TopasMaterialInterceptor>();
 builder.Services.AddHttpClient();
-// builder.Services.AddScoped<TaPartSearchEngine>();
 
 // Excel import service
 builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
 builder.Services.AddScoped<ExcelImportService>();
-// Temporarily disabled to avoid Excel import errors while testing Snowflake
-// builder.Services.AddHostedService<ExcelSyncBackgroundService>();
 
 // Snowflake service
 builder.Services.AddScoped<PartTracker.Shared.Services.SnowflakeService>();
@@ -125,25 +115,6 @@ app.Use(async (context, next) =>
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        // var error = new SystemError
-        // {
-        //     Message = ex.Message,
-        //     StackTrace = ex.StackTrace ?? "",
-        //     Source = ex.Source ?? "",
-        //     Path = context.Request.Path,
-        //     TimeStamp = DateTime.Now,
-        //     Handled = false
-        // };
-
-        // try
-        // {
-        //     db.SystemError.Add(error); // Singular DbSet<SystemError>
-        //     await db.SaveChangesAsync();
-        // }
-        // catch (Exception logEx)
-        // {
-        //     Console.WriteLine("Failed to log exception: " + logEx.Message);
-        // }
         Console.WriteLine($"Exception: {ex.Message}");
 
         if (app.Environment.IsDevelopment())
