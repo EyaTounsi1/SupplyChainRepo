@@ -1,30 +1,99 @@
+
 @page "/ad-hoc/monthly-report-out"
 
-<PageTitle>Monthly Report Out</PageTitle>
+@using System
+@using Microsoft.AspNetCore.Components.Forms
+@using PartTracker.Models
+@inject IServiceProvider ServiceProvider
 
 <h3>Monthly Report Out</h3>
 
-<p>
-    Below is the visual flow for the monthly report out process:
-</p>
-
-<div style="max-width:700px;margin:auto;">
-    <div class="mermaid">
-        graph LR
-            A[Get Actuals from Camilla] --> B[Add modifications from last month]
-            B --> C[Send to Thomas]
-            C --> D[Thomas updates Power BI before meeting consolidating all plants]
-            D --> E[SCC manager adds comments on clip]
+<EditForm Model="@reportOut" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="mb-3">
+        <label>Forecast this month (shifts):</label>
+        <InputNumber @bind-Value="reportOut.ForecastThisMonth" class="form-control" />
     </div>
-</div>
+    <div class="mb-3">
+        <label>New Anticipation stock in shifts:</label>
+        <InputNumber @bind-Value="reportOut.NewAnticipationStockInShifts" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>New Lead time (days):</label>
+        <InputNumber @bind-Value="reportOut.NewLeadTime" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Part number:</label>
+        <InputText @bind-Value="reportOut.PartNumber" class="form-control" />
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</EditForm>
 
-<p style="margin-top:2em;">
-    <strong>Steps:</strong>
-    <ol>
-        <li>Get Actuals from Camilla</li>
-        <li>Add modifications from last month</li>
-        <li>Send to Thomas</li>
-        <li>Thomas updates Power BI before meeting consolidating all plants</li>
-        <li>SCC manager adds comments on clip</li>
-    </ol>
-</p>
+<hr />
+
+@if (showResults)
+{
+    <div class="alert alert-info">
+        <b>Forecasted:</b> @forecastedMSEK.ToString("F2") MSEK<br />
+        <b>Actuals:</b> @actualsMSEK.ToString("F2") MSEK<br />
+        <b>Deviation:</b> @(deviationMSEK.ToString("F2")) MSEK
+    </div>
+}
+
+@code {
+    private ReportOutModel reportOut = new();
+    private bool showResults = false;
+    private double forecastedMSEK;
+    private double actualsMSEK;
+    private double deviationMSEK;
+
+    private async void HandleValidSubmit()
+    {
+        // Log timestamp automatically
+        reportOut.Timestamp = DateTime.Now;
+
+        // Save to AutomationDb.ReportOut
+        using (var scope = ServiceProvider.CreateScope())
+        {
+            var db = (AutomationDbContext)scope.ServiceProvider.GetService(typeof(AutomationDbContext));
+            if (db != null)
+            {
+                var entity = new ReportOut
+                {
+                    ForecastThisMonth = reportOut.ForecastThisMonth,
+                    NewAnticipationStockInShifts = reportOut.NewAnticipationStockInShifts,
+                    NewLeadTime = reportOut.NewLeadTime,
+                    PartNumber = reportOut.PartNumber,
+                    Timestamp = reportOut.Timestamp
+                };
+                db.ReportOuts.Add(entity);
+                await db.SaveChangesAsync();
+            }
+        }
+
+        // Generate random normal values for forecasted and actuals (mean=100, stddev=10)
+        var rand = new Random();
+        double NextNormal(double mean, double stddev)
+        {
+            // Box-Muller transform
+            var u1 = 1.0 - rand.NextDouble();
+            var u2 = 1.0 - rand.NextDouble();
+            var randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
+            return mean + stddev * randStdNormal;
+        }
+        forecastedMSEK = NextNormal(100, 10);
+        actualsMSEK = NextNormal(100, 10);
+        deviationMSEK = forecastedMSEK - actualsMSEK;
+        showResults = true;
+    }
+
+    public class ReportOutModel
+    {
+        public double ForecastThisMonth { get; set; }
+        public double NewAnticipationStockInShifts { get; set; }
+        public double NewLeadTime { get; set; }
+        public string PartNumber { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+    }
+}
